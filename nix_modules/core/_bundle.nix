@@ -1,9 +1,8 @@
 { pkgs, ... }:
 {
     imports = [
- 
+    ./core.nix
     ./host-users.nix
-    ./system.nix
     ./ssh.nix
     ./fonts.nix
   ];
@@ -22,9 +21,6 @@
   system = {
     stateVersion = "25.05";
   };
-
-  # Add ability to used TouchID for sudo authentication
-  security.pam.enableSudoTouchIdAuth = true;
 
 
 

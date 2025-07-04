@@ -15,6 +15,9 @@
       pkgs.xdg-desktop-portal-gtk	  # Standard handler
       pkgs.gnome-keyring		      # for some apps
     ];
+  
+    # TODO: do something better here
+    config.common.default = "*";
   };
 
   environment = {
@@ -22,6 +25,8 @@
       NIXOS_OZONE_WL = "1"; # Wayland support for chromium based apps
     };
   };
+
+  
 
   # gnome secrets vault
   services.gnome.gnome-keyring.enable = true;

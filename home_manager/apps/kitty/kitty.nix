@@ -16,6 +16,7 @@
             font.size = 14;
         };
 
+        home.sessionVariables.TERMINAL = "kitty";
       
     };
 }

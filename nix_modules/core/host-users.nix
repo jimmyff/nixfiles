@@ -16,6 +16,8 @@
   users.users."${username}"= {
     home = "/Users/${username}";
     description = username;
+    isNormalUser = true;
+    extraGroups = [ "networkmanager" "wheel" ];
   };
 
   nix.settings.trusted-users = [ username ];

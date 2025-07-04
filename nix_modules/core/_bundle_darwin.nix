@@ -1,7 +1,7 @@
 { pkgs, username, ... }:
 {
   imports = [
- 
+    ./core.nix
     ./host-users.nix
     ./ssh.nix
     ./fonts.nix

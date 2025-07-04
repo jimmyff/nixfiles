@@ -29,8 +29,11 @@ Work in progress repo for nix files, configs, scripts etc.
 
 ```shell
 
+# Rebuild nixelbook
+sudo nixos-rebuild dry-run|switch --flake /etc/nixos#nixelbook
+
 # Rebuild macbook via darwin
-sudo darwin-rebuild check --flake ~/nixfiles/#jimmyff-mbp14
+sudo darwin-rebuild check|switch --flake ~/nixfiles/#jimmyff-mbp14
 
 
 ```

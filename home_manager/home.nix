@@ -1,10 +1,12 @@
-{ username, ... }:
+{ lib, username, ... }:
 
 {
   # import sub modules
   imports = [
     ./apps/catppuccin.nix
-    ./apps/default.nix
+    ./apps/_bundle.nix
+
+    ./desktop/_bundle.nix
   ];
 
   # Core
@@ -14,8 +16,6 @@
   # paths it should manage.
   home = {
     username = username;
-    homeDirectory = "/home/${username}";
-
     stateVersion = "25.05";
   };
 

@@ -19,7 +19,7 @@
     self, 
     nixpkgs, 
     nix-darwin, 
-    home-manager, 
+    home-manager,
     ... 
   } : let 
     username = "jimmyff";
@@ -32,17 +32,24 @@
 
       # Jimmy's Pixelbook
       nixelbook = nixpkgs.lib.nixosSystem {
-        specialArgs = { inherit inputs username; };
-        modules = [
+        inherit specialArgs;
 
-          # might not be needed
-          inputs.home-manager.nixosModules.home-manager
+        modules = [
 
           inputs.catppuccin.nixosModules.catppuccin
 
-          ../hosts/nixelbook/configuration.nix
+          ./hosts/nixelbook/configuration.nix
+
           ./nix_modules/core/_bundle.nix
           ./nix_modules/desktop/_bundle.nix
+
+          inputs.home-manager.nixosModules.home-manager
+          {
+            home-manager.useGlobalPkgs = true;
+            home-manager.useUserPackages = true;
+            home-manager.extraSpecialArgs = specialArgs;
+            home-manager.users.${username} = import ./home_manager/home.nix;
+          }
         ];
       };
       homeManagerModules.default = ./home;
