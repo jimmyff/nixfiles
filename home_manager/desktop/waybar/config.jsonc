@@ -1,0 +1,177 @@
+{
+    "layer": "top",
+    "position": "top",
+    "height": 24,
+    "spacing": 4,
+
+    "modules-left": [
+        "sway/workspaces", 
+        "sway/mode",
+        "sway/scratchpad",
+        
+    ],
+    "modules-center": ["clock"],
+    "modules-right": [
+        "wireplumber", 
+        "cpu",
+        "memory",
+        "temperature",
+        "backlight",
+        //"sway/language", 
+        //"idle_inhibitor", 
+        "network", 
+        "bluetooth", 
+        "battery", 
+        "tray"
+    ],
+
+    //"hyprland/workspaces": {
+    //    "format": "{icon}",
+    //    "on-click": "activate",
+    //    "format-icons": {
+    //        "active": "\uf444",
+    //        "default": "\uf4c3"
+    //    },
+    //    "icon-size": 10,
+    //    "sort-by-number": true,
+    //    "persistent-workspaces": {
+    //        "1": [],
+    //        "2": [],
+    //        "3": [],
+    //        "4": [],
+    //        "5": [],
+    //    }
+    //},
+
+    "sway/workspaces": {
+        "format": "{icon}",
+        "on-click": "activate",
+        "format-icons": {
+            "active": "\uf444",
+            "default": "\uf4c3"
+        },
+        "icon-size": 16,
+        "sort-by-number": true,
+        "persistent-workspaces": {
+            "1": [],
+            "2": [],
+            "3": [],
+            "4": [],
+            "5": [],
+        }
+    },
+
+    "sway/mode": {
+        "format": "{}"
+    },
+    "sway/scratchpad": {
+        "format": "{icon}  r{count}",
+        "show-empty": false,
+        "format-icons": ["", ""],
+        "tooltip": true,
+        "tooltip-format": "{app}: {title}"
+    },
+
+    "clock": {
+        "format": "{:%d.%m.%Y | %H:%M}"
+    },
+
+    "wireplumber": {
+        "format": "\udb81\udd7e {volume}%",
+        "max-volume": 100,
+        "scroll-step": 5
+    },
+
+    "battery": {
+        "bat": "BAT0",
+        "interval": 60,
+        "format": "{icon}  {capacity}%",
+        "format-icons": ["\uf244", "\uf243", "\uf242", "\uf241", "\uf240"],
+        "states": {
+            "warning": 30,
+            "critical": 15
+        }
+    },
+    "cpu": {
+        "icon-size" : 16,
+        "format": "  {usage}%",
+        "tooltip": false,
+        "states": {
+            "warning": 80,
+            "critical": 95
+        }
+    },
+    "memory": {
+        "icon-size" : 16,
+        "interval": 30,
+        "format": "\uf4bc  {percentage}%",
+        "states": {
+            "warning": 60,
+            "critical": 85
+        }
+    },
+
+    "temperature": {
+        "icon-size" : 16,
+        // "format-icons": ["", "", ""]
+        "format": "{temperatureC}°C",
+        "critical-threshold": 80
+    },
+    //"backlight": {
+    //    // "device": "acpi_video1",
+    //    "format": "{percent}% {icon}",
+    //    "format-icons": ["", "", "", "", "", "", "", "", ""]
+    //},
+
+    "network": {
+        "icon-size" : 16,
+        "format": "",
+        "format-ethernet": "\udb83\udc9d",
+        "format-wifi": "{icon}",
+        "format-disconnected": "\udb83\udc9c",
+        "format-icons": ["\udb82\udd2f", "\udb82\udd1f", "\udb82\udd22", "\udb82\udd25", "\udb82\udd28"],
+        "tooltip-format-wifi": "{essid} ({signalStrength}%)",
+        "tooltip-format-ethernet": "{ifname}",
+        "tooltip-format-disconnected": "Disconnected",
+    },
+
+    "bluetooth": {
+        "icon-size" : 16,
+        "format": "\udb80\udcaf",
+        "format-disabled": "\udb80\udcb2",
+        "format-connected": "\udb80\udcb1",
+        "tooltip-format": "{controller_alias}\t{controller_address}",
+        "tooltip-format-connected": "{controller_alias}\t{controller_address}\n\n{device_enumerate}",
+        "tooltip-format-enumerate-connected": "{device_alias}\t{device_address}"
+    },
+
+    "sway/language": {
+        "format": "{short}"
+    },
+
+    "tray": {
+        "icon-size": 16,
+        "spacing": 16
+    },
+
+    //"custom/platform-profile": {
+	//"format": "{icon} ",
+	//"exec": "~/.config/waybar/platform_profile.sh",
+	//"return-type": "json",
+	//"restart-interval": 1,
+	//"format-icons": {
+	//    "quiet": "\udb80\udf2a",
+	//    "balanced": "\udb80\ude10",
+	//    "performance": "\uf427",
+    //        "default": "?"
+	//},
+    //},
+
+    "idle_inhibitor": {
+        "format": "{icon}",
+        "format-icons": {
+            "activated": "\udb80\udd76",
+            "deactivated": "\udb83\udfaa"
+        }
+    }
+}
