@@ -5,8 +5,7 @@
     ./greeter/greetd.nix
     ./sound.nix
     ./power.nix
+    ./sway.nix
   ];
-
-
 
 }

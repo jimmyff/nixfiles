@@ -1,10 +1,7 @@
-# Sway module
-{ pkgs, lib, config, ... }: {
+{ pkgs, lib, config, inputs, ... }: {
 
     options = {
-
         sway_module.enable = lib.mkEnableOption "enables sway_module";
-
     };
 
     config = lib.mkIf config.sway_module.enable {
@@ -17,8 +14,5 @@
 
       catppuccin.swaylock.enable = true;
 
-
     };
-
-
 }

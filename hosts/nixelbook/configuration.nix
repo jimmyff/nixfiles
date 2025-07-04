@@ -7,5 +7,7 @@
     ];
 
   networking.hostName = "nixelbook";
+
+
  
 }
