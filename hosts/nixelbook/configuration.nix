@@ -1,4 +1,4 @@
-{ config, pkgs, lib, inputs, ... }:
+{ config, pkgs, lib, inputs, username, ... }:
 
 {
   imports =
@@ -7,7 +7,6 @@
     ];
 
   networking.hostName = "nixelbook";
-
 
  
 }

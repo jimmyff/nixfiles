@@ -8,4 +8,5 @@
     ./sway.nix
   ];
 
+  sway_module.enable = lib.mkDefault true;
 }

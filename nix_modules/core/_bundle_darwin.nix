@@ -2,7 +2,8 @@
 {
   imports = [
     ./core.nix
-    ./host-users.nix
+    ./apps.nix
+    ./users_darwin.nix
     ./ssh.nix
     ./fonts.nix
   ];
