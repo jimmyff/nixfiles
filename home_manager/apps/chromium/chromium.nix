@@ -16,6 +16,7 @@
                 "nngceckbapebfimnlniiiahkandclblb" # bitwarden
                 "eljbmlghnomdjgdjmbdekegdkbabckhm" # Dart debug
                 "dbepggeogbaibhgnhhndojpepiihcmeb" # vimium
+                "bkkmolkhemgaeaeggcmfbghljjjoofoh" # catppuccin theme
             ];
         };
 
