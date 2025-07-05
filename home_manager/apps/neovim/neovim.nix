@@ -26,7 +26,7 @@
                 };
 
                 spellcheck = {
-                enable = true;
+                    enable = true;
                 };
 
                 lsp = {
@@ -63,15 +63,15 @@
                     markdown.enable = true;
 
                    
-                    css.enable = true;
-                    html.enable = true;
-                    sql.enable = true;
-                    go.enable = true;
-                    lua.enable = true;
-                    rust = {
-                        enable = true;
-                        crates.enable = true;
-                    };
+                    #css.enable = true;
+                    #html.enable = true;
+                    #sql.enable = true;
+                    #go.enable = true;
+                    #lua.enable = true;
+                    #rust = {
+                    #    enable = true;
+                    #    crates.enable = true;
+                    #};
                     nu.enable = false;
                     dart.enable = false;
                 };
@@ -124,7 +124,7 @@
                 };
 
                 tabline = {
-                nvimBufferline.enable = true;
+                    nvimBufferline.enable = true;
                 };
 
                 treesitter.context.enable = true;
@@ -161,25 +161,25 @@
                 };
 
                 utility = {
-                ccc.enable = false;
-                vim-wakatime.enable = false;
-                diffview-nvim.enable = true;
-                yanky-nvim.enable = false;
-                icon-picker.enable = true;
-                surround.enable = true;
-                leetcode-nvim.enable = true;
-                multicursors.enable = true;
-                smart-splits.enable = false;
+                    ccc.enable = false;
+                    vim-wakatime.enable = false;
+                    diffview-nvim.enable = true;
+                    yanky-nvim.enable = false;
+                    icon-picker.enable = true;
+                    surround.enable = true;
+                    leetcode-nvim.enable = true;
+                    multicursors.enable = true;
+                    smart-splits.enable = false;
 
-                motion = {
-                    hop.enable = true;
-                    leap.enable = true;
-                    precognition.enable = true;
-                };
-                images = {
-                    image-nvim.enable = false;
-                    img-clip.enable = true;
-                };
+                    motion = {
+                        hop.enable = true;
+                        leap.enable = true;
+                        precognition.enable = true;
+                    };
+                    images = {
+                        image-nvim.enable = false;
+                        img-clip.enable = true;
+                    };
                 };
 
                 notes = {
@@ -231,19 +231,19 @@
                 };
 
                 session = {
-                nvim-session-manager.enable = false;
+                    nvim-session-manager.enable = false;
                 };
 
                 gestures = {
-                gesture-nvim.enable = false;
+                    gesture-nvim.enable = false;
                 };
 
                 comments = {
-                comment-nvim.enable = true;
+                    comment-nvim.enable = true;
                 };
 
                 presence = {
-                neocord.enable = false;
+                    neocord.enable = false;
                 };
             };
       
