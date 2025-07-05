@@ -7,6 +7,7 @@
     ./ghostty/ghostty.nix
     ./chromium/chromium.nix
     ./vscode/vscode.nix
+    ./nu/nu.nix
 
   ];
 

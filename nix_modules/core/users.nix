@@ -1,5 +1,5 @@
 
-{ hostname, username, ... }:
+{ pkgs, hostname, username, ... }:
 
 #############################################################
 #
@@ -18,6 +18,7 @@
     description = username;
     isNormalUser = true;
     extraGroups = [ "networkmanager" "wheel" ];
+    shell = pkgs.nushell;
   };
 
   nix.settings.trusted-users = [ username ];
