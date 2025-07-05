@@ -3,7 +3,6 @@
 
     // General
     "security.workspace.trust.untrustedFiles": "open",
-    "window.commandCenter": true,
     "explorer.confirmDelete": false,
     "extensions.ignoreRecommendations": true,
     "editor.suggestSelection": "first",
@@ -18,13 +17,19 @@
     "workbench.preferredDarkColorTheme": "Default High Contrast",
     "workbench.sideBar.location": "right",
     "workbench.statusBar.visible": true,
-    "window.titleBarStyle": "custom",
     "breadcrumbs.enabled": true,    
     "workbench.activityBar.location": "top",
     "workbench.colorTheme": "Default Dark Modern",
     "breadcrumbs.filePath": "last",
     // "editor.renderLineHighlightOnlyWhenFocus": true,
     "editor.renderLineHighlight": "gutter",
+
+    // get rid of window border + title bar
+    "workbench.layoutControl.enabled": false,
+    "window.dialogStyle": "custom",
+    "window.menuBarVisibility": "compact",
+    "window.titleBarStyle": "native",
+    "window.experimentalControlOverlay": false,
 
     // Custom colors to make focus easier to see
     "workbench.colorCustomizations": {
@@ -278,6 +283,6 @@
     "workbench.editorAssociations": {
         "*.svg": "default"
     },
+
     "diffEditor.codeLens": true
-    // unsorted
 }
