@@ -12,13 +12,16 @@
 
   config = lib.mkIf config.catppuccin_module.enable {
 
-    home.packages = [
-        pkgs.catppuccin-gtk    # theme
-    ];
 
     catppuccin.enable = true;
     catppuccin.flavor = "mocha"; 
     catppuccin.kitty.enable = true; 
+    catppuccin.sway.enable = true;
+    catppuccin.swaylock.enable = true;
+
+    catppuccin.gtk.enable = true;
+    
+
   };
 
 }
