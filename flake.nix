@@ -15,10 +15,14 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    # home-manager
     home-manager = {
       url = "github:nix-community/home-manager";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    # nix hardware
+    nixos-hardware.url = "github:NixOS/nixos-hardware/master";
   };
 
   outputs = inputs @ { 
@@ -26,6 +30,7 @@
     nixpkgs, 
     nix-darwin, 
     home-manager,
+    nixos-hardware,
     ... 
   } : let 
     username = "jimmyff";
@@ -43,6 +48,9 @@
         modules = [
 
           inputs.catppuccin.nixosModules.catppuccin
+
+          # add from this list: https://github.com/NixOS/nixos-hardware/blob/master/flake.nix
+          nixos-hardware.nixosModules.google-pixelbook
 
           ./hosts/nixelbook/configuration.nix
 
