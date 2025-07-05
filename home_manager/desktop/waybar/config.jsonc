@@ -88,7 +88,7 @@
         "format": "{icon}  {capacity}%",
         "format-icons": ["\uf244", "\uf243", "\uf242", "\uf241", "\uf240"],
         "states": {
-            "warning": 30,
+            "warning": 40,
             "critical": 15
         }
     },
@@ -97,8 +97,8 @@
         "format": "  {usage}%",
         "tooltip": false,
         "states": {
-            "warning": 80,
-            "critical": 95
+            "warning": 70,
+            "critical": 90
         }
     },
     "memory": {

@@ -1,8 +1,16 @@
 @define-color foreground #eeeeee;
-@define-color foreground-charging #26A65B;
+@define-color foreground-charging #00FF66;
+@define-color foreground-warning #FFFF00;
+@define-color foreground-critical #FF0000;
+
+@define-color foreground-active #00FFFF;
+
+
+
 @define-color foreground-inactive #555555;
 @define-color background #000000;
 @define-color background-hover #111111;
+@define-color background-attention #660000;
 
 
 * {
@@ -24,7 +32,8 @@ window#waybar {
 label.module {
     padding: 0 4px;
 }
-box.module button:hover {
+button:hover {
+    color: @foreground;
     background-color: @background-hover;
 }
 
@@ -36,30 +45,22 @@ box.module button:hover {
 #workspaces button.empty {
     color: @foreground-inactive;
 }
-
-#memory,
-#custom-platform-profile {
-
+#workspaces button.active {
+    color: @foreground-active;
+}
+#workspaces button.urgent {
+    background-color: @background-attention;
 }
 
-#wireplumber,
-#battery,
-#idle_inhibitor,
-#language,
-#network,
-#bluetooth,
-#tray {
-
-}
 
 .charging {
     color: @foreground-charging;
 }
 
 .warning:not(.charging) {
-    color: #f56c6c;
+    color: @foreground-warning;
 }
 
 .critical:not(.charging) {
-    color: #ff2222;
+    color: @foreground-critical;
 }
