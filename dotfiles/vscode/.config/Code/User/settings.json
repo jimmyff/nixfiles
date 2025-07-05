@@ -11,7 +11,9 @@
 
 
     // Appearance
-    "editor.fontFamily": "Hack",
+    "editor.fontFamily": "JetBrains Nerd Font",
+    "editor.fontSize": 16,
+    "chat.editor.fontSize": 16,
     "workbench.iconTheme": "vs-minimal",
     "workbench.preferredDarkColorTheme": "Default High Contrast",
     "workbench.sideBar.location": "right",
