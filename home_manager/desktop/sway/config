@@ -49,7 +49,7 @@ font pango:JetBrains Nerd Font 14
 # Window borders
 default_border pixel 4
 default_floating_border normal
-hide_edge_borders smart
+# hide_edge_borders smart
 
 #smart_gaps on
 #gaps inner 4

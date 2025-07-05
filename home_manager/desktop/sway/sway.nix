@@ -6,12 +6,19 @@
 
     config = lib.mkIf config.sway_module.enable {
 
+      xdg.configFile."sway/config".source = ./config;
+      xdg.configFile."swaylock/config".source = ./config_swaylock;
+
+      # swaylock
+      programs.swaylock = {
+        enable = true;
+      };
+
       # Enable pointer
       home.pointerCursor.sway.enable = true;
-      xdg.configFile."sway/config".source = ./config;
 
+      # catppuccin
       catppuccin.sway.enable = true;
-
       catppuccin.swaylock.enable = true;
 
     };
