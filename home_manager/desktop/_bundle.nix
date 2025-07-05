@@ -14,8 +14,8 @@
   waybar_module.enable = lib.mkDefault true;
 
   # Launchers
-  rofi_module.enable = lib.mkDefault true;
-  tofi_module.enable = lib.mkDefault false;
+  rofi_module.enable = lib.mkDefault false;
+  tofi_module.enable = lib.mkDefault true;
 
 
   # Cursor

@@ -11,16 +11,25 @@
         programs.tofi = {
             enable = true;
             settings = {
-                background-color = "#000000";
-                border-width = 0;
-                font = "monospace";
+                                
+                prompt-text = ">";
+                prompt-padding = 4;
+                font = "JetBrainsMono Nerd Font";
+                font-size = 16;
                 height = "100%";
-                num-results = 5;
-                outline-width = 0;
-                padding-left = "35%";
-                padding-top = "35%";
-                result-spacing = 25;
                 width = "100%";
+                num-results = 8;
+                outline-width = 0;
+                border-width = 0;
+                padding-left = "35%";
+                padding-top = "30%";
+                result-spacing = 8;
+
+                # Catppuccin Mocha
+                text-color          = "#cdd6f4";
+                prompt-color        = "#f38ba8";
+                selection-color     = "#f9e2af";
+                background-color    = "#1e1e2e";
             };
         };
     };
