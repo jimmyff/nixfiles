@@ -9,7 +9,6 @@
     ./stow.nix
   ];
 
-
   system.primaryUser = username;
 
   # Optimise store
