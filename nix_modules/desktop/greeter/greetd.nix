@@ -12,8 +12,8 @@
         --asterisks \
         --user-menu \
         --cmd sway \
-        --theme "text:cyan;prompt:yellow;input:magenta" \
-        --greeting "jimmyff.co.uk"
+        --theme "text=cyan;prompt=yellow;input=magenta" \
+        --greeting "👋 jimmyff.co.uk // github.com/jimmyff/nixfiles"
     '';
     };
   };
