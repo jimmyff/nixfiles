@@ -6,6 +6,7 @@
     ./sound.nix
     ./power.nix
     ./sway.nix
+    ./thunar.nix
   ];
 
   sway_module.enable = lib.mkDefault true;
