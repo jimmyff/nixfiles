@@ -6,6 +6,8 @@
     ./users.nix
     ./ssh.nix
     ./fonts.nix
+    ./nu.nix
+    ./stow.nix
   ];
 
  

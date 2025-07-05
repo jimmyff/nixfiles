@@ -3,6 +3,7 @@
   # import sub modules
   imports = [
     ./apps/_bundle.nix
+    ./dotfiles.nix
   ];
 
   # Not supported on darwin

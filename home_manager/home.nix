@@ -7,6 +7,7 @@
     ./apps/_bundle.nix
 
     ./desktop/_bundle.nix
+    ./dotfiles.nix
   ];
 
   # Core

@@ -1,4 +1,3 @@
-# Sway module
 { pkgs, lib, config, ... }: {
 
     options = {
