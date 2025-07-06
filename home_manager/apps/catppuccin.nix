@@ -21,6 +21,7 @@
     catppuccin.kitty.enable = true;
     catppuccin.sway.enable = true;
     catppuccin.swaylock.enable = true;
+    catppuccin.btop.enable = true;
 
     catppuccin.gtk.enable = true;
   };

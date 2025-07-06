@@ -4,10 +4,9 @@
 @define-color foreground-critical #FF0000;
 
 @define-color foreground-active #00FFFF;
+@define-color foreground-inactive #888888;
 
 
-
-@define-color foreground-inactive #555555;
 @define-color background #000000;
 @define-color background-hover #111111;
 @define-color background-attention #660000;
@@ -35,6 +34,10 @@ label.module {
 button:hover {
     color: @foreground;
     background-color: @background-hover;
+}
+
+#clock {
+    color: @foreground-inactive;
 }
 
 #workspaces button {
