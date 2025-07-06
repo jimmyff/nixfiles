@@ -4,6 +4,9 @@
   imports =
     [
       ./hardware-configuration.nix
+
+      # nixos specific configuration
+      ../../nix_modules/core/nixos/kanata.nix
     ];
 
   networking.hostName = "nixelbook";
