@@ -27,15 +27,21 @@
     pkgs.vim
     pkgs.wget
     pkgs.neofetch
-    pkgs.btop                     # info
   ];
 
   # TODO: Move this
-  programs = {
-    git = {
+  programs.git = {
       enable = true;
       userName = "jimmyff";
       userEmail = "code@rocketware.co.uk";
+  };
+
+  # btop
+  programs.btop = {
+    enable = true;
+    settings = {
+      #color_theme = "HotPurpleTrafficLight";
+      vim_keys = true;
     };
   };
 
