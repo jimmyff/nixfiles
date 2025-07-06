@@ -17,9 +17,10 @@
                 "eljbmlghnomdjgdjmbdekegdkbabckhm" # Dart debug
                 "dbepggeogbaibhgnhhndojpepiihcmeb" # vimium
                 "bkkmolkhemgaeaeggcmfbghljjjoofoh" # catppuccin theme
+                "fohimdklhhcpcnpmmichieidclgfdmol" # bookmark hub
             ];
         };
 
-        home.sessionVariables.BROWSER = "google-chrome-stable";
+        home.sessionVariables.BROWSER = "chromium";
     };
 }
