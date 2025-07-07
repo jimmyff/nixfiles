@@ -11,6 +11,7 @@ let
         "Lock"
         "Sleep"
         "Reboot"
+        "Logout"
         "Shutdown"
     ]
 
@@ -23,6 +24,7 @@ let
             "Lock" => { swaylock }
             "Sleep" => { ${pkgs.systemd}/bin/systemctl suspend }
             "Reboot" => { ${pkgs.systemd}/bin/systemctl reboot }
+            "Logout" => { swaymsg exit }
             "Shutdown" => { ${pkgs.systemd}/bin/systemctl poweroff }
         }
     }
