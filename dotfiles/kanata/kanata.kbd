@@ -1,14 +1,23 @@
-;; This file contains ONLY your keyboard logic.
-;; All the defsrc, defalias, deflayer blocks go here.
-(defsrc
-  caps a s d f j k l ;
+;; defsrc is still necessary
+(defcfg
+  process-unmapped-keys yes
 )
+
+(defsrc
+  power a s d f j k l ;
+)
+
+;; tap time is the double tap window for key repeats
+;; hold time is the duration to trigger a mod
+
 (defvar
-  tap-time 150
+  tap-time 200
   hold-time 200
 )
+
+;; poweresc is to stop me tapping power accidentally to wake
 (defalias
-  caps (tap-hold 100 100 esc lctl)
+  poweresc (tap-hold 200 2000 esc power)
   a (multi f24 (tap-hold $tap-time $hold-time a lmet))
   s (multi f24 (tap-hold $tap-time $hold-time s lalt))
   d (multi f24 (tap-hold $tap-time $hold-time d lctl))
@@ -18,6 +27,7 @@
   l (multi f24 (tap-hold $tap-time $hold-time l ralt))
   ; (multi f24 (tap-hold $tap-time $hold-time ; rmet))
 )
+
 (deflayer base
-  @caps @a  @s  @d  @f  @j  @k  @l  @;
+  @poweresc @a @s @d @f @j @k @l @;
 )
