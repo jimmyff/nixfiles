@@ -1,10 +1,17 @@
 ;; defsrc is still necessary
 (defcfg
   process-unmapped-keys yes
+  danger-enable-cmd yes
 )
 
+;; Brightness:  f5 (down) f6 (up)
+;; Media:       f7 (play/pause)
+;; Volume:      f8 (mute) f9 (down) f10 (up)
 (defsrc
-  power a s d f j k l ;
+  a s d f j k l ; 
+  f5 f6
+  f7
+  f8 f9 f10
 )
 
 ;; tap time is the double tap window for key repeats
@@ -15,9 +22,8 @@
   hold-time 200
 )
 
-;; poweresc is to stop me tapping power accidentally to wake
+;; wakepower handles power more gracefully
 (defalias
-  poweresc (tap-hold 200 2000 esc power)
   a (multi f24 (tap-hold $tap-time $hold-time a lmet))
   s (multi f24 (tap-hold $tap-time $hold-time s lalt))
   d (multi f24 (tap-hold $tap-time $hold-time d lctl))
@@ -26,8 +32,19 @@
   k (multi f24 (tap-hold $tap-time $hold-time k rctl))
   l (multi f24 (tap-hold $tap-time $hold-time l ralt))
   ; (multi f24 (tap-hold $tap-time $hold-time ; rmet))
+  f5 (multi f24 (tap-hold 200 300 f5 brdown))
+  f6 (multi f24 (tap-hold 200 300 f6 brup))
+  f7 (multi f24 (tap-hold 200 300 f7 MediaPlayPause))
+  f8 (multi f24 (tap-hold 200 300 f8 VolumeMute))
+  f9 (multi f24 (tap-hold 200 300 f9 VolumeDown))
+  f10 (multi f24 (tap-hold 200 300 f10 VolumeUp))
+
+
 )
 
 (deflayer base
-  @poweresc @a @s @d @f @j @k @l @;
+  @a @s @d @f @j @k @l @; 
+  @f5 @f6 
+  @f7
+  @f8 @f9 @f10
 )

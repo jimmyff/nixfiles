@@ -7,6 +7,8 @@
   boot.loader.efi.canTouchEfiVariables = true;
   boot.loader.systemd-boot.configurationLimit = 16;
 
+
+
   # allows sandboxed apps to access resources
   xdg.portal = {
     enable = true;
@@ -27,6 +29,11 @@
   };
 
 
+  # Ignore the power off button
+  services.logind.powerKey = "ignore";
+  services.logind.extraConfig = ''
+    HandlePowerKey=ignore
+  '';
 
   # gnome secrets vault
   services.gnome.gnome-keyring.enable = true;

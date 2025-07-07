@@ -1,4 +1,34 @@
-{ pkgs, lib, config, ... }: {
+{ pkgs, lib, config, ... }: 
+
+let 
+
+  # Jimmy's power menu
+  tofiPowerMenu = pkgs.writeScriptBin "tofi-power-menu" ''
+    #!${pkgs.nushell}/bin/nu
+
+    # A simple list of strings for the menu options
+    let options = [
+        "Lock"
+        "Sleep"
+        "Reboot"
+        "Shutdown"
+    ]
+
+    # Pipe the list to tofi. The `try` block handles the user pressing Esc.
+    try {
+        # `str join` creates the newline-separated string tofi expects
+        let chosen = ($options | str join "\n" | ${pkgs.tofi}/bin/tofi --prompt-text "\u{23fb}")
+
+        match $chosen {
+            "Lock" => { swaylock }
+            "Sleep" => { ${pkgs.systemd}/bin/systemctl suspend }
+            "Reboot" => { ${pkgs.systemd}/bin/systemctl reboot }
+            "Shutdown" => { ${pkgs.systemd}/bin/systemctl poweroff }
+        }
+    }
+  '';
+    in
+    {
 
     options = {
 
@@ -32,5 +62,10 @@
                 background-color    = "#1e1e2e";
             };
         };
+
+
+        home.packages = [
+            tofiPowerMenu
+        ];
     };
 }

@@ -6,10 +6,6 @@
 
     config = lib.mkIf config.chromium_module.enable {
 
-        home.packages = [
-            #pkgs.google-chrome		# browser
-        ];
-
         programs.chromium = {
             enable = true;
             extensions = [
