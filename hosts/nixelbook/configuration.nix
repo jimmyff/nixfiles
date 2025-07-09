@@ -18,9 +18,17 @@
   # I decided to set to keycode: 58	(Logo Left (-> Option))
   # Need to figure out how to configure `sudo setkeycodes e058 58`
 
+
+
+  # Allow the user to control the keyboard backlight brightness
+    services.udev.extraRules = ''
+      SUBSYSTEM=="leds", KERNEL=="chromeos::kbd_backlight", GROUP="video", MODE="0664"
+    '';
+
   # control the brightness of the screen (works with wayland)
   environment.systemPackages = with pkgs; [
     pkgs.brightnessctl
+
   ];
   
   # services.actkbd = {

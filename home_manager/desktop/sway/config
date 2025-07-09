@@ -176,7 +176,31 @@ input type:touchpad {
     # We just use 1-10 as the default.
 
 
-    # Power menu
+
+# --- Define the mode for workspace management ---
+mode "workspaces" {
+    # --- To SWITCH to a workspace ---
+    bindsym j workspace number 1; mode "default"
+    bindsym k workspace number 2; mode "default"
+    bindsym l workspace number 3; mode "default"
+    bindsym semicolon workspace number 4; mode "default"
+
+    # --- To MOVE a container TO a workspace ---
+    bindsym Shift+j move container to workspace number 1; mode "default"
+    bindsym Shift+k move container to workspace number 2; mode "default"
+    bindsym Shift+l move container to workspace number 3; mode "default"
+    bindsym Shift+semicolon move container to workspace number 4; mode "default"
+
+    # --- Exit the mode without doing anything ---
+    bindsym Escape mode "default"
+    bindsym Return mode "default"
+}
+
+    # --- Bind a key to ENTER the "workspaces" mode ---
+    bindsym $mod+g mode "workspaces"
+
+
+# Power menu
     bindsym XF86PowerOff exec tofi-power-menu
 #
 # Layout stuff:
@@ -192,7 +216,7 @@ input type:touchpad {
     bindsym $mod+w layout tabbed
     bindsym $mod+e layout toggle split
 
-    # Make the current focus fullscreen
+    # Make the current Ifocus fullscreen
     bindsym $mod+f fullscreen
 
     # Toggle the current focus between tiling and floating mode

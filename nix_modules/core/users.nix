@@ -17,7 +17,7 @@
     home = "/home/${username}";
     description = username;
     isNormalUser = true;
-    extraGroups = [ "networkmanager" "wheel" ];
+    extraGroups = [ "networkmanager" "wheel" "video" ];
     shell = pkgs.nushell;
   };
 

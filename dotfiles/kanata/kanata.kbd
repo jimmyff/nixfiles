@@ -8,6 +8,7 @@
 ;; Media:       f7 (play/pause)
 ;; Volume:      f8 (mute) f9 (down) f10 (up)
 (defsrc
+;;   esc
   a s d f j k l ; 
   f5 f6
   f7
@@ -24,6 +25,8 @@
 
 ;; wakepower handles power more gracefully
 (defalias
+  
+;;   escfn2 (multi f24 (layer-while-held fn2))
   a (multi f24 (tap-hold $tap-time $hold-time a lmet))
   s (multi f24 (tap-hold $tap-time $hold-time s lalt))
   d (multi f24 (tap-hold $tap-time $hold-time d lctl))
@@ -32,6 +35,8 @@
   k (multi f24 (tap-hold $tap-time $hold-time k rctl))
   l (multi f24 (tap-hold $tap-time $hold-time l ralt))
   ; (multi f24 (tap-hold $tap-time $hold-time ; rmet))
+
+  
   f5 (multi f24 (tap-hold 200 300 f5 brdown))
   f6 (multi f24 (tap-hold 200 300 f6 brup))
   f7 (multi f24 (tap-hold 200 300 f7 MediaPlayPause))
@@ -39,12 +44,20 @@
   f9 (multi f24 (tap-hold 200 300 f9 VolumeDown))
   f10 (multi f24 (tap-hold 200 300 f10 VolumeUp))
 
-
 )
 
 (deflayer base
+;;   @escfn2
   @a @s @d @f @j @k @l @; 
   @f5 @f6 
   @f7
   @f8 @f9 @f10
 )
+
+;; (deflayer fn2
+;;   _         ;; esc is transparent on this layer
+;;   _         _         _         _         _         _         _         _
+;;   bldown blup   ;; Hold-Esc + F5 -> Kbd Backlight Down, Hold-Esc + F6 -> Kbd Backlight Up
+;;   _
+;;   _         _         _
+;; )
