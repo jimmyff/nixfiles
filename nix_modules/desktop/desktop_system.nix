@@ -40,6 +40,10 @@
   
   # Networking
   networking.networkmanager.enable = true;
+  
+   environment.systemPackages = [
+    pkgs.networkmanagerapplet
+  ];
 
   # Enable CUPS to print documents.
   services.printing.enable = true;

@@ -56,8 +56,7 @@
             "1": [],
             "2": [],
             "3": [],
-            "4": [],
-            "5": [],
+            "4": []
         }
     },
 
@@ -99,7 +98,8 @@
         "states": {
             "warning": 70,
             "critical": 90
-        }
+        },
+        "on-click": "kitty btop"
     },
     "memory": {
         "icon-size" : 16,
@@ -108,14 +108,16 @@
         "states": {
             "warning": 60,
             "critical": 85
-        }
+        },
+        "on-click": "kitty btop"
     },
 
     "temperature": {
         "icon-size" : 16,
         // "format-icons": ["", "", ""]
         "format": "{temperatureC}°C",
-        "critical-threshold": 80
+        "critical-threshold": 80,
+        "on-click": "kitty btop"
     },
     //"backlight": {
     //    // "device": "acpi_video1",
@@ -133,6 +135,7 @@
         "tooltip-format-wifi": "{essid} ({signalStrength}%)",
         "tooltip-format-ethernet": "{ifname}",
         "tooltip-format-disconnected": "Disconnected",
+        "on-click": "nm-connection-editor"
     },
 
     "bluetooth": {
@@ -142,7 +145,8 @@
         "format-connected": "\udb80\udcb1",
         "tooltip-format": "{controller_alias}\t{controller_address}",
         "tooltip-format-connected": "{controller_alias}\t{controller_address}\n\n{device_enumerate}",
-        "tooltip-format-enumerate-connected": "{device_alias}\t{device_address}"
+        "tooltip-format-enumerate-connected": "{device_alias}\t{device_address}",
+        "on-click": "nm-connection-editor --type bluetooth --show"
     },
 
     "sway/language": {
