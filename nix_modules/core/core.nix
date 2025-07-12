@@ -18,4 +18,10 @@
   };
 
 
+  environment.systemPackages = [
+    pkgs.age                      # Encryption library  
+    pkgs.agenix-cli               # Age nix tool
+  ];
+
+
 }

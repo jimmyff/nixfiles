@@ -23,6 +23,13 @@
 
     # nix hardware
     nixos-hardware.url = "github:NixOS/nixos-hardware/master";
+
+    # agenix (encryption)
+    agenix = {
+      url = "github:ryantm/agenix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
   };
 
   outputs = inputs @ { 
@@ -31,6 +38,7 @@
     nix-darwin, 
     home-manager,
     nixos-hardware,
+    agenix,
     ... 
   } : let 
     username = "jimmyff";
@@ -57,6 +65,7 @@
           ./nix_modules/core/_bundle.nix
           ./nix_modules/desktop/_bundle.nix
 
+          agenix.nixosModules.default
           inputs.home-manager.nixosModules.home-manager
           {
             home-manager.useGlobalPkgs = true;
@@ -78,7 +87,8 @@
         ./hosts/jimmyff-mpb14/configuration.nix
         ./nix_modules/core/_bundle_darwin.nix
 
-         home-manager.darwinModules.home-manager
+        agenix.nixosModules.default
+        home-manager.darwinModules.home-manager
         {
           home-manager.useGlobalPkgs = true;
           home-manager.useUserPackages = true;
@@ -88,5 +98,6 @@
       ];
 
     };
+    
   };
 }
