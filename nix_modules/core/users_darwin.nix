@@ -16,8 +16,6 @@
   users.users."${username}"= {
     home = "/Users/${username}";
     description = username;
-    isNormalUser = true;
-    extraGroups = [ "networkmanager" "wheel" "video" ];
     shell = pkgs.nushell;
   };
 

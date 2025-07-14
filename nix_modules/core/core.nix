@@ -10,18 +10,12 @@
   # Timezone
   time.timeZone = "Europe/London";
 
-  # Touchpad support
-  services.libinput = {
-    enable = true;
-    mouse.naturalScrolling = true;
-    touchpad.naturalScrolling = true;  
-  };
-
 
   environment.systemPackages = [
     pkgs.age                      # Encryption library  
     pkgs.agenix-cli               # Age nix tool
   ];
 
+  environment.shells = with pkgs; [ nushell ];
 
 }

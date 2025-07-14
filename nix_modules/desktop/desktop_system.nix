@@ -8,7 +8,6 @@
   boot.loader.systemd-boot.configurationLimit = 16;
 
 
-
   # allows sandboxed apps to access resources
   xdg.portal = {
     enable = true;
@@ -28,6 +27,12 @@
     };
   };
 
+  # Touchpad support
+  services.libinput = {
+    enable = true;
+    mouse.naturalScrolling = true;
+    touchpad.naturalScrolling = true;  
+  };
 
   # Ignore the power off button
   services.logind.powerKey = "ignore";
@@ -47,7 +52,6 @@
 
   # Enable CUPS to print documents.
   services.printing.enable = true;
-
 
    # Select internationalisation properties.
   i18n.defaultLocale = "en_GB.UTF-8";

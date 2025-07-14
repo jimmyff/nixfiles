@@ -29,6 +29,7 @@ Work in progress repo for nix files, configs, scripts etc.
 - [Nix options](https://search.nixos.org/options)
 - [Nix packages](https://search.nixos.org/packages)
 - [Home Manager options](https://home-manager-options.extranix.com/)
+- [Wiki](https://wiki.nixos.org/)
 
 ---
 

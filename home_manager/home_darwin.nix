@@ -6,6 +6,9 @@
     ./dotfiles.nix
   ];
 
+  # Not supported on darwin as of 2025-07-14
+  chromium_module.enable =  false;
+
   # Not supported on darwin
   # catppuccin_module.enable = false;
 
