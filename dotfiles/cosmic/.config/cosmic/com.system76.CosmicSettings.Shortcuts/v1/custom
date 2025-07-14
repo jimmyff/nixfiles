@@ -1,0 +1,20 @@
+{
+    (
+        modifiers: [
+            Super
+        ],
+        key: "space",
+    ): System(Launcher),
+    (
+        modifiers: [
+            Shift,
+        ],
+        key: "F6",
+    ): System(KeyboardBrightnessUp),
+    (
+        modifiers: [
+            Shift,
+        ],
+        key: "F5",
+    ): System(KeyboardBrightnessDown),
+}
