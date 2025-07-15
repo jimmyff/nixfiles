@@ -1,4 +1,4 @@
-{ pkgs, ... }:
+{ pkgs, username, ... }:
 {
   programs = {
     nushell = { 
@@ -28,7 +28,7 @@
       } 
       $env.PATH = ($env.PATH | 
       split row (char esep) |
-      prepend /home/myuser/.apps |
+      prepend /home/${username}/.apps |
       append /usr/bin/env
       )
       '';
@@ -38,9 +38,12 @@
         nano = "hx";
       };
     };  
+
+    # Carapace / completions
     carapace.enable = true;
     carapace.enableNushellIntegration = true;
 
+    # Starship / prompt
     starship = { 
       enable = true;
       settings = {
@@ -50,6 +53,20 @@
           error_symbol = "[➜](bold red)";
         };
       };
+    };
+
+    # Zoxide / enhanced cd
+    zoxide = {
+      enable = true;
+      enableNushellIntegration = true;
+      # options = [
+      # ];
+    };
+
+    # FZF / fuzzy finder
+    fzf = {
+      enable = true;
+      # enableNushellIntegration = true;
     };
   };
 }
