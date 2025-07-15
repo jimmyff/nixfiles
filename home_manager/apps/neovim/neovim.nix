@@ -132,7 +132,7 @@
                 binds = {
                     whichKey.enable = true;
                     cheatsheet.enable = true;
-                    hardtime-nvim.enable = true;
+                    hardtime-nvim.enable = false;
                 };
 
                 telescope.enable = true;
