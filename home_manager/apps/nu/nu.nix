@@ -52,7 +52,7 @@
           success_symbol = "[➜](bold green)";
           error_symbol = "[➜](bold red)";
         };
-      }
+      };
     };
 
     # Zoxide / enhanced cd
