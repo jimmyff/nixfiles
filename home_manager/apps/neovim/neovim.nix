@@ -17,32 +17,21 @@
         programs.nixvim = {
             # Enable the program
             enable = true;
+            globals.mapleader = " ";
 
-            # The nixvim configuration is defined here
             vimAlias = true; # Adds a 'vim' alias to 'nvim'
             viAlias = true; # Adds a 'vi' alias to 'nvim'
+            opts = {
+              termguicolors = true;
+              wrap = false;
+            };
 
-            # You can declare plugins directly in Nix
-            # options = {
-
-              # disable line wrapping
-            #  wrap = false;
-              
-              # Color scheme
-            #  termguicolors = true;
-            #};
-
-            #colorschemes = {
-            #  gruvbox.enable = false;
-            #  catppuccin = {
-            #    enable = true;
-            #    # Choose the 'mocha' variant
-            #    settings.flavour = "mocha";
-            #  };
-            #};
-
-            colorschemes.catppuccin.enable = true;
-            
+            colorschemes = {
+              catppuccin = {
+                enable = true;
+                settings.flavour = "mocha";
+              };
+            };
 
             plugins = {
               # file explorer
