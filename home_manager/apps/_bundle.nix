@@ -24,7 +24,7 @@
 
 
   home.packages = [
-    pkgs.vim
+    # pkgs.vim
     pkgs.wget
     pkgs.neofetch
   ];
