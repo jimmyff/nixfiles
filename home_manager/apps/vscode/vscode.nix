@@ -6,7 +6,8 @@
 
     config = lib.mkIf config.vscode_module.enable {
         home.packages = [
-            pkgs.code-cursor
+            # pkgs.code-cursor
+            pkgs.vscode
         ];
     };
 }
