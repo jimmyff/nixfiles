@@ -33,6 +33,19 @@
               };
             };
 
+            keymaps = [
+              {
+                key = "<leader>e"; # "e" for explorer
+                action = "<cmd>Yazi<CR>";
+                mode = "n"; # Normal mode
+                options = {
+                  silent = true;
+                  noremap = true;
+                  # This description will show up in which-key!
+                  desc = "Open file manager (Yazi)";
+                };
+              }
+            ];
             plugins = {
               # file explorer
               # nvim-tree.enable = true;
