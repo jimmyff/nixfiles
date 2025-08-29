@@ -2,5 +2,4 @@
 {
   networking.hostName = "jimmyff-mpb14";
 
-
 }
