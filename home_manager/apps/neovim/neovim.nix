@@ -36,7 +36,6 @@
             plugins = {
               # file explorer
               # nvim-tree.enable = true;
-              yazi.enable = true;
 
               # status line
               lualine.enable = true;
@@ -98,6 +97,7 @@
               # indents
               indent-blankline.enable = true;
 
+              # file manager
               yazi = {
                 enable = true;
                 settings = {
