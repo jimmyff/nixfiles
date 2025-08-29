@@ -13,6 +13,8 @@
   #networking.computerName = networking.hostName;
   #system.defaults.smb.NetBIOSName = networking.hostName;
 
+
+
   users.users."${username}"= {
     home = "/Users/${username}";
     description = username;

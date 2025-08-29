@@ -12,6 +12,10 @@
   # Not supported on darwin
   # catppuccin_module.enable = false;
 
+
+  xdg.enable = true;
+  xdg.configHome = "/Users/${username}/.config";
+
   # Home Manager needs a bit of information about you and the
   # paths it should manage.
   home = {
