@@ -15,7 +15,6 @@
             font.size = 14;
 
             darwinLaunchOptions = [
-                "nu"
             ];
         };
 

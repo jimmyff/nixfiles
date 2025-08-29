@@ -35,7 +35,8 @@
 
             plugins = {
               # file explorer
-              nvim-tree.enable = true;
+              # nvim-tree.enable = true;
+              yazi.enable = true;
 
               # status line
               lualine.enable = true;
@@ -96,6 +97,19 @@
               
               # indents
               indent-blankline.enable = true;
+
+              yazi = {
+                enable = true;
+                settings = {
+                  enable_mouse_support = true;
+                    manager = {
+                      show_hidden = true;
+                      sort_by = "mtime";
+                      sort_dir_first = true;
+                      sort_reverse = true;
+                    };
+                };
+              };
 
             };
 

@@ -8,11 +8,13 @@
     ./chromium/chromium.nix
     ./vscode/vscode.nix
     ./nu/nu.nix
-
+    ./yazi/yazi.nix
+    
   ];
 
   # apps
   chromium_module.enable = lib.mkDefault true;
+  yazi_module.enable = lib.mkDefault true;
 
   # editors
   vscode_module.enable = lib.mkDefault true;

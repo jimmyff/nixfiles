@@ -1,8 +1,12 @@
-{ pkgs, username, ... }:
+{ pkgs, username, config, ... }:
 {
   programs = {
+
+    # Docs: https://www.nushell.sh/book/configuration.html
     nushell = { 
       enable = true;
+
+      environmentVariables = config.home.sessionVariables;
 
       # The config.nu can be anywhere you want if you like to edit your Nushell with Nu
       # configFile.source = ./.../config.nu;
@@ -13,26 +17,36 @@
       }
       $env.config = {
         show_banner: false,
+        buffer_editor: "nvim",
         completions: {
         case_sensitive: false   # case-sensitive completions
         quick: true             # set to false to prevent auto-selecting completions
         partial: true           # set to false to prevent partial filling of the prompt
         algorithm: "fuzzy"      # prefix or fuzzy
         external: {
-        # set to false to prevent nushell looking into $env.PATH to find more suggestions
+            # set to false to prevent nushell looking into $env.PATH to find more suggestions
             enable: true 
-        # set to lower can improve completion performance at the cost of omitting some options
+            # set to lower can improve completion performance at the cost of omitting some options
             max_results: 100 
             completer: $carapace_completer # check 'carapace_completer' 
           }
         }
       } 
-      $env.PATH = ($env.PATH | 
-      split row (char esep) |
-      prepend /home/${username}/.apps |
-      append /usr/bin/env
-      )
+      $env.PATH ++= [ 
+        "~/.nix-profile/bin"
+        "~/.local/bin"
+      ]
       '';
+      # other suggestion:
+      # $env.PATH = ($env.PATH | split row (char esep) | append ($env.HOME | append "/.nix-profile/bin" | str join))
+
+
+      # Previous path settings:
+      # $env.PATH = ($env.PATH | 
+      # split row (char esep) |
+      # prepend /home/${username}/.apps |
+      # append /usr/bin/env
+      # )
       shellAliases = {
         vi = "hx";
         vim = "hx";

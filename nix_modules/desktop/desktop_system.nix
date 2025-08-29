@@ -21,11 +21,7 @@
     config.common.default = "*";
   };
 
-  environment = {
-    sessionVariables = {
-      NIXOS_OZONE_WL = "1"; # Wayland support for chromium based apps
-    };
-  };
+  environment.sessionVariables.NIXOS_OZONE_WL = "1"; # Wayland support for chromium based apps
 
   # Touchpad support
   services.libinput = {
