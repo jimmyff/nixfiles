@@ -6,7 +6,8 @@
     ./apps/catppuccin.nix
     ./apps/_bundle.nix
 
-    ./desktop/_bundle.nix
+    ./desktop/environment_cosmic/_bundle.nix
+
     ./dotfiles.nix
   ];
 

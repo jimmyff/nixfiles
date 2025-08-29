@@ -9,11 +9,15 @@
     nix-darwin.url = "github:nix-darwin/nix-darwin/master";
     nix-darwin.inputs.nixpkgs.follows = "nixpkgs";
 
+    nixvim.url = "github:nix-community/nixvim";
+
+
     # nvf - for neovim
-    nvf = {
-      url = "github:notashelf/nvf";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
+    # TODO: Doesnt work with darwin
+    # nvf = {
+    #   url = "github:notashelf/nvf";
+    #   inputs.nixpkgs.follows = "nixpkgs";
+    # };
 
     # home-manager
     home-manager = {
@@ -25,11 +29,12 @@
     nixos-hardware.url = "github:NixOS/nixos-hardware/master";
 
     # agenix (encryption)
+    # TODO: not using it yet
     agenix = {
       url = "github:ryantm/agenix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-
+  
   };
 
   outputs = inputs @ { 
@@ -39,6 +44,7 @@
     home-manager,
     nixos-hardware,
     agenix,
+    nixvim,
     ... 
   } : let 
     username = "jimmyff";

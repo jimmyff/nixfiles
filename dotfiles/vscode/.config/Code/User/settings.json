@@ -14,7 +14,7 @@
     "editor.fontSize": 14,
     "chat.editor.fontSize": 14,
     "workbench.iconTheme": "vs-minimal",
-    "workbench.preferredDarkColorTheme": "Default High Contrast",
+    "workbench.preferredDarkColorTheme": "Default Dark Modern",
     "workbench.sideBar.location": "right",
     "workbench.statusBar.visible": true,
     "breadcrumbs.enabled": true,    
@@ -47,6 +47,8 @@
         "tab.unfocusedInactiveBackground": "#00202a",
         "tab.unfocusedInactiveForeground": "#0eb5f1",
         "editorGroup.focusedEmptyBorder": "#00a463",
+        "editor.background" : "#1e1e2e",
+        "editorGroupHeader.tabsBackground" : "#11111b"
     },   
 
     // Terminal

@@ -2,12 +2,13 @@
 
   imports = [
     ./desktop_system.nix
-    ./greeter/greetd.nix
     ./sound.nix
-    ./power.nix
-    ./sway.nix
-    ./thunar.nix
+
+    # Sway
+    # ./environment_sway/_bundle.nix
+        
+    # Cosmic
+    ./environment_cosmic/_bundle.nix
   ];
 
-  sway_module.enable = lib.mkDefault true;
 }
