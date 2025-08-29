@@ -13,6 +13,10 @@
             enableGitIntegration = true;
             font.name = "JetBrainsMono Nerd Font";
             font.size = 14;
+
+            darwinLaunchOptions = [
+                "nu"
+            ];
         };
 
         home.sessionVariables.TERMINAL = "kitty";
