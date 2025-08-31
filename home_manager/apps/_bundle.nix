@@ -36,6 +36,11 @@
       userName = "jimmyff";
       userEmail = "code@rocketware.co.uk";
   };
+  # Github cli
+  programs.gh = {
+    enable = true;
+  };
+
 
   # btop
   programs.btop = {

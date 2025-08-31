@@ -104,7 +104,7 @@
 
         # Flash
         {
-          key = "<leader><leader>";
+          key = "<leader>t";
           action = "<CMD>lua require('flash').jump()<CR>";
           mode = "n"; 
           options = {
