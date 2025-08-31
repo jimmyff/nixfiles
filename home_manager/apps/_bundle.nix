@@ -26,7 +26,6 @@
 
 
   home.packages = [
-    # pkgs.vim
     pkgs.wget
     pkgs.neofetch
   ];
@@ -46,5 +45,9 @@
       vim_keys = true;
     };
   };
+  
+  # ripgrep - required for nvim telescope
+  programs.ripgrep.enable = true;
+
 
 }
