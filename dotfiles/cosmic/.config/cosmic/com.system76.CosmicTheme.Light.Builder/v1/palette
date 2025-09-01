@@ -1,4 +1,4 @@
-(
+Light((
     name: "cosmic-light",
     bright_red: (
         red: 0.5372549,
@@ -192,4 +192,4 @@
         blue: 0.9882353,
         alpha: 1.0,
     ),
-)
+))
