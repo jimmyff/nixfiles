@@ -9,6 +9,7 @@
     ./vscode/vscode.nix
     ./nu/nu.nix
     ./yazi/yazi.nix
+    ./ai.nix
   ];
 
   # apps

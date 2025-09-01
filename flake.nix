@@ -21,7 +21,7 @@
 
     # home-manager
     home-manager = {
-      url = "github:nix-community/home-manager";
+      url = "github:nix-community/home-manager/master";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
@@ -48,7 +48,7 @@
     ... 
   } : let 
     username = "jimmyff";
-    specialArgs = { inherit inputs username; };
+    specialArgs = { inherit inputs username; pkgs-unstable = nixpkgs.legacyPackages; };
   in
   {
 

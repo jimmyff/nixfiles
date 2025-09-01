@@ -43,5 +43,7 @@ sudo nixos-rebuild dry-run|switch --flake /etc/nixos#nixelbook
 # Rebuild macbook via darwin
 sudo darwin-rebuild check|switch --flake ~/nixfiles/#jimmyff-mbp14
 
+# Update flake inputs (packages, dependencies)
+nix flake update
 
 ```
