@@ -2,8 +2,8 @@
 {
   # import sub modules
   imports = [
-    ./apps
-    ./dotfiles.nix
+    ../shared/apps
+    ../shared/dotfiles.nix
   ];
 
   # Not supported on darwin as of 2025-07-14

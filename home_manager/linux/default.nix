@@ -3,12 +3,12 @@
 {
   # import sub modules
   imports = [
-    ./apps/catppuccin.nix
-    ./apps
+    ../shared/apps/catppuccin.nix
+    ../shared/apps
 
     ./desktop/environment_cosmic
 
-    ./dotfiles.nix
+    ../shared/dotfiles.nix
   ];
 
   # Core

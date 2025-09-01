@@ -77,7 +77,7 @@
             home-manager.useGlobalPkgs = true;
             home-manager.useUserPackages = true;
             home-manager.extraSpecialArgs = specialArgs;
-            home-manager.users.${username} = import ./home_manager/home.nix;
+            home-manager.users.${username} = import ./home_manager/linux;
           }
         ];
       };
@@ -99,7 +99,7 @@
           home-manager.useGlobalPkgs = true;
           home-manager.useUserPackages = true;
           home-manager.extraSpecialArgs = specialArgs;
-          home-manager.users.${username} = import ./home_manager/home_darwin.nix;
+          home-manager.users.${username} = import ./home_manager/darwin;
         }
       ];
 
