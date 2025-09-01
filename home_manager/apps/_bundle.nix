@@ -9,7 +9,6 @@
     ./vscode/vscode.nix
     ./nu/nu.nix
     ./yazi/yazi.nix
-    
   ];
 
   # apps
@@ -32,15 +31,15 @@
 
   # TODO: Move this
   programs.git = {
-      enable = true;
-      userName = "jimmyff";
-      userEmail = "code@rocketware.co.uk";
+    enable = true;
+    userName = "jimmyff";
+    userEmail = "code@rocketware.co.uk";
   };
+
   # Github cli
   programs.gh = {
     enable = true;
   };
-
 
   # btop
   programs.btop = {
@@ -50,7 +49,7 @@
       vim_keys = true;
     };
   };
-  
+
   # ripgrep - required for nvim telescope
   programs.ripgrep.enable = true;
 
