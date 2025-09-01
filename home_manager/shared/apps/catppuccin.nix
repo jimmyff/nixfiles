@@ -23,7 +23,6 @@
     catppuccin.swaylock.enable = true;
     catppuccin.btop.enable = true;
 
-    catppuccin.gtk.enable = true;
   };
 }
 

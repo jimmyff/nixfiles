@@ -31,10 +31,7 @@
   };
 
   # Ignore the power off button
-  services.logind.powerKey = "ignore";
-  services.logind.extraConfig = ''
-    HandlePowerKey=ignore
-  '';
+  services.logind.settings.Login.HandlePowerKey = "ignore";
 
   # gnome secrets vault
   services.gnome.gnome-keyring.enable = true;
