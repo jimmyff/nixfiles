@@ -4,9 +4,9 @@
   # import sub modules
   imports = [
     ./apps/catppuccin.nix
-    ./apps/_bundle.nix
+    ./apps
 
-    ./desktop/environment_cosmic/_bundle.nix
+    ./desktop/environment_cosmic
 
     ./dotfiles.nix
   ];

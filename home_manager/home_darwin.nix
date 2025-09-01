@@ -2,7 +2,7 @@
 {
   # import sub modules
   imports = [
-    ./apps/_bundle.nix
+    ./apps
     ./dotfiles.nix
   ];
 

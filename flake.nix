@@ -68,8 +68,8 @@
 
           ./hosts/nixelbook/configuration.nix
 
-          ./nix_modules/core/_bundle.nix
-          ./nix_modules/desktop/_bundle.nix
+          ./nix_modules/core/linux
+          ./nix_modules/desktop/linux
 
           agenix.nixosModules.default
           inputs.home-manager.nixosModules.home-manager
@@ -91,7 +91,7 @@
       system = "aarch64-darwin";
       modules = [ 
         ./hosts/jimmyff-mpb14/configuration.nix
-        ./nix_modules/core/_bundle_darwin.nix
+        ./nix_modules/core/darwin
 
         agenix.nixosModules.default
         home-manager.darwinModules.home-manager

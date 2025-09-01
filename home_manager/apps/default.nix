@@ -10,6 +10,9 @@
     ./nu/nu.nix
     ./yazi/yazi.nix
     ./ai.nix
+    
+    # Import git module
+    ../programs/git.nix
   ];
 
   # apps
@@ -24,23 +27,14 @@
   kitty_module.enable = lib.mkDefault true;
   ghostty_module.enable = lib.mkDefault false;
 
+  # programs
+  git_module.enable = lib.mkDefault true;
+
 
   home.packages = [
     pkgs.wget
     pkgs.neofetch
   ];
-
-  # TODO: Move this
-  programs.git = {
-    enable = true;
-    userName = "jimmyff";
-    userEmail = "code@rocketware.co.uk";
-  };
-
-  # Github cli
-  programs.gh = {
-    enable = true;
-  };
 
   # btop
   programs.btop = {

@@ -1,12 +1,12 @@
 { pkgs, username, ... }:
 {
   imports = [
-    ./core.nix
-    ./apps.nix
-    ./users_darwin.nix
-    ./ssh.nix
-    ./fonts.nix
-    ./stow.nix
+    ../shared/core.nix
+    ../shared/apps.nix
+    ../users_darwin.nix
+    ../shared/ssh.nix
+    ../shared/fonts.nix
+    ../shared/stow.nix
   ];
 
   system.primaryUser = username;
@@ -31,6 +31,5 @@
   # Create /etc/zshrc that loads the nix-darwin environment.
   # this is required if you want to use darwin's default shell - zsh
   programs.zsh.enable = true;
-
 
 }

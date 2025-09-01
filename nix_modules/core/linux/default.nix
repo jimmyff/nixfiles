@@ -1,12 +1,12 @@
 { pkgs, lib, ... }:
 {
-    imports = [
-    ./core.nix
-    ./apps.nix
-    ./users.nix
-    ./ssh.nix
-    ./fonts.nix
-    ./stow.nix
+  imports = [
+    ../shared/core.nix
+    ../shared/apps.nix
+    ../users.nix
+    ../shared/ssh.nix
+    ../shared/fonts.nix
+    ../shared/stow.nix
   ];
 
  
@@ -23,7 +23,6 @@
   system = {
     stateVersion = "25.05";
   };
-
 
 
 }
