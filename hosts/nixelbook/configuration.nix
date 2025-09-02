@@ -4,9 +4,13 @@
   imports =
     [
       ./hardware-configuration.nix
+      ./chrome-device.nix
 
       # nixos specific configuration
       ../../nix_modules/core/nixos/kanata.nix
+      
+      # desktop audio support
+      ../../nix_modules/desktop/sound.nix
     ];
 
   networking.hostName = "nixelbook";
