@@ -13,9 +13,18 @@
       
       # desktop audio support
       ../../nix_modules/desktop/sound.nix
+
+      # development environment
+      ../../nix_modules/development
     ];
 
   networking.hostName = "nixelbook";
+
+  # Development environment configuration
+  development = {
+    enable = true;
+    projects = [ "jimmyff-website" "rocket-kit" ];
+  };
 
   # Pixelbook keyboard issue:
   # `sudo libinput debug-events` failed to show chromos key press

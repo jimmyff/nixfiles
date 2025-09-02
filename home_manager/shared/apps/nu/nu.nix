@@ -106,5 +106,14 @@
       enable = true;
       # enableNushellIntegration = true;
     };
+
+    # Direnv / automatic environment loading
+    direnv = {
+      enable = true;
+      enableNushellIntegration = true;
+      nix-direnv = {
+        enable = true;
+      };
+    };
   };
 }

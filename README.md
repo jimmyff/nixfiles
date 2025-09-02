@@ -19,7 +19,8 @@ Work in progress repo for nix files, configs, scripts etc.
   ├── dotfiles/         # configs (managed by stow)
   ├── home_modules/     # Home Manager modules
   ├── hosts/            # Host config
-  └── nix_modules/      # Nix modules
+  ├── nix_modules/      # Nix modules
+  └── projects/         # Development project templates
 
 ```
 ---
@@ -35,8 +36,9 @@ Work in progress repo for nix files, configs, scripts etc.
 
 ## Usage
 
-```shell
+### System Management
 
+```shell
 # Rebuild nixelbook
 sudo nixos-rebuild dry-run|switch --flake /etc/nixos#nixelbook
 
@@ -45,5 +47,16 @@ sudo darwin-rebuild check|switch --flake ~/nixfiles/#jimmyff-mbp14
 
 # Update flake inputs (packages, dependencies)
 nix flake update
-
 ```
+
+### Development Environment
+
+```shell
+# Setup projects
+dev-setup && cd ~/dev/<project> && direnv allow
+
+# Enable projects in host config
+development = { enable = true; projects = [ "project-name" ]; };
+```
+
+**Adding projects:** Create `projects/name/default.nix` with packages + repo, then rebuild.
