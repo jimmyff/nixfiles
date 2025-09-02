@@ -4,10 +4,12 @@
   imports =
     [
       ./hardware-configuration.nix
-      ./chrome-device.nix
 
       # nixos specific configuration
       ../../nix_modules/core/nixos/kanata.nix
+      
+      # hardware specific configuration
+      ../../nix_modules/hardware/pixelbook-go
       
       # desktop audio support
       ../../nix_modules/desktop/sound.nix
