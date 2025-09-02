@@ -2,7 +2,8 @@
 
   imports = [
 
-    ./neovim/neovim.nix
+    # ./nvim/nixvim.nix
+    ./nvim/nvf.nix
     ./kitty/kitty.nix
     ./ghostty/ghostty.nix
     ./chromium/chromium.nix
@@ -25,7 +26,7 @@
 
   # Terminals
   kitty_module.enable = lib.mkDefault true;
-  ghostty_module.enable = lib.mkDefault false;
+  ghostty_module.enable = lib.mkDefault true;
 
   # programs
   git_module.enable = lib.mkDefault true;

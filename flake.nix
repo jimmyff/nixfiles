@@ -13,11 +13,10 @@
 
 
     # nvf - for neovim
-    # TODO: Doesnt work with darwin
-    # nvf = {
-    #   url = "github:notashelf/nvf";
-    #   inputs.nixpkgs.follows = "nixpkgs";
-    # };
+    nvf = {
+      url = "github:notashelf/nvf";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
 
     # home-manager
     home-manager = {
@@ -45,6 +44,7 @@
     nixos-hardware,
     agenix,
     nixvim,
+    nvf,
     ... 
   } : let 
     username = "jimmyff";
