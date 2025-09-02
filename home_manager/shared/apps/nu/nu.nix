@@ -6,7 +6,11 @@
     nushell = { 
       enable = true;
 
-      environmentVariables = config.home.sessionVariables;
+      environmentVariables = config.home.sessionVariables // {
+        # Force nushell to use home-manager managed config directory
+        NU_CONFIG_PATH = "${config.xdg.configHome}/nushell";
+      };
+
 
       # The config.nu can be anywhere you want if you like to edit your Nushell with Nu
       # configFile.source = ./.../config.nu;
@@ -35,6 +39,8 @@
       $env.PATH ++= [ 
         "~/.nix-profile/bin"
         "~/.local/bin"
+        "/etc/profiles/per-user/${username}/bin"
+        "/run/current-system/sw/bin"
       ]
 
       def --env y [...args] {
