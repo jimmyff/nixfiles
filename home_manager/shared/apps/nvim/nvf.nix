@@ -104,6 +104,7 @@
           name = "catppuccin";
           style = "mocha";
           transparent = false;
+          # TODO: pick a better theme from https://github.com/NotAShelf/nvf/blob/7d1061210a43e16ffa3657a0e9b88d226ed6efe1/modules/plugins/theme/supported-themes.nix
         };
 
         autopairs.nvim-autopairs.enable = true;

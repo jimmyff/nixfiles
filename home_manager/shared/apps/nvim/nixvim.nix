@@ -27,10 +27,7 @@
       };
 
       colorschemes = {
-        catppuccin = {
-          enable = true;
-          settings.flavour = "mocha";
-        };
+        # Using default neovim colorscheme for now
       };
 
       keymaps = [

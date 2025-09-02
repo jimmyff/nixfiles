@@ -3,7 +3,6 @@
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
-    catppuccin.url = "github:catppuccin/nix";
 
     # macOS
     nix-darwin.url = "github:nix-darwin/nix-darwin/master";
@@ -61,7 +60,6 @@
 
         modules = [
 
-          inputs.catppuccin.nixosModules.catppuccin
 
           # add from this list: https://github.com/NixOS/nixos-hardware/blob/master/flake.nix
           nixos-hardware.nixosModules.google-pixelbook

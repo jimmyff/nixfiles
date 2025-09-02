@@ -57,11 +57,11 @@ let
                 padding-top = "30%";
                 result-spacing = 8;
 
-                # Catppuccin Mocha
-                text-color          = "#cdd6f4";
-                prompt-color        = "#f38ba8";
-                selection-color     = "#f9e2af";
-                background-color    = "#1e1e2e";
+                # Modus Vivendi Tinted colors
+                text-color          = "#ffffff";
+                prompt-color        = "#79a8ff";
+                selection-color     = "#fec43f";
+                background-color    = "#0d0e1c";
             };
         };
 

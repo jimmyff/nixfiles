@@ -3,7 +3,6 @@
 {
   # import sub modules
   imports = [
-    ../shared/apps/catppuccin.nix
     ../shared/apps
 
     ./desktop/environment_cosmic
@@ -11,8 +10,6 @@
     ../shared/dotfiles.nix
   ];
 
-  # Core
-  catppuccin_module.enable = lib.mkDefault true;
 
   # Home Manager needs a bit of information about you and the
   # paths it should manage.

@@ -17,9 +17,6 @@
       # Enable pointer
       home.pointerCursor.sway.enable = true;
 
-      # catppuccin
-      catppuccin.sway.enable = true;
-      catppuccin.swaylock.enable = true;
 
     };
 }
