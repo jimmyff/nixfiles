@@ -26,7 +26,7 @@
 
   # Terminals
   kitty_module.enable = lib.mkDefault true;
-  ghostty_module.enable = lib.mkDefault true;
+  ghostty_module.enable = lib.mkDefault false;
 
   # programs
   git_module.enable = lib.mkDefault true;

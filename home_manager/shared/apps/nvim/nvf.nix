@@ -19,6 +19,15 @@
             settings.vim = {
                 viAlias = true;
                 vimAlias = true;
+                
+                keymaps = [
+                    {
+                        mode = "n";
+                        key = "<leader>E";
+                        action = "<CMD>Neotree toggle<CR>";
+                        desc = "Toggle Neo-tree";
+                    }
+                ];
                 debugMode = {
                     enable = false;
                     level = 16;
@@ -110,7 +119,7 @@
 
                 filetree = {
                     neo-tree = {
-                        enable = false;
+                        enable = true;
                     };
                 };
 
@@ -130,8 +139,9 @@
                     };
 
                     motion = {
-                        hop.enable = true;
+                        hop.enable = false;
                         leap.enable = true;
+                        flash-nvim.enable = true;
                         precognition.enable = true;
                     };
                     images = {
@@ -161,7 +171,18 @@
 
 
                 dashboard = {
-                    dashboard-nvim.enable = true;
+                    dashboard-nvim = {
+                        enable = true;
+                        setupOpts = {
+                            theme = "hyper";
+                            config = {
+                                week_header = {
+                                    enable = true;
+                                    concat = "jimmyff.co.uk // Create Awesome Things";
+                                };
+                            };
+                        };
+                    };
                     alpha.enable = false;
                 };
 
