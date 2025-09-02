@@ -35,10 +35,11 @@
               echo ""
             fi
             
-            # Run startup script automatically when entering environment
+            # Show startup instructions instead of auto-running
             if [ -f startup.nu ]; then
-              echo "🔧 Running startup script..."
-              ${pkgs.nushell}/bin/nu startup.nu
+              echo ""
+              echo "🔧 To start the development server, run: ./startup.nu"
+              echo "   Or manually: cd workspace && zola serve"
             fi
           '';
         };

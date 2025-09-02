@@ -14,8 +14,7 @@
       {
         devShells.default = pkgs.mkShell {
           buildInputs = with pkgs; [
-            dart
-            flutter
+            flutter  # Includes Dart SDK 3.9+
             nushell
           ];
           

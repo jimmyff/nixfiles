@@ -6,8 +6,7 @@
   
   # Required packages for this project
   packages = with pkgs; [
-    dart
-    flutter
+    flutter  # Includes Dart SDK 3.9+ 
   ];
   
   # Project description
