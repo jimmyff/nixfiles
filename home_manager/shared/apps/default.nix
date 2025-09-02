@@ -4,6 +4,7 @@
 
     # ./nvim/nixvim.nix
     ./nvim/nvf.nix
+    ./helix/helix.nix
     ./kitty/kitty.nix
     ./ghostty/ghostty.nix
     ./chromium/chromium.nix
@@ -23,6 +24,7 @@
   # editors
   vscode_module.enable = lib.mkDefault true;
   neovim_module.enable = lib.mkDefault true;
+  helix_module.enable = lib.mkDefault true;
 
   # Terminals
   kitty_module.enable = lib.mkDefault true;
