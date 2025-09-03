@@ -9,6 +9,7 @@
     ./ghostty/ghostty.nix
     ./chromium/chromium.nix
     ./vscode/vscode.nix
+    ./zed/zed.nix
     ./nu/nu.nix
     ./yazi/yazi.nix
     ./ai.nix
@@ -25,6 +26,7 @@
   vscode_module.enable = lib.mkDefault true;
   neovim_module.enable = lib.mkDefault true;
   helix_module.enable = lib.mkDefault true;
+  zed_module.enable = lib.mkDefault true;
 
   # Terminals
   kitty_module.enable = lib.mkDefault true;
