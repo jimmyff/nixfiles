@@ -12,10 +12,9 @@
         pkgs = nixpkgs.legacyPackages.${system};
       in
       {
-        devShells.default = pkgs.mkShell {
+        devShells.default = pkgs.mkShellNoCC {
           buildInputs = with pkgs; [
             flutter  # Includes Dart SDK 3.9+
-            nushell
           ];
           
           shellHook = ''

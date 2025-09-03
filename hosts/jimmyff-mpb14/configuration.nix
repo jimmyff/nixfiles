@@ -10,6 +10,6 @@
   # Development environment configuration
   development = {
     enable = true;
-    projects = [ "jimmyff-website" "rocket-kit" ];
+    projects = [ "jimmyff-website" "rocket-kit" "osdn" ];
   };
 }
