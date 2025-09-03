@@ -21,7 +21,10 @@
     shell = pkgs.nushell;
   };
 
-  system.activationScripts.ensureNuShell.text = ''
+  # NOTE: nix-darwin only supports hardcoded activation script names. Custom names are silently ignored.
+  # Supported names: preActivation, postActivation, extraActivation, and ~20 system-specific ones.
+  # See: https://github.com/nix-darwin/nix-darwin/blob/master/modules/system/activation-scripts.nix
+  system.activationScripts.extraActivation.text = ''
     target="${pkgs.nushell}/bin/nu"
     current="$(dscl . -read /Users/${username} UserShell | awk '{print $2}')"
     if [ "$current" != "$target" ]; then

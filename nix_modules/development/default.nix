@@ -181,8 +181,10 @@ in {
       };
     };
 
-    # System activation script for project setup
-    system.activationScripts.devProjectSetup.text = ''
+    # NOTE: nix-darwin only supports hardcoded activation script names. Custom names are silently ignored.
+    # Supported names: preActivation, postActivation, extraActivation, and ~20 system-specific ones.
+    # See: https://github.com/nix-darwin/nix-darwin/blob/master/modules/system/activation-scripts.nix
+    system.activationScripts.postActivation.text = ''
       echo "Setting up development environment..."
 
       # Create dev directory structure
