@@ -70,14 +70,40 @@ let
             fi
             cd ../..
             
-            # Trigger system activation to setup development files
-            echo "Setting up development configuration..."
-            sudo nixos-rebuild switch --flake /etc/nixos#nixelbook --no-build-nix
           else
             echo "❌ Failed to clone ${name}"
           fi
         else
           echo "✅ ${name} already exists"
+        fi
+        
+        # Always copy/update development configuration files
+        echo "Setting up development configuration files for ${name}..."
+        PROJECT_DIR="${homeDir}/dev/${name}"
+        PROJECT_SOURCE="${homeDir}/nixfiles/projects/${name}"
+        mkdir -p "$PROJECT_DIR"
+        
+        # Fix ownership of project directory
+        if command -v chown >/dev/null 2>&1; then
+          if [[ "$OSTYPE" == "darwin"* ]]; then
+            chown -R ${username}:staff "$PROJECT_DIR" 2>/dev/null || true
+          else
+            chown -R ${username}:users "$PROJECT_DIR" 2>/dev/null || true
+          fi
+        fi
+        
+        cp "$PROJECT_SOURCE/.envrc" "$PROJECT_DIR/" 2>/dev/null && echo "✅ Copied .envrc" || echo "⚠️  .envrc not found"
+        cp "$PROJECT_SOURCE/startup.nu" "$PROJECT_DIR/" 2>/dev/null && echo "✅ Copied startup.nu" || echo "⚠️  startup.nu not found"  
+        cp "$PROJECT_SOURCE/flake.nix" "$PROJECT_DIR/" 2>/dev/null && echo "✅ Copied flake.nix" || echo "⚠️  flake.nix not found"
+        
+        # Set permissions and ownership
+        chmod +x "$PROJECT_DIR/startup.nu" 2>/dev/null || true
+        if command -v chown >/dev/null 2>&1; then
+          if [[ "$OSTYPE" == "darwin"* ]]; then
+            chown -R ${username}:staff "$PROJECT_DIR/" 2>/dev/null || true
+          else
+            chown -R ${username}:users "$PROJECT_DIR/" 2>/dev/null || true
+          fi
         fi
       ''
     ) enabledProjects)}
@@ -96,28 +122,6 @@ let
   # Collect all packages from enabled projects
   projectPackages = lib.flatten (lib.mapAttrsToList (_: project: project.packages or []) enabledProjects);
   
-  # Generate activation scripts for enabled projects
-  projectSetupScript = lib.concatStringsSep "\n" (lib.mapAttrsToList (name: project: 
-    lib.optionalString (project.repo != null) ''
-      # Setup ${name}
-      PROJECT_DIR="${homeDir}/dev/${name}"
-      
-      # Create project directory if it doesn't exist
-      if [ ! -d "$PROJECT_DIR" ]; then
-        echo "Creating project directory for ${name}..."
-        mkdir -p "$PROJECT_DIR"
-      fi
-      
-      # Copy development configuration files directly to project root
-      cp ${../../projects}/${name}/.envrc "$PROJECT_DIR/" 2>/dev/null || echo "Warning: .envrc not found for ${name}"
-      cp ${../../projects}/${name}/startup.nu "$PROJECT_DIR/" 2>/dev/null || echo "Warning: startup.nu not found for ${name}"
-      cp ${../../projects}/${name}/flake.nix "$PROJECT_DIR/" 2>/dev/null || echo "Warning: flake.nix not found for ${name}"
-      
-      # Set executable permissions on startup script
-      chmod +x "$PROJECT_DIR/startup.nu" 2>/dev/null || true
-      chown -R ${username}:${if pkgs.stdenv.isDarwin then "staff" else "users"} "$PROJECT_DIR"
-    ''
-  ) enabledProjects);
 
 in {
   options.development = {
@@ -170,12 +174,14 @@ in {
         
         # Create dev directory structure
         mkdir -p ${homeDir}/dev
-        chown ${username}:${if pkgs.stdenv.isDarwin then "staff" else "users"} ${homeDir}/dev
-        
-        # Setup projects
-        ${projectSetupScript}
+        ${if pkgs.stdenv.isDarwin then ''
+          chown ${username}:staff ${homeDir}/dev
+        '' else ''
+          chown ${username}:users ${homeDir}/dev
+        ''}
         
         echo "Development environment setup complete!"
+        echo "Run 'dev-setup' to clone repositories and setup project files."
       '';
       deps = [ "users" ];
     };
