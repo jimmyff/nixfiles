@@ -7,10 +7,10 @@
 
       # nixos specific configuration
       ../../nix_modules/core/nixos/kanata.nix
-      
+
       # hardware specific configuration
       ../../nix_modules/hardware/pixelbook-go
-      
+
       # desktop audio support
       ../../nix_modules/desktop/sound.nix
 
@@ -23,7 +23,7 @@
   # Development environment configuration
   development = {
     enable = true;
-    projects = [ "jimmyff-website" "rocket-kit" ];
+    projects = [ "jimmyff-website" "rocket-kit" "osdn" ];
   };
 
   # Pixelbook keyboard issue:
@@ -45,7 +45,7 @@
     pkgs.brightnessctl
 
   ];
-  
+
   # services.actkbd = {
   #   enable = true;
   #   bindings = [
@@ -53,5 +53,5 @@
   #     { keys = [ 225 ]; events = [ "key" ]; command = "/run/wrappers/bin/light -U 10"; }
   #   ];
   # };
- 
+
 }

@@ -109,6 +109,7 @@
             cp "$PROJECT_SOURCE/flake.nix" "$PROJECT_DIR/" 2>/dev/null && echo "✅ Copied flake.nix" || echo "⚠️  flake.nix not found"
 
             # Set permissions and ownership
+            chmod u+w "$PROJECT_DIR/.envrc" "$PROJECT_DIR/flake.nix" 2>/dev/null || true
             chmod +x "$PROJECT_DIR/startup.nu" 2>/dev/null || true
             if command -v chown >/dev/null 2>&1; then
               if [[ "$OSTYPE" == "darwin"* ]]; then

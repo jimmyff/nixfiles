@@ -1,296 +1,213 @@
 {
+  // General
+  "security.workspace.trust.untrustedFiles": "open",
+  "explorer.confirmDelete": false,
+  "extensions.ignoreRecommendations": true,
+  "editor.suggestSelection": "first",
+  "files.trimTrailingWhitespaceInRegexAndStrings": false,
 
+  // Appearance
+  "editor.fontFamily": "JetBrains Nerd Font",
+  "editor.fontSize": 14,
+  "chat.editor.fontSize": 14,
+  "workbench.iconTheme": "vs-minimal",
+  "workbench.preferredDarkColorTheme": "Default Dark Modern",
+  "workbench.sideBar.location": "right",
+  "workbench.statusBar.visible": true,
+  "breadcrumbs.enabled": true,
+  "workbench.activityBar.location": "top",
+  "workbench.colorTheme": "Default Dark Modern",
+  "breadcrumbs.filePath": "last",
+  "editor.renderLineHighlight": "gutter",
 
-    // General
-    "security.workspace.trust.untrustedFiles": "open",
-    "explorer.confirmDelete": false,
-    "extensions.ignoreRecommendations": true,
-    "editor.suggestSelection": "first",
-    "files.trimTrailingWhitespaceInRegexAndStrings": false,
+  // get rid of window border + title bar
+  "workbench.layoutControl.enabled": false,
+  "window.dialogStyle": "custom",
+  "window.menuBarVisibility": "compact",
+  "window.titleBarStyle": "native",
+  "window.experimentalControlOverlay": false,
 
+  // Custom colors to make focus easier to see
+  "workbench.colorCustomizations": {
+    "editorCursor.foreground": "#ff3bcb",
+    "editor.lineHighlightBackground": "#00a463",
+    "tab.unfocusedActiveBorder": "#003a23",
+    "tab.activeBorder": "#00a463",
+    "tab.activeBorderTop": "#00a463",
+    "tab.activeBackground": "#00673e",
+    "tab.inactiveBackground": "#00202a",
+    "tab.inactiveForeground": "#00a463",
+    "tab.activeForeground": "#ffe924",
+    "tab.unfocusedActiveBackground": "#003a4c",
+    "tab.unfocusedActiveForeground": "#1df0ff",
+    "tab.unfocusedInactiveBackground": "#00202a",
+    "tab.unfocusedInactiveForeground": "#0eb5f1",
+    "editorGroup.focusedEmptyBorder": "#00a463",
+    "editor.background": "#1e1e2e",
+    "editorGroupHeader.tabsBackground": "#11111b"
+  },
 
-    // Appearance
-    "editor.fontFamily": "JetBrains Nerd Font",
+  // Terminal
+  "terminal.integrated.lineHeight": 1.3,
+  "terminal.integrated.shellIntegration.enabled": true,
+
+  // Spelling
+  "cSpell.userWords": [
+    "cmyk",
+    "Firestore",
+    "Gapi",
+    "initalised",
+    "Initalising",
+    "unawaited",
+    "vsync"
+  ],
+
+  // git
+  "git.autofetch": true,
+  "git.confirmSync": false,
+  "git.enableSmartCommit": true,
+
+  // AI
+  "github.copilot.nextEditSuggestions.enabled": false,
+  "github.copilot.renameSuggestions.triggerAutomatically": false,
+
+  // Editor
+  "editor.formatOnSave": false,
+  "editor.minimap.enabled": false,
+  "editor.formatOnType": false,
+  "editor.lineHeight": 0,
+  "editor.lineNumbers": "relative",
+  "workbench.editor.revealIfOpen": true,
+  "workbench.editor.closeEmptyGroups": false,
+
+  // restrict tabs
+  "editor.fontLigatures": false,
+  "workbench.editor.showTabs": "multiple",
+  "workbench.editor.limit.enabled": true,
+  "workbench.editor.limit.value": 3,
+  "workbench.editor.limit.excludeDirty": false,
+  "workbench.editor.limit.perEditorGroup": true,
+  "workbench.editor.tabActionCloseVisibility": false,
+
+  // Language specific settings
+  "files.associations": {
+    "*.dart": "dart"
+  },
+
+  "[plaintext]": {
+    "editor.fontFamily": "HackMono, mono, Monospace",
+    "editor.wordWrap": "off",
     "editor.fontSize": 14,
-    "chat.editor.fontSize": 14,
-    "workbench.iconTheme": "vs-minimal",
-    "workbench.preferredDarkColorTheme": "Default Dark Modern",
-    "workbench.sideBar.location": "right",
-    "workbench.statusBar.visible": true,
-    "breadcrumbs.enabled": true,    
-    "workbench.activityBar.location": "top",
-    "workbench.colorTheme": "Default Dark Modern",
-    "breadcrumbs.filePath": "last",
-    // "editor.renderLineHighlightOnlyWhenFocus": true,
-    "editor.renderLineHighlight": "gutter",
-
-    // get rid of window border + title bar
-    "workbench.layoutControl.enabled": false,
-    "window.dialogStyle": "custom",
-    "window.menuBarVisibility": "compact",
-    "window.titleBarStyle": "native",
-    "window.experimentalControlOverlay": false,
-
-    // Custom colors to make focus easier to see
-    "workbench.colorCustomizations": {
-        "editorCursor.foreground": "#ff3bcb",
-        "editor.lineHighlightBackground": "#00a463",
-        "tab.unfocusedActiveBorder": "#003a23",
-        "tab.activeBorder": "#00a463",
-        "tab.activeBorderTop": "#00a463",
-        "tab.activeBackground": "#00673e",
-        "tab.inactiveBackground" : "#00202a",
-        "tab.inactiveForeground": "#00a463",
-        "tab.activeForeground": "#ffe924",
-        "tab.unfocusedActiveBackground": "#003a4c",
-        "tab.unfocusedActiveForeground": "#1df0ff",
-        "tab.unfocusedInactiveBackground": "#00202a",
-        "tab.unfocusedInactiveForeground": "#0eb5f1",
-        "editorGroup.focusedEmptyBorder": "#00a463",
-        "editor.background" : "#1e1e2e",
-        "editorGroupHeader.tabsBackground" : "#11111b"
-    },   
-
-    // Terminal
-    "terminal.integrated.lineHeight": 1.3,
-    "terminal.integrated.shellIntegration.enabled": true,
-
-
-    // Spelling
-    "cSpell.userWords": [
-        "cmyk",
-        "Firestore",
-        "Gapi",
-        "initalised",
-        "Initalising",
-        "unawaited",
-        "vsync"
-    ],
-
-    // git
-    "git.autofetch": true,
-    "git.confirmSync": false,
-    "git.enableSmartCommit": true,
-
-
-    // AI
-    "github.copilot.nextEditSuggestions.enabled": false,
-    "github.copilot.renameSuggestions.triggerAutomatically": false,
-
-
-    // Editor
+    "editor.renderWhitespace": "all",
+    "editor.insertSpaces": false,
+    "editor.tabCompletion": "off",
     "editor.formatOnSave": false,
-    "editor.minimap.enabled": false,
+    "editor.formatOnPaste": false,
     "editor.formatOnType": false,
-    "editor.lineHeight": 0,
-    "editor.lineNumbers": "relative",
-    "workbench.editor.revealIfOpen": true,
-    "workbench.editor.closeEmptyGroups": false,
+    "editor.fontLigatures": false
+  },
 
+  // Dart
+  "[dart]": {
+    "editor.formatOnSave": true,
+    "editor.formatOnType": false,
+    "editor.rulers": [80],
+    "editor.selectionHighlight": false,
+    "editor.suggest.snippetsPreventQuickSuggestions": false,
+    "editor.suggestSelection": "first",
+    "editor.tabCompletion": "onlySnippets",
+    "editor.wordBasedSuggestions": "off"
+  },
+  "dart.flutterSdkPath": "/Users/jimmyff/sdks/flutter",
+  "dart.sdkPaths": ["/usr/local/Cellar/dart"],
+  "dart.debugExternalLibraries": true,
+  "dart.debugSdkLibraries": false,
+  "dart.analyzerAdditionalArgs": ["enable-completion-model"],
+  "dart.runPubGetOnPubspecChanges": false,
+  "dart.autoImportCompletions": false,
 
-    // restrict tabs
-    "editor.fontLigatures": false,
-    "workbench.editor.showTabs": "multiple",
-    "workbench.editor.limit.enabled": true,
-    "workbench.editor.limit.value": 3,
-    "workbench.editor.limit.excludeDirty": false,
-    "workbench.editor.limit.perEditorGroup": true,
-    "workbench.editor.tabActionCloseVisibility": false,
+  // Javascript
+  "javascript.format.enable": false,
 
-   
+  // HTML
+  "[html]": {
+    "editor.defaultFormatter": "vscode.html-language-features"
+  },
+  "html.format.templating": true,
+  "html.format.indentHandlebars": true,
+  "html.format.unformatted": "{%}",
+  "html.format.enable": false,
+  "html.format.wrapLineLength": 0,
+  "html.format.preserveNewLines": false,
+  "html.format.wrapAttributes": "force-aligned",
 
-    // Language specific settings
-    "files.associations": {
-        "*.dart": "dart"
+  // VIM
+  "vim.easymotion": true,
+  "vim.incsearch": true,
+  "vim.useSystemClipboard": true,
+  "vim.useCtrlKeys": false,
+  "vim.hlsearch": true,
+  "vim.normalModeKeyBindings": [
+    {
+      "before": ["<leader>", "|"],
+      "commands": ["workbench.action.splitEditorRight"]
     },
+    {
+      "before": ["<leader>", "-"],
+      "commands": ["workbench.action.splitEditorDown"]
+    }
+  ],
+  "vim.insertModeKeyBindings": [
+    {
+      "before": ["j", "j"],
+      "after": ["<Esc>"]
+    }
+  ],
+  "vim.normalModeKeyBindingsNonRecursive": [
+    { "before": ["<S-h>"], "commands": [":bprevious"] },
+    { "before": ["<S-l>"], "commands": [":bnext"] },
+    { "before": ["leader", "v"], "commands": [":vsplit"] },
+    { "before": ["leader", "s"], "commands": [":split"] },
+    { "before": ["leader", "h"], "commands": ["workbench.action.focusLeftGroup"] },
+    { "before": ["leader", "j"], "commands": ["workbench.action.focusBelowGroup"] },
+    { "before": ["leader", "k"], "commands": ["workbench.action.focusAboveGroup"] },
+    { "before": ["leader", "l"], "commands": ["workbench.action.focusRightGroup"] },
+    { "before": ["leader", "w"], "commands": [":w!"] },
+    { "before": ["leader", "q"], "commands": [":q!"] },
+    { "before": ["leader", "x"], "commands": [":x!"] },
+    { "before": ["[", "d"], "commands": ["editor.action.marker.prev"] },
+    { "before": ["]", "d"], "commands": ["editor.action.marker.next"] },
+    { "before": ["<leader>", "c", "a"], "commands": ["editor.action.quickFix"] },
+    { "before": ["leader", "f"], "commands": ["workbench.action.quickOpen"] },
+    { "before": ["leader", "p"], "commands": ["editor.action.formatDocument"] },
+    { "before": ["g", "h"], "commands": ["editor.action.showDefinitionPreviewHover"] }
+  ],
+  "vim.visualModeKeyBindings": [
+    { "before": ["<"], "commands": ["editor.action.outdentLines"] },
+    { "before": [">"], "commands": ["editor.action.indentLines"] },
+    { "before": ["J"], "commands": ["editor.action.moveLinesDownAction"] },
+    { "before": ["K"], "commands": ["editor.action.moveLinesUpAction"] },
+    { "before": ["leader", "c"], "commands": ["editor.action.commentLine"] }
+  ],
+  "vim.leader": "<space>",
+  "vim.handleKeys": {
+    "<C-a>": false,
+    "<C-f>": false
+  },
 
-    "[plaintext]": {
-        "editor.fontFamily": "HackMono, mono, Monospace",
-        "editor.wordWrap": "off",
-        "editor.fontSize": 14,
-        "editor.renderWhitespace": "all",
-        "editor.insertSpaces": false,
-        "editor.tabCompletion": "off",
-        "editor.formatOnSave": false,
-        "editor.formatOnPaste": false,
-        "editor.formatOnType": false,
-        "editor.fontLigatures": false,
-    },
+  // OSX
+  "terminal.integrated.defaultProfile.osx": "nu",
+  "geminicodeassist.project": "onesceneapp",
+  "workbench.editor.enablePreview": false,
+  "workbench.editorAssociations": {
+    "*.svg": "default"
+  },
 
+  "diffEditor.codeLens": true,
+  "github.copilot.chat.agent.thinkingTool": true,
+  "github.copilot.chat.edits.temporalContext.enabled": true,
+  "chat.todoListTool.enabled": true,
 
-    // Dart
-    "[dart]": {
-        // Automatically format code on save and during typing of certain characters
-        // (like `;` and `}`).
-        "editor.formatOnSave": true,
-        "editor.formatOnType": false,
-        // Draw a guide line at 80 characters, where Dart's formatting will wrap code.
-        "editor.rulers": [
-            80
-        ],
-        // Disables built-in highlighting of words that match your selection. Without
-        // this, all instances of the selected text will be highlighted, interfering
-        // with Dart's ability to highlight only exact references to the selected variable.
-        "editor.selectionHighlight": false,
-        // By default, VS Code prevents code completion from popping open when in
-        // "snippet mode" (editing placeholders in inserted code). Setting this option
-        // to `false` stops that and allows completion to open as normal, as if you
-        // weren't in a snippet placeholder.
-        "editor.suggest.snippetsPreventQuickSuggestions": false,
-        // By default, VS Code will pre-select the most recently used item from code
-        // completion. This is usually not the most relevant item.
-        //
-        // "first" will always select top item
-        // "recentlyUsedByPrefix" will filter the recently used items based on the
-        //     text immediately preceding where completion was invoked.
-        "editor.suggestSelection": "first",
-        // Allows pressing <TAB> to complete snippets such as `for` even when the
-        // completion list is not visible.
-        "editor.tabCompletion": "onlySnippets",
-        // By default, VS Code will populate code completion with words found in the
-        // current file when a language service does not provide its own completions.
-        // This results in code completion suggesting words when editing comments and
-        // strings. This setting will prevent that.
-        "editor.wordBasedSuggestions": "off",
-    },
-    "dart.flutterSdkPath": "/Users/jimmyff/sdks/flutter",
-    "dart.sdkPaths": [
-        "/usr/local/Cellar/dart"
-    ],
-    "dart.debugExternalLibraries": true,
-    "dart.debugSdkLibraries": false,
-    "dart.analyzerAdditionalArgs": [
-        "enable-completion-model"
-    ],
-    "dart.runPubGetOnPubspecChanges": false,
-    "dart.autoImportCompletions": false,
-
-
-    // Javascript
-    "javascript.format.enable": false,
-
-    // HTML
-    "[html]": {
-        "editor.defaultFormatter": "vscode.html-language-features"
-    },
-    "html.format.templating": true,
-    "html.format.indentHandlebars": true,
-    "html.format.unformatted": "{%}",
-    "html.format.enable": false,
-    "html.format.wrapLineLength": 0,
-    "html.format.preserveNewLines": false,
-    "html.format.wrapAttributes": "force-aligned",
-
-    // VIM
-    "vim.easymotion": true,
-    "vim.incsearch": true,
-    "vim.useSystemClipboard": true,
-    "vim.useCtrlKeys": false,
-    "vim.hlsearch": true,
-    "vim.normalModeKeyBindings": [
-        {
-            "before": ["<leader>", "|"],
-            "commands": [
-                "workbench.action.splitEditorRight"
-            ]
-        },
-        {
-            "before": ["<leader>", "-"],
-            "commands": [
-                "workbench.action.splitEditorDown"
-            ]
-        }
-    ],
-    "vim.insertModeKeyBindings": [
-      {
-        "before": ["j", "j"],
-        "after": ["<Esc>"]
-      }
-    ],
-    "vim.normalModeKeyBindingsNonRecursive": [
-        // NAVIGATION
-        // switch b/w buffers
-        { "before": ["<S-h>"], "commands": [":bprevious"] },
-        { "before": ["<S-l>"], "commands": [":bnext"] },
-
-        // splits
-        { "before": ["leader", "v"], "commands": [":vsplit"] },
-        { "before": ["leader", "s"], "commands": [":split"] },
-
-        // panes
-        {
-        "before": ["leader", "h"],
-        "commands": ["workbench.action.focusLeftGroup"]
-        },
-        {
-        "before": ["leader", "j"],
-        "commands": ["workbench.action.focusBelowGroup"]
-        },
-        {
-        "before": ["leader", "k"],
-        "commands": ["workbench.action.focusAboveGroup"]
-        },
-        {
-        "before": ["leader", "l"],
-        "commands": ["workbench.action.focusRightGroup"]
-        },
-        // NICE TO HAVE
-        { "before": ["leader", "w"], "commands": [":w!"] },
-        { "before": ["leader", "q"], "commands": [":q!"] },
-        { "before": ["leader", "x"], "commands": [":x!"] },
-        {
-        "before": ["[", "d"],
-        "commands": ["editor.action.marker.prev"]
-        },
-        {
-        "before": ["]", "d"],
-        "commands": ["editor.action.marker.next"]
-        },
-        {
-        "before": ["<leader>", "c", "a"],
-        "commands": ["editor.action.quickFix"]
-        },
-        { "before": ["leader", "f"], "commands": ["workbench.action.quickOpen"] },
-        { "before": ["leader", "p"], "commands": ["editor.action.formatDocument"] },
-        {
-        "before": ["g", "h"],
-        "commands": ["editor.action.showDefinitionPreviewHover"]
-        }
-    ],
-    "vim.visualModeKeyBindings": [
-        // Stay in visual mode while indenting
-        { "before": ["<"], "commands": ["editor.action.outdentLines"] },
-        { "before": [">"], "commands": ["editor.action.indentLines"] },
-        // Move selected lines while staying in visual mode
-        { "before": ["J"], "commands": ["editor.action.moveLinesDownAction"] },
-        { "before": ["K"], "commands": ["editor.action.moveLinesUpAction"] },
-        // toggle comment selection
-        { "before": ["leader", "c"], "commands": ["editor.action.commentLine"] }
-    ],
-    "vim.leader": "<space>",
-    "vim.handleKeys": {
-      "<C-a>": false,
-      "<C-f>": false
-    },
-  
-
-
-    // OSX
-    "terminal.integrated.defaultProfile.osx": "nu",
-    "geminicodeassist.project": "onesceneapp",
-    "workbench.editor.enablePreview": false,
-    "workbench.editorAssociations": {
-        "*.svg": "default"
-    },
-
-    "diffEditor.codeLens": true,
-    "github.copilot.chat.agent.thinkingTool": true,
-    "github.copilot.chat.edits.temporalContext.enabled": true,
-    "chat.todoListTool.enabled": true,
-
-    // Shell
-    "terminal.integrated.shellIntegration.enabled": false
-    
-
-    
+  // Shell
+  "terminal.integrated.shellIntegration.enabled": false
 }

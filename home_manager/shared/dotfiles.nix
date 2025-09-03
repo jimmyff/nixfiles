@@ -13,6 +13,8 @@
     home.file.".config/Cursor/User/settings.json".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/nixfiles/dotfiles/vscode/.config/Code/User/settings.json";
     home.file.".config/Cursor/User/keybindings.json".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/nixfiles/dotfiles/vscode/.config/Code/User/keybindings.json";
 
+    # zed settings
+    home.file.".config/zed/settings.json".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/nixfiles/dotfiles/zed/.config/zed/settings.json";
 
 
 }
