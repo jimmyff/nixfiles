@@ -10,6 +10,7 @@
       enable = true;
       userName = "jimmyff";
       userEmail = "code@rocketware.co.uk";
+      lfs.enable = true;
     };
 
     # Github cli

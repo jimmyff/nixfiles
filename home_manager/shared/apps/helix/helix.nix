@@ -26,6 +26,7 @@
           line-number = "relative";
           lsp.display-messages = true;
           auto-format = true;
+          lsp.display-inlay-hints = true;
           cursor-shape = {
             insert = "bar";
             normal = "block";
