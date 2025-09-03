@@ -273,18 +273,24 @@
       "<C-f>": false
     },
   
-    // "// To improve performance",
-    // "extensions.experimental.affinity": {
-    //   "vscodevim.vim": 1
-    // },
+
 
     // OSX
-    "terminal.integrated.defaultProfile.osx": "zsh",
+    "terminal.integrated.defaultProfile.osx": "nu",
     "geminicodeassist.project": "onesceneapp",
     "workbench.editor.enablePreview": false,
     "workbench.editorAssociations": {
         "*.svg": "default"
     },
 
-    "diffEditor.codeLens": true
+    "diffEditor.codeLens": true,
+    "github.copilot.chat.agent.thinkingTool": true,
+    "github.copilot.chat.edits.temporalContext.enabled": true,
+    "chat.todoListTool.enabled": true,
+
+    // Shell
+    "terminal.integrated.shellIntegration.enabled": false
+    
+
+    
 }
