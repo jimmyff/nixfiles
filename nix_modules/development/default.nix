@@ -57,6 +57,10 @@
                 if [ -f .gitmodules ]; then
                   echo "🔄 Initializing git submodules..."
                   git submodule update --init --recursive
+                  
+                  # Checkout main branch for all submodules to avoid detached HEAD state
+                  echo "🌿 Checking out main branch for submodules..."
+                  git submodule foreach git checkout main
                 fi
 
                 # Initialize git LFS if .gitattributes contains LFS references
@@ -158,6 +162,7 @@ in {
         direnv
         nix-direnv
         firebase-tools
+        flutter # Includes Dart SDK
 
         # Development utilities
         curl
