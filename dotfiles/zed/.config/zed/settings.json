@@ -3,21 +3,10 @@
     "play_sound_when_agent_done": false,
     "use_modifier_to_send": true
   },
-  "agent_servers": {
-    "claude": {
-      "args": [],
-      "command": "claude",
-      "env": {}
-    },
-    "gemini": {
-      "args": [],
-      "command": "gemini",
-      "env": {}
-    }
-  },
+  "agent_servers": {},
   "auto_install_extensions": {
     "dart": true,
-    "modus-themes": true,
+    "spiceflow-theme": true,
     "nix": true
   },
   "buffer_font_family": "JetBrainsMono Nerd Font",
@@ -29,7 +18,7 @@
     "diagnostics": false,
     "metrics": false
   },
-  "theme": "Modus Vivendi Tinted",
+  "theme": "Spiceflow Dark",
   "ui_font_family": "JetBrainsMono Nerd Font",
   "ui_font_size": 14,
   "vim_mode": true
