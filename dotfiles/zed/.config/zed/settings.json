@@ -22,8 +22,32 @@
     "diagnostics": false,
     "metrics": false
   },
-  "theme": "Spiceflow Dark",
+  "theme": "Ayu Dark",
   "ui_font_family": "JetBrainsMono Nerd Font",
   "ui_font_size": 14,
-  "vim_mode": true
+  "vim_mode": true,
+
+  "experimental.theme_overrides": {
+    "editor.background": "#0d0e1c",
+    "editor.gutter.background": "#0d0e1c",
+    "editor.active_line.background": "#2266ae",
+
+    "players": [
+      {
+        "cursor": "#ff66ff",
+        "background": "#7030af",
+        "selection": "#7030af"
+      }
+    ],
+    "panel.focused_border": "#ffffff"
+
+    // "syntax": {
+    //   "comment": {
+    //     "font_style": "italic"
+    //   },
+    //   "comment.doc": {
+    //     "font_style": "italic"
+    //   }
+    // }
+  }
 }
