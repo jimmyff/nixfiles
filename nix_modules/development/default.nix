@@ -56,11 +56,15 @@
                 cd "${name}/workspace"
                 if [ -f .gitmodules ]; then
                   echo "🔄 Initializing git submodules..."
-                  git submodule update --init --recursive
-                  
-                  # Checkout main branch for all submodules to avoid detached HEAD state
-                  echo "🌿 Checking out main branch for submodules..."
-                  git submodule foreach git checkout main
+                  if git submodule update --init --recursive; then
+                    echo "✅ Submodules initialized successfully"
+                    
+                    # Checkout main branch for all submodules to avoid detached HEAD state
+                    echo "🌿 Checking out main branch for submodules..."
+                    git submodule foreach git checkout main
+                  else
+                    echo "❌ Failed to initialize submodules"
+                  fi
                 fi
 
                 # Initialize git LFS if .gitattributes contains LFS references
