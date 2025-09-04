@@ -15,8 +15,19 @@
   },
   "buffer_font_family": "JetBrainsMono Nerd Font",
   "buffer_font_size": 14,
+  "relative_line_numbers": true,
   "inlay_hints": {
     "enabled": true
+  },
+  "indent_guides": {
+    "enabled": true,
+    "coloring": "indent_aware"
+  },
+  "git": {
+    "git_gutter": "tracked_files",
+    "inline_blame": {
+      "delay_ms": 1500
+    }
   },
   "telemetry": {
     "diagnostics": false,
@@ -32,8 +43,20 @@
   // https://github.com/protesilaos/modus-themes/blob/main/modus-vivendi-tinted-theme.el
   "experimental.theme_overrides": {
     "editor.background": "#0d0e1c",
+    "scrollbar.thumb.background": "#1d2235",
     "editor.gutter.background": "#0d0e1c",
-    "editor.active_line.background": "#2266ae",
+    "editor.active_line.background": "#004065",
+    "background": "#1d223d",
+    "panel.background": "#1d2235",
+    "text": "#fff",
+    "text.muted": "#c6daff99",
+    "panel.indent_guide": "#4a4f69",
+    "border": "#00000099",
+    "toolbar.background": "#1d2235",
+    "border.focused": "#f00",
+    "editor.active_line_number": "#efef00",
+    "tab_bar.background": "#1d2235",
+    "tab.inactive_background": "#1d223d",
 
     "players": [
       {
@@ -42,7 +65,8 @@
         "selection": "#7030af"
       }
     ],
-    "panel.focused_border": "#ffffff"
+    "tab.active_background": null
+    // "panel.focused_border": "#333"
 
     // "syntax": {
     //   "comment": {
