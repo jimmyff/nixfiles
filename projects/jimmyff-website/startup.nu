@@ -3,6 +3,12 @@
 # Startup script for jimmyff-website
 echo "🌐 Starting Zola development server..."
 
+# Update git repository and submodules if workspace exists
+if ("workspace" | path exists) {
+    echo "🔄 Updating repository and submodules..."
+    nu gm.nu workspace/ -u
+}
+
 # Check if we're in the workspace directory
 if not ("workspace/config.toml" | path exists) {
     echo "❌ No config.toml found in workspace/. Make sure the repository is cloned."

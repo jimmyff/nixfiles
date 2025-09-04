@@ -111,10 +111,11 @@
             cp "$PROJECT_SOURCE/.envrc" "$PROJECT_DIR/" 2>/dev/null && echo "✅ Copied .envrc" || echo "⚠️  .envrc not found"
             cp "$PROJECT_SOURCE/startup.nu" "$PROJECT_DIR/" 2>/dev/null && echo "✅ Copied startup.nu" || echo "⚠️  startup.nu not found"
             cp "$PROJECT_SOURCE/flake.nix" "$PROJECT_DIR/" 2>/dev/null && echo "✅ Copied flake.nix" || echo "⚠️  flake.nix not found"
+            cp "${homeDir}/nixfiles/scripts/git-manager/gm.nu" "$PROJECT_DIR/" 2>/dev/null && echo "✅ Copied gm.nu" || echo "⚠️  gm.nu not found"
 
             # Set permissions and ownership
             chmod u+w "$PROJECT_DIR/.envrc" "$PROJECT_DIR/flake.nix" 2>/dev/null || true
-            chmod +x "$PROJECT_DIR/startup.nu" 2>/dev/null || true
+            chmod +x "$PROJECT_DIR/startup.nu" "$PROJECT_DIR/gm.nu" 2>/dev/null || true
             if command -v chown >/dev/null 2>&1; then
               if [[ "$OSTYPE" == "darwin"* ]]; then
                 chown -R ${username}:staff "$PROJECT_DIR/" 2>/dev/null || true

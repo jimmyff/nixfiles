@@ -3,6 +3,12 @@
 # Startup script for rocket-kit
 echo "🚀 Rocket Kit Flutter/Dart Development Environment"
 
+# Update git repository and submodules if workspace exists
+if ("workspace" | path exists) {
+    echo "🔄 Updating repository and submodules..."
+    nu gm.nu workspace/ -u
+}
+
 # Check if we're in a Flutter project workspace
 if ("workspace/pubspec.yaml" | path exists) {
     echo "📦 Found pubspec.yaml in workspace/ - this looks like a Flutter/Dart project!"

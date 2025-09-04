@@ -27,16 +27,14 @@
             echo ""
             echo "📖 Project README:"
             echo "==================="
-            head -20 workspace/README.md
-            if [ $(wc -l < workspace/README.md) -gt 20 ]; then
-              echo "..."
-              echo "(README truncated - see full file for more details)"
-            fi
+            cat workspace/README.md
             echo ""
           fi
 
-          # Show startup instructions
-          if [ -f startup.nu ]; then
+          # Run startup script if it exists and nushell is available
+          if [ -f startup.nu ] && command -v nu >/dev/null 2>&1 && nu -c "version" >/dev/null 2>&1; then
+            nu startup.nu
+          elif [ -f startup.nu ]; then
             echo ""
             echo "🔧 To start the development server, run: ./startup.nu"
           fi
