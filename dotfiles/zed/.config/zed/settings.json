@@ -27,6 +27,9 @@
   "ui_font_size": 14,
   "vim_mode": true,
 
+  // I like my ide to be super clear where my focus is (WIP)
+  // Colors inspired by Modus Vivendi Tinted:
+  // https://github.com/protesilaos/modus-themes/blob/main/modus-vivendi-tinted-theme.el
   "experimental.theme_overrides": {
     "editor.background": "#0d0e1c",
     "editor.gutter.background": "#0d0e1c",
