@@ -10,6 +10,12 @@
     git-lfs
   ];
   
+  # Development scripts to include
+  scripts = {
+    global = ["git-manager/gm.nu"];
+    local = [];
+  };
+  
   # Project description
   description = "Jimmy's personal website built with Zola";
 }

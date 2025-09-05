@@ -115,11 +115,48 @@
             cp "$PROJECT_SOURCE/.envrc" "$PROJECT_DIR/" 2>/dev/null && echo "✅ Copied .envrc" || echo "⚠️  .envrc not found"
             cp "$PROJECT_SOURCE/startup.nu" "$PROJECT_DIR/" 2>/dev/null && echo "✅ Copied startup.nu" || echo "⚠️  startup.nu not found"
             cp "$PROJECT_SOURCE/flake.nix" "$PROJECT_DIR/" 2>/dev/null && echo "✅ Copied flake.nix" || echo "⚠️  flake.nix not found"
-            cp "${homeDir}/nixfiles/scripts/git-manager/gm.nu" "$PROJECT_DIR/" 2>/dev/null && echo "✅ Copied gm.nu" || echo "⚠️  gm.nu not found"
+            
+            # Setup development scripts via symlinks
+            echo "Setting up development scripts for ${name}..."
+            ${lib.concatStringsSep "\n" (
+              lib.mapAttrsToList (projectName: projectConfig:
+                if projectName == name then
+                  # Global scripts
+                  (lib.concatStringsSep "\n" (map (scriptPath:
+                    let
+                      scriptName = lib.last (lib.splitString "/" scriptPath);
+                    in
+                    ''
+                      SCRIPT_SOURCE="${homeDir}/nixfiles/scripts/${scriptPath}"
+                      SCRIPT_TARGET="$PROJECT_DIR/${scriptName}"
+                      if [ -f "$SCRIPT_SOURCE" ]; then
+                        ln -sf "$SCRIPT_SOURCE" "$SCRIPT_TARGET" && echo "✅ Linked ${scriptName}" || echo "⚠️  Failed to link ${scriptName}"
+                        chmod +x "$SCRIPT_TARGET" 2>/dev/null || true
+                      else
+                        echo "⚠️  Global script not found: ${scriptPath}"
+                      fi
+                    ''
+                  ) (projectConfig.scripts.global or ["git-manager/gm.nu"]))) +
+                  # Local scripts  
+                  (lib.concatStringsSep "\n" (map (scriptName:
+                    ''
+                      LOCAL_SCRIPT_SOURCE="$PROJECT_SOURCE/${scriptName}"
+                      LOCAL_SCRIPT_TARGET="$PROJECT_DIR/${scriptName}"
+                      if [ -f "$LOCAL_SCRIPT_SOURCE" ]; then
+                        ln -sf "$LOCAL_SCRIPT_SOURCE" "$LOCAL_SCRIPT_TARGET" && echo "✅ Linked local ${scriptName}" || echo "⚠️  Failed to link local ${scriptName}"
+                        chmod +x "$LOCAL_SCRIPT_TARGET" 2>/dev/null || true
+                      else
+                        echo "⚠️  Local script not found: ${scriptName}"
+                      fi
+                    ''
+                  ) (projectConfig.scripts.local or [])))
+                else ""
+              ) enabledProjects
+            )}
 
-            # Set permissions and ownership
+            # Set permissions and ownership  
             chmod u+w "$PROJECT_DIR/.envrc" "$PROJECT_DIR/flake.nix" 2>/dev/null || true
-            chmod +x "$PROJECT_DIR/startup.nu" "$PROJECT_DIR/gm.nu" 2>/dev/null || true
+            chmod +x "$PROJECT_DIR/startup.nu" 2>/dev/null || true
             if command -v chown >/dev/null 2>&1; then
               if [[ "$OSTYPE" == "darwin"* ]]; then
                 chown -R ${username}:staff "$PROJECT_DIR/" 2>/dev/null || true
@@ -186,6 +223,9 @@ in {
       package = pkgs.direnv;
       silent = false;
       loadInNixShell = true;
+      settings = {
+        hide_env_diff = true;
+      };
       nix-direnv = {
         enable = true;
         package = pkgs.nix-direnv;

@@ -65,12 +65,13 @@ def print-header [text: string, icon: string = ""] {
 
 # Execute command with comprehensive error handling
 def run-safe [command: list, path: string = ".", description: string = "Operation"] {
-    try {
-        let result = do { cd $path; ^$command.0 ...($command | skip 1) }
-        return { success: true, output: $result, path: $path }
-    } catch { |err|
-        let error_msg = if ("msg" in $err) { $err.msg } else { "Unknown error" }
-        return { success: false, error: $error_msg, path: $path }
+    let result = do { cd $path; ^$command.0 ...($command | skip 1) } | complete
+    
+    if $result.exit_code == 0 {
+        return { success: true, output: $result.stdout, path: $path }
+    } else {
+        let combined_output = $result.stdout + $result.stderr
+        return { success: false, error: "External command had a non-zero exit code", output: $combined_output, path: $path }
     }
 }
 
@@ -209,7 +210,7 @@ def run-operation [projects: list, operation: string] {
         _ => $operation
     }
     
-    print-header $"Running flutter ($operation_name) on all projects" $CONFIG.icons.processing
+    print-header $"Running ($operation_name) on all projects" $CONFIG.icons.processing
     
     $projects | enumerate | each { |item|
         let project = $item.item
@@ -217,24 +218,100 @@ def run-operation [projects: list, operation: string] {
         
         print ($CONFIG.colors.primary + $"  [($index)/($total)] " + $project.icon + " " + $project.name + $CONFIG.colors.reset)
         
-        let command = ["flutter" $"pub" $operation]
-        let result = run-safe $command $project.path $"flutter pub ($operation)"
-        
-        if $result.success {
-            print ($CONFIG.colors.success + "    ✓ Success" + $CONFIG.colors.reset)
-            {
-                project: $project.name,
-                path: $project.path,
-                status: "success",
-                message: ""
+        # Special handling for test operations
+        if $operation == "test" {
+            let test_dir = ($project.path | path join "test")
+            # Check for actual test files, not just test directory
+            let has_tests = if ($test_dir | path exists) {
+                try {
+                    let test_files = (glob ($test_dir | path join "**" | path join "*.dart"))
+                    not ($test_files | is-empty)
+                } catch {
+                    false
+                }
+            } else {
+                false
+            }
+            
+            if not $has_tests {
+                print ($CONFIG.colors.warning + "    ⚠ No tests found" + $CONFIG.colors.reset)
+                {
+                    project: $project.name,
+                    path: $project.path,
+                    status: "skipped",
+                    message: "No tests found"
+                }
+            } else {
+                # Use appropriate test command based on project type
+                let command = if $project.type == "Dart" {
+                    ["dart" "test"]
+                } else {
+                    ["flutter" "test"]
+                }
+                let result = run-safe $command $project.path $"($project.type | str downcase) test"
+                
+                if $result.success {
+                    print ($CONFIG.colors.success + "    ✓ Success" + $CONFIG.colors.reset)
+                    {
+                        project: $project.name,
+                        path: $project.path,
+                        status: "success",
+                        message: ""
+                    }
+                } else {
+                    # Check if the error is actually "no tests found" from Flutter/Dart
+                    let output_str = if "output" in $result { $result.output | str trim } else { "" }
+                    let is_no_tests = ($output_str | str contains "No tests were found")
+                    
+                    if $is_no_tests {
+                        print ($CONFIG.colors.warning + "    ⚠ No tests found" + $CONFIG.colors.reset)
+                        {
+                            project: $project.name,
+                            path: $project.path,
+                            status: "skipped",
+                            message: "No tests found"
+                        }
+                    } else {
+                        print ($CONFIG.colors.error + "    ✗ Failed: " + $result.error + $CONFIG.colors.reset)
+                        # Show error output for failed tests
+                        let output_lines = ($output_str | lines)
+                        if ($output_lines | length) > 0 {
+                            print ($CONFIG.colors.accent + "    " + $CONFIG.separators.thin + $CONFIG.colors.reset)
+                            $output_lines | last 10 | each { |line|
+                                print ($CONFIG.colors.error + "    " + $line + $CONFIG.colors.reset)
+                            }
+                            print ($CONFIG.colors.accent + "    " + $CONFIG.separators.thin + $CONFIG.colors.reset)
+                        }
+                        {
+                            project: $project.name,
+                            path: $project.path,
+                            status: "error",
+                            message: $result.error
+                        }
+                    }
+                }
             }
         } else {
-            print ($CONFIG.colors.error + "    ✗ Failed: " + $result.error + $CONFIG.colors.reset)
-            {
-                project: $project.name,
-                path: $project.path,
-                status: "error",
-                message: $result.error
+            # Regular pub operations
+            let command = ["flutter" $"pub" $operation]
+            let result = run-safe $command $project.path $"flutter pub ($operation)"
+            
+            if $result.success {
+                print ($CONFIG.colors.success + "    ✓ Success" + $CONFIG.colors.reset)
+                {
+                    project: $project.name,
+                    path: $project.path,
+                    status: "success",
+                    message: ""
+                }
+            } else {
+                print ($CONFIG.colors.error + "    ✗ Failed: " + $result.error + $CONFIG.colors.reset)
+                {
+                    project: $project.name,
+                    path: $project.path,
+                    status: "error",
+                    message: $result.error
+                }
             }
         }
     }
@@ -242,13 +319,19 @@ def run-operation [projects: list, operation: string] {
 
 # Display operation results in a formatted table
 def display-results [results: list, operation: string] {
-    print-header $"Operation Results: flutter pub ($operation)" $CONFIG.icons.success
+    let operation_display = if $operation == "test" { "test" } else { $"flutter pub ($operation)" }
+    print-header $"Operation Results: ($operation_display)" $CONFIG.icons.success
     
     let success_count = ($results | where status == "success" | length)
     let error_count = ($results | where status == "error" | length)
+    let skipped_count = ($results | where status == "skipped" | length)
     let total_count = ($results | length)
     
-    let summary = $"Total: ($total_count) | Success: ($success_count) | Errors: ($error_count)"
+    let summary = if $skipped_count > 0 {
+        $"Total: ($total_count) | Success: ($success_count) | Errors: ($error_count) | Skipped: ($skipped_count)"
+    } else {
+        $"Total: ($total_count) | Success: ($success_count) | Errors: ($error_count)"
+    }
     print ($CONFIG.colors.info + $summary + $CONFIG.colors.reset)
     print ""
     
@@ -256,11 +339,15 @@ def display-results [results: list, operation: string] {
     let display_rows = $results | each { |result|
         let status_display = if $result.status == "success" {
             $CONFIG.colors.success + $CONFIG.icons.clean + " SUCCESS" + $CONFIG.colors.reset
+        } else if $result.status == "skipped" {
+            $CONFIG.colors.warning + "⚠ SKIPPED" + $CONFIG.colors.reset
         } else {
             $CONFIG.colors.error + $CONFIG.icons.dirty + " FAILED" + $CONFIG.colors.reset
         }
         
         let message_display = if $result.status == "error" {
+            ($result.message | str substring 0..60)
+        } else if $result.status == "skipped" {
             ($result.message | str substring 0..60)
         } else {
             ""

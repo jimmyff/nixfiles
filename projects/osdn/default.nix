@@ -9,6 +9,12 @@
     flutter  # Includes Dart SDK 3.9+ 
   ];
   
+  # Development scripts to include
+  scripts = {
+    global = ["git-manager/gm.nu" "dartboard/dartboard.nu"];
+    local = [];
+  };
+  
   # Project description
   description = "OSDN Platform";
 }
