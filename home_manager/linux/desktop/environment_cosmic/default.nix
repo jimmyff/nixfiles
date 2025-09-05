@@ -13,7 +13,6 @@
   # home.packages = [
   # ];
 
-  # Cosmic config
-  home.file.".config/cosmic".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/nixfiles/dotfiles/cosmic/.config/cosmic";
+  # Cosmic config is now handled by shared/dotfiles.nix
 
 }
