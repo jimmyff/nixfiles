@@ -14,6 +14,7 @@
     
     # Import git module
     ../programs/git.nix
+    ../programs/ssh.nix
   ];
 
   # apps
