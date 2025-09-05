@@ -6,8 +6,8 @@
     ../shared/dotfiles.nix
   ];
 
-  # Not supported on darwin as of 2025-07-14
-  chromium_module.enable =  false;
+  # Not supported on darwin - chromium package unavailable on aarch64-darwin
+  chromium_module.enable = false;
 
 
 
