@@ -15,7 +15,29 @@
     else "/home/${username}";
 
   # Cross-platform user group
-  userGroup = if pkgs.stdenv.isDarwin then "staff" else "users";
+  userGroup =
+    if pkgs.stdenv.isDarwin
+    then "staff"
+    else "users";
+
+  # Platform-specific packages
+  platformPackages = with pkgs;
+    {
+      darwin = [
+        darwin.xcode_16_4
+        ruby
+        cocoapods
+      ] ++ lib.optionals (pkgs.stdenv.system == "x86_64-darwin") [
+        android-studio
+      ];
+      linux = [
+        android-studio
+      ];
+    }.${
+      if pkgs.stdenv.isDarwin
+      then "darwin"
+      else "linux"
+    };
 
   # Helper script for project setup
   devSetupScript = pkgs.writeShellScriptBin "dev-setup" ''
@@ -58,7 +80,7 @@
                   echo "🔄 Initializing git submodules..."
                   if git submodule update --init --recursive; then
                     echo "✅ Submodules initialized successfully"
-                    
+
                     # Checkout main branch for all submodules to avoid detached HEAD state
                     echo "🌿 Checking out main branch for submodules..."
                     git submodule foreach git checkout main
@@ -115,46 +137,49 @@
             cp "$PROJECT_SOURCE/.envrc" "$PROJECT_DIR/" 2>/dev/null && echo "✅ Copied .envrc" || echo "⚠️  .envrc not found"
             cp "$PROJECT_SOURCE/startup.nu" "$PROJECT_DIR/" 2>/dev/null && echo "✅ Copied startup.nu" || echo "⚠️  startup.nu not found"
             cp "$PROJECT_SOURCE/flake.nix" "$PROJECT_DIR/" 2>/dev/null && echo "✅ Copied flake.nix" || echo "⚠️  flake.nix not found"
-            
+
             # Setup development scripts via symlinks
             echo "Setting up development scripts for ${name}..."
             ${lib.concatStringsSep "\n" (
-              lib.mapAttrsToList (projectName: projectConfig:
-                if projectName == name then
-                  # Global scripts
-                  (lib.concatStringsSep "\n" (map (scriptPath:
-                    let
-                      scriptName = lib.last (lib.splitString "/" scriptPath);
-                    in
-                    ''
-                      SCRIPT_SOURCE="${homeDir}/nixfiles/scripts/${scriptPath}"
-                      SCRIPT_TARGET="$PROJECT_DIR/${scriptName}"
-                      if [ -f "$SCRIPT_SOURCE" ]; then
-                        ln -sf "$SCRIPT_SOURCE" "$SCRIPT_TARGET" && echo "✅ Linked ${scriptName}" || echo "⚠️  Failed to link ${scriptName}"
-                        chmod +x "$SCRIPT_TARGET" 2>/dev/null || true
-                      else
-                        echo "⚠️  Global script not found: ${scriptPath}"
-                      fi
-                    ''
-                  ) (projectConfig.scripts.global or ["git-manager/gm.nu"]))) +
-                  # Local scripts  
-                  (lib.concatStringsSep "\n" (map (scriptName:
-                    ''
-                      LOCAL_SCRIPT_SOURCE="$PROJECT_SOURCE/${scriptName}"
-                      LOCAL_SCRIPT_TARGET="$PROJECT_DIR/${scriptName}"
-                      if [ -f "$LOCAL_SCRIPT_SOURCE" ]; then
-                        ln -sf "$LOCAL_SCRIPT_SOURCE" "$LOCAL_SCRIPT_TARGET" && echo "✅ Linked local ${scriptName}" || echo "⚠️  Failed to link local ${scriptName}"
-                        chmod +x "$LOCAL_SCRIPT_TARGET" 2>/dev/null || true
-                      else
-                        echo "⚠️  Local script not found: ${scriptName}"
-                      fi
-                    ''
-                  ) (projectConfig.scripts.local or [])))
-                else ""
-              ) enabledProjects
+              lib.mapAttrsToList (
+                projectName: projectConfig:
+                  if projectName == name
+                  then
+                    # Global scripts
+                    (lib.concatStringsSep "\n" (map (
+                      scriptPath: let
+                        scriptName = lib.last (lib.splitString "/" scriptPath);
+                      in ''
+                        SCRIPT_SOURCE="${homeDir}/nixfiles/scripts/${scriptPath}"
+                        SCRIPT_TARGET="$PROJECT_DIR/${scriptName}"
+                        if [ -f "$SCRIPT_SOURCE" ]; then
+                          ln -sf "$SCRIPT_SOURCE" "$SCRIPT_TARGET" && echo "✅ Linked ${scriptName}" || echo "⚠️  Failed to link ${scriptName}"
+                          chmod +x "$SCRIPT_TARGET" 2>/dev/null || true
+                        else
+                          echo "⚠️  Global script not found: ${scriptPath}"
+                        fi
+                      ''
+                    ) (projectConfig.scripts.global or ["git-manager/gm.nu"])))
+                    +
+                    # Local scripts
+                    (lib.concatStringsSep "\n" (map (
+                      scriptName: ''
+                        LOCAL_SCRIPT_SOURCE="$PROJECT_SOURCE/${scriptName}"
+                        LOCAL_SCRIPT_TARGET="$PROJECT_DIR/${scriptName}"
+                        if [ -f "$LOCAL_SCRIPT_SOURCE" ]; then
+                          ln -sf "$LOCAL_SCRIPT_SOURCE" "$LOCAL_SCRIPT_TARGET" && echo "✅ Linked local ${scriptName}" || echo "⚠️  Failed to link local ${scriptName}"
+                          chmod +x "$LOCAL_SCRIPT_TARGET" 2>/dev/null || true
+                        else
+                          echo "⚠️  Local script not found: ${scriptName}"
+                        fi
+                      ''
+                    ) (projectConfig.scripts.local or [])))
+                  else ""
+              )
+              enabledProjects
             )}
 
-            # Set permissions and ownership  
+            # Set permissions and ownership
             chmod u+w "$PROJECT_DIR/.envrc" "$PROJECT_DIR/flake.nix" 2>/dev/null || true
             chmod +x "$PROJECT_DIR/startup.nu" 2>/dev/null || true
             if command -v chown >/dev/null 2>&1; then
@@ -195,7 +220,7 @@ in {
   };
 
   config = lib.mkIf cfg.enable {
-    # Core development tools + project-specific packages
+    # Core development tools + project-specific packages + platform packages
     environment.systemPackages = with pkgs;
       [
         # Core development tools
@@ -204,6 +229,7 @@ in {
         direnv
         nix-direnv
         firebase-tools
+        google-cloud-sdk
         flutter # Includes Dart SDK
 
         # Development utilities
@@ -215,7 +241,8 @@ in {
         # Project setup helper
         devSetupScript
       ]
-      ++ projectPackages;
+      ++ projectPackages
+      ++ platformPackages;
 
     # Enable nix-direnv globally
     programs.direnv = {
@@ -240,7 +267,7 @@ in {
 
       # Create dev directory structure
       mkdir -p ${homeDir}/dev
-      
+
       # Set ownership, but don't fail if chown doesn't work
       chown ${username}:${userGroup} ${homeDir}/dev 2>/dev/null || echo "Warning: Could not set ownership of ${homeDir}/dev"
 

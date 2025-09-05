@@ -4,17 +4,27 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     flake-utils.url = "github:numtide/flake-utils";
+    android-nixpkgs.url = "github:tadfisher/android-nixpkgs";
   };
 
-  outputs = { self, nixpkgs, flake-utils }:
+  outputs = { self, nixpkgs, flake-utils, android-nixpkgs }:
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = nixpkgs.legacyPackages.${system};
+        
+        android-sdk = android-nixpkgs.lib.${system}.sdk (sdkPkgs: with sdkPkgs; [
+          cmdline-tools-latest
+          build-tools-34-0-0
+          platform-tools
+          platforms-android-34
+          emulator
+        ]);
       in
       {
         devShells.default = pkgs.mkShellNoCC {
           buildInputs = with pkgs; [
             flutter  # Includes Dart SDK 3.9+
+            android-sdk
           ];
           
           shellHook = ''
