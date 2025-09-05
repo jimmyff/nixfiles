@@ -11,7 +11,7 @@
 
 # jimmff/nixfiles/
 
-Work in progress repo for nix files, configs, scripts etc.
+✨ A Grimoire of Declarative Magicks...
 
 ```text
 
@@ -20,43 +20,45 @@ Work in progress repo for nix files, configs, scripts etc.
   ├── home_modules/     # Home Manager modules
   ├── hosts/            # Host config
   ├── nix_modules/      # Nix modules
-  └── projects/         # Development project templates
+  ├── projects/         # Development project templates
+  └── scripts/          # Utility scripts
 
 ```
----
 
-## Resources
+## Highlights
 
-- [Nix options](https://search.nixos.org/options)
-- [Nix packages](https://search.nixos.org/packages)
-- [Home Manager options](https://home-manager-options.extranix.com/)
-- [Wiki](https://wiki.nixos.org/)
+- **Multi-platform:** NixOS + macOS Darwin support
+- **Project environments:** Declarative dev setup with direnv
+- **Git management:** [`gm.nu`](scripts/git-manager/) - mono repo git manager
 
 ---
 
 ## Usage
 
-### System Management
-
 ```shell
-# Rebuild nixelbook
+# System rebuilds
 sudo nixos-rebuild dry-run|switch --flake /etc/nixos#nixelbook
-
-# Rebuild macbook via darwin
 sudo darwin-rebuild check|switch --flake ~/nixfiles/#jimmyff-mbp14
+home-manager switch --flake ~/nixfiles
 
-# Update flake inputs (packages, dependencies)
-nix flake update
-```
-
-### Development Environment
-
-```shell
-# Setup projects
+# Development projects (see projects/)
 dev-setup && cd ~/dev/<project> && direnv allow
 
-# Enable projects in host config
-development = { enable = true; projects = [ "project-name" ]; };
+# Updates & maintenance
+nix flake update
+sudo nixos-rebuild --rollback switch
 ```
 
-**Adding projects:** Create `projects/name/default.nix` with packages + repo, then rebuild.
+Enable projects in host config: `development = { enable = true; projects = [ "project-name" ]; };`
+
+---
+
+## Resources
+
+- [Search packages/options](https://search.nixos.org/)
+- [Home Manager options](https://home-manager-options.extranix.com/)
+- [NixOS Wiki](https://wiki.nixos.org/)
+
+---
+
+Jimmy Forrester-Fellowes 🌈 [jimmyff.co.uk](https://www.jimmyff.co.uk/)
