@@ -16,7 +16,8 @@
       extraPackages = with pkgs; [
         nil # Nix language server
         alejandra # Nix formatter
-        dart # Dart SDK and language server
+        flutter # Containers Dart SDK and language server
+        taplo # TOML lsp
       ];
 
       settings = {
@@ -25,8 +26,9 @@
         editor = {
           line-number = "relative";
           lsp.display-messages = true;
-          auto-format = true;
           lsp.display-inlay-hints = true;
+          auto-format = true;
+
           cursor-shape = {
             insert = "bar";
             normal = "block";
@@ -59,10 +61,37 @@
             };
             auto-format = true;
           }
+          # Attempting to get Dart DAP connected. See:
+          # https://github.com/dart-lang/sdk/blob/main/third_party/pkg/dap/tool/README.md
+          # https://github.com/helix-editor/helix/wiki/Debugger-Configurations
           {
             name = "dart";
             language-servers = ["dart"];
             auto-format = true;
+            formatter = {
+              command = "dart";
+              args = ["format"];
+            };
+            debugger = {
+              name = "dart";
+              transport = "stdio";
+              command = "flutter";
+              args = ["debug_adapter"];
+              templates = [
+                {
+                  name = "launch";
+                  request = "launch";
+                  completion = [
+                    {
+                      name = "entrypoint";
+                      completion = "filename";
+                      default = "lib/main.dart";
+                    }
+                  ];
+                  args = {program = "0";};
+                }
+              ];
+            };
           }
           {
             name = "markdown";
