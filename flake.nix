@@ -8,14 +8,14 @@
     nix-darwin.url = "github:nix-darwin/nix-darwin/master";
     nix-darwin.inputs.nixpkgs.follows = "nixpkgs";
 
-    nixvim.url = "github:nix-community/nixvim";
 
 
     # nvf - for neovim
-    nvf = {
-      url = "github:notashelf/nvf";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
+    # Disabled as nvim not in use
+    # nvf = {
+    #   url = "github:notashelf/nvf";
+    #   inputs.nixpkgs.follows = "nixpkgs";
+    # };
 
     # home-manager
     home-manager = {
@@ -42,8 +42,7 @@
     home-manager,
     nixos-hardware,
     agenix,
-    nixvim,
-    nvf,
+    # nvf,
     ... 
   } : let 
     username = "jimmyff";

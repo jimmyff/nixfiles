@@ -2,8 +2,6 @@
 
   imports = [
 
-    # ./nvim/nixvim.nix
-    ./nvim/nvf.nix
     ./helix/helix.nix
     ./kitty/kitty.nix
     ./ghostty/ghostty.nix
@@ -24,7 +22,6 @@
 
   # editors
   vscode_module.enable = lib.mkDefault true;
-  neovim_module.enable = lib.mkDefault false;
   helix_module.enable = lib.mkDefault true;
   zed_module.enable = lib.mkDefault true;
 
