@@ -30,6 +30,7 @@
 - **Multi-platform:** NixOS + macOS Darwin support
 - **Project environments:** Declarative dev setup with direnv
 - **Git management:** [`gm.nu`](scripts/git-manager/) - mono repo git manager
+- **Flutter/Dart management:** [`dartboard.nu`](scripts/dartboard/) - batch pub operations
 
 ---
 
