@@ -26,6 +26,11 @@
         "cmd+ctrl+j" = "neighboring_window down";
         "cmd+ctrl+k" = "neighboring_window up";
         "cmd+ctrl+l" = "neighboring_window right";
+        "cmd+ctrl+space" = "next_layout";
+        "alt+ctrl+h" = "move_window left";
+        "alt+ctrl+j" = "move_window down";
+        "alt+ctrl+k" = "move_window up";
+        "alt+ctrl+l" = "move_window right";
       };
 
       settings = {
