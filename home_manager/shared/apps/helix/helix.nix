@@ -41,8 +41,18 @@
         };
 
         keys.normal = {
-          space.f.f = ":open ~/."; # file picker
-          space.w = ":write"; # save file
+          "C-y" = [
+            ":sh rm -f /tmp/files2open"
+            ":set mouse false"
+            ":insert-output yazi \"%{buffer_name}\" --chooser-file=/tmp/files2open"
+            ":redraw"
+            ":set mouse true"
+            ":open /tmp/files2open"
+            "select_all"
+            "split_selection_on_newline"
+            "goto_file"
+            ":buffer-close! /tmp/files2open"
+          ];
         };
       };
 
