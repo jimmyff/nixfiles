@@ -380,7 +380,7 @@ def main [
     --test(-t)                 # Run flutter test on all projects
     --status(-s)               # Just show the project table and exit
 ] {
-    print-header "Dart/Flutter Project Manager" $CONFIG.icons.dart
+    print-header "dartboard.nu" $CONFIG.icons.dart
     
     # Discover projects
     let project_paths = find-projects $path

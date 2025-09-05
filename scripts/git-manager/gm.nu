@@ -467,7 +467,7 @@ def main [
     --dry-run(-d)      # Show what would be done without executing
     --force(-f)        # Skip confirmation prompts
 ] {
-    print-header "Git Submodule Manager" $CONFIG.icons.processing
+    print-header "gm.nu" $CONFIG.icons.processing
 
     let submodules = get-submodules $path
 

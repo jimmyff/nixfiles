@@ -1,26 +1,20 @@
 #!/usr/bin/env nu
 
 # Startup script for jimmyff-website
-echo "🌐 Starting Zola development server..."
+print "🌐 jimmyff-website Development Environment"
 
-# Update git repository and submodules if workspace exists
+# Show git repository and submodules status if workspace exists
 if ("workspace" | path exists) {
-    echo "🔄 Updating repository and submodules..."
-    nu gm.nu workspace/ -u
+    print "📊 Repository status:"
+    nu gm.nu workspace/ -s
 }
 
-# Check if we're in the workspace directory
-if not ("workspace/config.toml" | path exists) {
-    echo "❌ No config.toml found in workspace/. Make sure the repository is cloned."
-    echo "💡 Try running 'dev-setup' to clone the repository."
-    exit 1
+# Prompt user to run zola serve manually
+if ("workspace/config.toml" | path exists) {
+    print "📡 To start the development server, run:"
+    print "   cd workspace && zola serve"
+    print "   Your site will be available at http://127.0.0.1:1111"
+} else {
+    print "❌ No config.toml found in workspace/. Make sure the repository is cloned."
+    print "💡 Try running 'dev-setup' to clone the repository."
 }
-
-# Change to workspace directory and start zola serve
-echo "📡 Running 'zola serve' in workspace/ - your site will be available at http://127.0.0.1:1111"
-echo "   Press Ctrl+C to stop the server"
-echo ""
-
-# Change to workspace directory and run zola serve
-cd workspace
-zola serve
