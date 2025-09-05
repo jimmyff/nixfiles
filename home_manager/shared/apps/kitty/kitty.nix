@@ -17,14 +17,25 @@
 
       darwinLaunchOptions = [
       ];
+
+      keybindings = {
+        "cmd+ctrl+p" = "previous_window";
+        "cmd+ctrl+n" = "next_window";
+        "cmd+ctrl+enter" = "new_window";
+        "cmd+ctrl+h" = "neighboring_window left";
+        "cmd+ctrl+j" = "neighboring_window down";
+        "cmd+ctrl+k" = "neighboring_window up";
+        "cmd+ctrl+l" = "neighboring_window right";
+      };
+
       settings = {
         copy_on_select = true;
+        macos_quit_when_last_window_closed = true;
         cursor_trail = 3;
         cursor_trail_decay = "0.1 0.4";
         adjust_line_height = "125%";
         # Explicitly specify nushell with config path for reliable startup
         shell = "${pkgs.nushell}/bin/nu --config ${config.xdg.configHome}/nushell/config.nu";
-
         # Modus Vivendi Tinted theme by Protesilaos Stavrou
         foreground = "#ffffff";
         background = "#0d0e1c";

@@ -28,6 +28,7 @@
           lsp.display-messages = true;
           lsp.display-inlay-hints = true;
           auto-format = true;
+          bufferline = "multiple";
 
           cursor-shape = {
             insert = "bar";
