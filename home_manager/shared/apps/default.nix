@@ -24,7 +24,7 @@
 
   # editors
   vscode_module.enable = lib.mkDefault true;
-  neovim_module.enable = lib.mkDefault true;
+  neovim_module.enable = lib.mkDefault false;
   helix_module.enable = lib.mkDefault true;
   zed_module.enable = lib.mkDefault true;
 

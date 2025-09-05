@@ -9,6 +9,9 @@
   };
 
   config = lib.mkIf config.helix_module.enable {
+    # Set hx as the default editor
+    home.sessionVariables.EDITOR = "hx";
+
     programs.helix = {
       enable = true;
 

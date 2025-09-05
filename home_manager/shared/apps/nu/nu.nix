@@ -26,7 +26,7 @@
         }
         $env.config = {
           show_banner: false,
-          buffer_editor: "nvim",
+          buffer_editor: "hx",
           completions: {
           case_sensitive: false   # case-sensitive completions
           quick: true             # set to false to prevent auto-selecting completions

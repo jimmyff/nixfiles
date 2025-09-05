@@ -19,7 +19,7 @@
     settings = {
       theme= "Default";
       vimMode= true;
-      preferredEditor = "nvim";
+      preferredEditor = "hx";
       autoAccept = false;
     };
 
