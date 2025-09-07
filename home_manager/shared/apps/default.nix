@@ -5,6 +5,7 @@
     ./helix/helix.nix
     ./kitty/kitty.nix
     ./ghostty/ghostty.nix
+    ./zellij/zellij.nix
     ./chromium/chromium.nix
     ./vscode/vscode.nix
     ./zed/zed.nix
@@ -29,6 +30,7 @@
   # Terminals
   kitty_module.enable = lib.mkDefault true;
   ghostty_module.enable = lib.mkDefault false;
+  zellij_module.enable = lib.mkDefault true;
 
   # programs
   git_module.enable = lib.mkDefault true;
