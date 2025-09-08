@@ -5,6 +5,10 @@
 }:
 {
 
+  # Power management
+  powerManagement.enable = true;
+  services.power-profiles-daemon.enable = true;
+
   # Enable the socmisc login manager
   services.displayManager.cosmic-greeter.enable = true;
   # Enable the cosmic desktop environment

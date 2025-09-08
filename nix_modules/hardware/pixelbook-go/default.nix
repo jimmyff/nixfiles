@@ -48,6 +48,11 @@ in
   boot.kernelParams = [
     # Enable Intel AVS audio driver with debug for troubleshooting
     "snd_intel_avs.enable_debug=1"
+    
+    # Intel graphics power management fixes for suspend/resume issues
+    "i915.enable_psr=0"    # Disable panel self refresh (can cause resume issues)
+    "i915.enable_fbc=0"    # Disable framebuffer compression if causing problems
+    "i915.enable_guc=0"    # Disable GuC firmware loading (sometimes problematic)
   ];
 
   # AVS driver modprobe configuration (critical for MAX98373 topology loading)
