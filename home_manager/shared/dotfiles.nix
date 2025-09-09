@@ -53,6 +53,7 @@ in {
     safe_symlink ${dotfilesPath}/vscode/.config/Code ~/.config/Code
     safe_symlink ${dotfilesPath}/zed/.config/zed ~/.config/zed
     safe_symlink ${dotfilesPath}/ghostty/.config/ghostty ~/.config/ghostty
+    safe_symlink ${dotfilesPath}/zellij/.config/zellij ~/.config/zellij
     
     # Conditional desktop environment configs
     if [ -d "${dotfilesPath}/cosmic/.config/cosmic" ]; then

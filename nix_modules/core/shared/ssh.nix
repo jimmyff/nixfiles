@@ -5,6 +5,5 @@
     enableSSHSupport = true;
   };
 
-  # Enable SSH client system-wide
-  programs.ssh.startAgent = lib.mkIf (!pkgs.stdenv.isDarwin) false; # Use GPG agent instead
+  # SSH agent is handled by GPG agent (enableSSHSupport = true above)
 }

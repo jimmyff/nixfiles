@@ -19,18 +19,29 @@
       ];
 
       keybindings = {
-        "cmd+ctrl+p" = "previous_window";
-        "cmd+ctrl+n" = "next_window";
-        "cmd+ctrl+enter" = "new_window";
-        "cmd+ctrl+h" = "neighboring_window left";
-        "cmd+ctrl+j" = "neighboring_window down";
-        "cmd+ctrl+k" = "neighboring_window up";
-        "cmd+ctrl+l" = "neighboring_window right";
-        "cmd+ctrl+space" = "next_layout";
-        "alt+ctrl+h" = "move_window left";
-        "alt+ctrl+j" = "move_window down";
-        "alt+ctrl+k" = "move_window up";
-        "alt+ctrl+l" = "move_window right";
+        # Disabled for zellij multiplexing
+        # "cmd+ctrl+p" = "previous_window";
+        # "cmd+ctrl+n" = "next_window";
+        # "cmd+ctrl+enter" = "new_window";
+        # "cmd+ctrl+h" = "neighboring_window left";
+        # "cmd+ctrl+j" = "neighboring_window down";
+        # "cmd+ctrl+k" = "neighboring_window up";
+        # "cmd+ctrl+l" = "neighboring_window right";
+        # "cmd+ctrl+space" = "next_layout";
+        # "alt+ctrl+h" = "move_window left";
+        # "alt+ctrl+j" = "move_window down";
+        # "alt+ctrl+k" = "move_window up";
+        # "alt+ctrl+l" = "move_window right";
+        # Disable keybindings for zellij multiplexing
+        "cmd+enter" = "no_op";
+        "cmd+t" = "no_op";
+        "cmd+n" = "no_op";
+        "cmd+w" = "no_op";
+        "cmd+d" = "no_op";
+        "cmd+alt+h" = "no_op";
+        "cmd+alt+j" = "no_op";
+        "cmd+alt+k" = "no_op";
+        "cmd+alt+l" = "no_op";
       };
 
       settings = {
@@ -77,7 +88,5 @@
         inactive_border_color = "#595959";
       };
     };
-
-    home.sessionVariables.TERMINAL = "kitty";
   };
 }

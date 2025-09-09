@@ -23,13 +23,14 @@
   # Platform-specific packages
   platformPackages = with pkgs;
     {
-      darwin = [
-        darwin.xcode_16_4
-        ruby
-        cocoapods
-      ] ++ lib.optionals (pkgs.stdenv.system == "x86_64-darwin") [
-        android-studio
-      ];
+      darwin =
+        [
+          ruby
+          cocoapods
+        ]
+        ++ lib.optionals (pkgs.stdenv.system == "x86_64-darwin") [
+          android-studio
+        ];
       linux = [
         android-studio
       ];
@@ -237,6 +238,7 @@ in {
         wget
         jq
         tree
+        lnav
 
         # Project setup helper
         devSetupScript
