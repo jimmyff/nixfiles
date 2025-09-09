@@ -12,4 +12,7 @@
     enable = true;
     projects = [ "jimmyff-website" "rocket-kit" "osdn" ];
   };
+
+  # Applications
+  signal.enable = true;
 }

@@ -7,6 +7,7 @@
     ../shared/ssh.nix
     ../shared/fonts.nix
     ../shared/stow.nix
+    ../../apps/signal.nix
   ];
 
  

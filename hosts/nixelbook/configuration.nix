@@ -26,6 +26,9 @@
     projects = [ "jimmyff-website" "rocket-kit" "osdn" ];
   };
 
+  # Applications
+  signal.enable = true;
+
   # Pixelbook keyboard issue:
   # `sudo libinput debug-events` failed to show chromos key press
   # `sudo journalctl -f` gave the error:

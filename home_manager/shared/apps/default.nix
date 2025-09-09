@@ -15,9 +15,9 @@
     ./yazi/yazi.nix
     ./ai.nix
     
-    # Import git module
-    ../programs/git.nix
-    ../programs/ssh.nix
+    # Import services
+    ../services/git.nix
+    ../services/ssh.nix
   ];
 
   # apps
