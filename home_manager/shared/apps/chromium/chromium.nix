@@ -14,6 +14,7 @@
                 "dbepggeogbaibhgnhhndojpepiihcmeb" # vimium
                 "bkkmolkhemgaeaeggcmfbghljjjoofoh" # catppuccin theme
                 "fohimdklhhcpcnpmmichieidclgfdmol" # bookmark hub
+                "ghmbeldphafepmbegfdlkpapadhbakde" # Proton Pass
             ];
         };
 

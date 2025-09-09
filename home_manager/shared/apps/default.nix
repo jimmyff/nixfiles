@@ -13,6 +13,7 @@
     ./zed/zed.nix
     ./nu/nu.nix
     ./yazi/yazi.nix
+    ./atuin/atuin.nix
     ./ai.nix
     
     # Import services
@@ -41,6 +42,7 @@
 
   # programs
   git_module.enable = lib.mkDefault true;
+  atuin_module.enable = lib.mkDefault true;
 
 
   home.packages = [
