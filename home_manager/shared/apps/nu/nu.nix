@@ -15,6 +15,8 @@
         // {
           # Force nushell to use home-manager managed config directory
           NU_CONFIG_PATH = "${config.xdg.configHome}/nushell";
+          # Set Flutter pub cache to writable location
+          PUB_CACHE = "${config.home.homeDirectory}/.cache/flutter/pub-cache";
         };
 
       # The config.nu can be anywhere you want if you like to edit your Nushell with Nu
