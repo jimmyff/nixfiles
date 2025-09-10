@@ -4,10 +4,14 @@
   imports = [
     ../shared/apps
     ../shared/dotfiles.nix
+    ./aerospace/aerospace.nix
   ];
 
   # Not supported on darwin - chromium package unavailable on aarch64-darwin
   chromium_module.enable = false;
+  
+  # Enable AeroSpace window manager for Darwin
+  aerospace_module.enable = true;
 
 
 

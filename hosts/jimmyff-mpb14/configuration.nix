@@ -15,4 +15,5 @@
 
   # Applications
   signal.enable = true;
+  raycast.enable = true;
 }
