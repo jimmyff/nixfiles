@@ -18,6 +18,6 @@
             ];
         };
 
-        home.sessionVariables.BROWSER = "chromium";
+        home.sessionVariables.BROWSER = lib.mkIf (!config.librewolf_module.enable) "chromium";
     };
 }

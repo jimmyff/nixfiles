@@ -9,6 +9,7 @@
     ./alacritty/alacritty.nix
     ./zellij/zellij.nix
     ./chromium/chromium.nix
+    ./librewolf/librewolf.nix
     ./vscode/vscode.nix
     ./zed/zed.nix
     ./nu/nu.nix
@@ -23,6 +24,7 @@
 
   # apps
   chromium_module.enable = lib.mkDefault true;
+  librewolf_module.enable = lib.mkDefault true;
   yazi_module.enable = lib.mkDefault true;
 
   # editors
