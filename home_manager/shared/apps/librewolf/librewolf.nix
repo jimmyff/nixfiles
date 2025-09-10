@@ -15,23 +15,55 @@
     
     programs.librewolf = {
       enable = true;
+
+      policies = {
+        ExtensionSettings = {
+          # BookmarkHub
+          "{9c37f9a3-ea04-4a2b-9fcc-c7a814c14311}" = {
+            install_url = "https://addons.mozilla.org/firefox/downloads/file/3815080/bookmarkhub-0.0.4.xpi";
+            installation_mode = "force_installed";
+            default_area = "menupanel";
+          };
+          # Bitwarden Password Manager
+          "{446900e4-71c2-419f-a6a7-df9c091e268b}" = {
+            install_url = "https://addons.mozilla.org/firefox/downloads/file/4567044/bitwarden_password_manager-2025.8.2.xpi";
+            installation_mode = "force_installed";
+            default_area = "menupanel";
+          };
+          # Proton Pass
+          "78272b6fa58f4a1abaac99321d503a20@proton.me" = {
+            install_url = "https://addons.mozilla.org/firefox/downloads/file/4567405/proton_pass-1.32.5.xpi";
+            installation_mode = "force_installed";
+            default_area = "menupanel";
+          };
+          # Vimium
+          "{d7742d87-e61d-4b78-b8a1-b469842139fa}" = {
+            install_url = "https://addons.mozilla.org/firefox/downloads/file/4524018/vimium_ff-2.3.xpi";
+            installation_mode = "force_installed";
+            default_area = "menupanel";
+          };
+          # Dark Reader
+          "addon@darkreader.org" = {
+            install_url = "https://addons.mozilla.org/firefox/downloads/file/4535824/darkreader-4.9.110.xpi";
+            installation_mode = "force_installed";
+            default_area = "menupanel";
+          };
+          # uBlock Origin
+          "uBlock0@raymondhill.net" = {
+            install_url = "https://addons.mozilla.org/firefox/downloads/file/4531307/ublock_origin-1.65.0.xpi";
+            installation_mode = "force_installed";
+            default_area = "menupanel";
+          };
+        };
+      };
       
       profiles.jimmyff = {
         id = 0;
         isDefault = true;
-        
-        extensions.packages = with inputs.nur.legacyPackages.${pkgs.system}.repos.rycee.firefox-addons; [
-          bitwarden
-          # bookmarkhub not available in NUR
-          proton-pass
-          vimium
-          darkreader
-          ublock-origin
-        ];
 
         search = {
           force = true;
-          default = "ddg";
+          default = "Searx";
           engines = {
             "Nix Packages" = {
               urls = [{
@@ -41,7 +73,7 @@
                   { name = "query"; value = "{searchTerms}"; }
                 ];
               }];
-              icon = "''${pkgs.nixos-icons}/share/icons/hicolor/scalable/apps/nix-snowflake.svg";
+              icon = "https://search.nixos.org/favicon.png";
               definedAliases = [ "@np" ];
             };
 
@@ -61,7 +93,7 @@
                   { name = "query"; value = "{searchTerms}"; }
                 ];
               }];
-              icon = "''${pkgs.nixos-icons}/share/icons/hicolor/scalable/apps/nix-snowflake.svg";
+              icon = "https://search.nixos.org/favicon.png";
               definedAliases = [ "@no" ];
             };
 
@@ -77,7 +109,7 @@
               urls = [{
                 template = "https://searx.org/search?q={searchTerms}";
               }];
-              icon = "https://searx.org/static/themes/oscar/img/favicon.png";
+              icon = "https://searx.org/static/themes/simple/img/favicon.png";
               definedAliases = [ "@searx" ];
             };
 
@@ -108,6 +140,13 @@
           "browser.compactmode.show" = true;
           "browser.uidensity" = 1;
           
+          # Enable vertical tabs
+          "sidebar.verticalTabs" = true;
+          "sidebar.collapsed" = true;
+          
+          # Dark theme
+          "extensions.activeThemeID" = "firefox-compact-dark@mozilla.org";
+          
           # Downloads
           "browser.download.useDownloadDir" = false;
           "browser.download.dir" = "~/Downloads";
@@ -120,6 +159,9 @@
           
           # Set startup homepage to blank page
           "browser.startup.homepage" = "about:blank";
+          
+          # Set new tab page to blank
+          "browser.newtabpage.enabled" = false;
         };
       };
     };
