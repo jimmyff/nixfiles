@@ -9,8 +9,7 @@
 
     config = lib.mkIf config.aerospace_module.enable {
 
-        programs.aerospace = {
-            enable = true;
-        };
+        home.packages = [ pkgs.aerospace ];
+
     };
 }
