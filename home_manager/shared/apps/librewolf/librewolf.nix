@@ -25,7 +25,7 @@
 
         extensions.packages = with inputs.nur.legacyPackages.${pkgs.system}.repos.rycee.firefox-addons; [
           bitwarden
-          # TODO: bookmarkhub not available in NUR - https://gitlab.com/rycee/nur-expressions/-/issues/334
+          #          bookmarkhub
           proton-pass
           vimium
           darkreader
@@ -168,6 +168,13 @@
           "privacy.history.custom" = true;
           "browser.privatebrowsing.autostart" = false;
 
+          # Allow persistent logins - less aggressive cookie clearing
+          "privacy.sanitize.sanitizeOnShutdown" = false;
+          "privacy.clearOnShutdown.cache" = false;
+          "privacy.clearOnShutdown.cookies" = false;
+          "privacy.clearOnShutdown.sessions" = false;
+          "network.cookie.lifetimePolicy" = 0;
+
           # Search and navigation
           "browser.search.suggest.enabled" = false;
           "browser.search.suggest.enabled.private" = false;
@@ -182,6 +189,9 @@
           # UI preferences
           "browser.compactmode.show" = true;
           "browser.uidensity" = 1;
+
+          # Bookmarks toolbar - only show on new tab
+          "browser.toolbars.bookmarks.visibility" = "newtab";
 
           # Enable vertical tabs
           "sidebar.verticalTabs" = true;
@@ -220,6 +230,9 @@
           "privacy.resistFingerprinting" = false;
           "privacy.fingerprintingProtection" = true;
           "privacy.fingerprintingProtection.overrides" = "+AllTargets,-CSSPrefersColorScheme";
+
+          # Force default search engine
+          "browser.search.defaultenginename" = "DuckDuckGo Lite";
         };
       };
     };
