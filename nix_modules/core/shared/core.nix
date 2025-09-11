@@ -14,6 +14,7 @@
   environment.systemPackages = [
     pkgs.age                      # Encryption library  
     pkgs.agenix-cli               # Age nix tool
+    pkgs.bat                      # Cat clone with syntax highlighting
   ];
 
   environment.shells = with pkgs; [ nushell ];

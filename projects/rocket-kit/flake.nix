@@ -1,191 +1,59 @@
 {
   description = "Development environment for rocket-kit";
+  # Flutter and Android SDK are provided by Android Studio instead of Nix
+  # This avoids iOS build issues where Xcode cannot write to read-only Flutter root
+  # See: https://github.com/flutter/flutter/pull/155139
 
   inputs = {
     nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixos-unstable";
     nixpkgs-stable.url = "github:NixOS/nixpkgs/nixos-24.05";
-    android-nixpkgs = {
-      url = "github:tadfisher/android-nixpkgs";
-      inputs.nixpkgs.follows = "nixpkgs-unstable";
-    };
   };
 
-  outputs = { self, nixpkgs-unstable, nixpkgs-stable, android-nixpkgs }: {
-    devShells = {
-      x86_64-linux.default = let
-        pkgs-unstable = nixpkgs-unstable.legacyPackages.x86_64-linux;
-        pkgs-stable = nixpkgs-stable.legacyPackages.x86_64-linux;
-        android-sdk = android-nixpkgs.sdk.x86_64-linux (sdkPkgs: with sdkPkgs; [
-          cmdline-tools-latest
-          build-tools-34-0-0
-          platform-tools
-          platforms-android-34
-          emulator
-        ]);
-      in pkgs-stable.mkShellNoCC {
-        buildInputs = [
-          pkgs-unstable.flutter  # Includes Dart SDK 3.9+
-          android-sdk
-          pkgs-stable.jdk
-        ];
-        
-        shellHook = ''
-          echo "🚀 Entering rocket-kit development environment"
-          echo "Flutter: $(flutter --version | head -1)"
-          echo "Dart: $(dart --version)"
-          echo ""
-          
-          # Configure Flutter to use Nix JDK
-          flutter config --jdk-dir "${pkgs-stable.jdk}"
-          echo "🔧 Flutter configured to use JDK: ${pkgs-stable.jdk}"
-          echo ""
-          
-          # Show README if it exists in workspace
-          if [ -f workspace/README.md ]; then
-            echo "📖 Project README:"
-            echo "==================="
-            cat workspace/README.md
-            echo ""
-          fi
-          
-          # Run startup script if it exists and nushell is available
-          if [ -f startup.nu ] && command -v nu >/dev/null 2>&1 && nu -c "version" >/dev/null 2>&1; then
-            nu startup.nu
-          elif [ -f startup.nu ]; then
-            echo ""
-            echo "🔧 To start the development environment, run: ./startup.nu"
-          fi
-        '';
-      };
+  outputs = {
+    self,
+    nixpkgs-unstable,
+    nixpkgs-stable,
+  }: let
+    supportedSystems = ["x86_64-linux" "aarch64-linux" "aarch64-darwin" "x86_64-darwin"];
 
-      aarch64-linux.default = let
-        pkgs-unstable = nixpkgs-unstable.legacyPackages.aarch64-linux;
-        pkgs-stable = nixpkgs-stable.legacyPackages.aarch64-linux;
-        android-sdk = android-nixpkgs.sdk.aarch64-linux (sdkPkgs: with sdkPkgs; [
-          cmdline-tools-latest
-          build-tools-34-0-0
-          platform-tools
-          platforms-android-34
-          emulator
-        ]);
-      in pkgs-stable.mkShellNoCC {
-        buildInputs = [
-          pkgs-unstable.flutter  # Includes Dart SDK 3.9+
-          android-sdk
-          pkgs-stable.jdk
-        ];
-        
-        shellHook = ''
-          echo "🚀 Entering rocket-kit development environment"
-          echo "Flutter: $(flutter --version | head -1)"
-          echo "Dart: $(dart --version)"
-          echo ""
-          
-          # Configure Flutter to use Nix JDK
-          flutter config --jdk-dir "${pkgs-stable.jdk}"
-          echo "🔧 Flutter configured to use JDK: ${pkgs-stable.jdk}"
-          echo ""
-          
-          # Show README if it exists in workspace
-          if [ -f workspace/README.md ]; then
-            echo "📖 Project README:"
-            echo "==================="
-            cat workspace/README.md
-            echo ""
-          fi
-          
-          # Run startup script if it exists and nushell is available
-          if [ -f startup.nu ] && command -v nu >/dev/null 2>&1 && nu -c "version" >/dev/null 2>&1; then
-            nu startup.nu
-          elif [ -f startup.nu ]; then
-            echo ""
-            echo "🔧 To start the development environment, run: ./startup.nu"
-          fi
-        '';
-      };
+    makeDevShell = system: let
+      pkgs-unstable = nixpkgs-unstable.legacyPackages.${system};
+      pkgs-stable = nixpkgs-stable.legacyPackages.${system};
 
-      aarch64-darwin.default = let
-        pkgs-unstable = nixpkgs-unstable.legacyPackages.aarch64-darwin;
-        pkgs-stable = nixpkgs-stable.legacyPackages.aarch64-darwin;
-        android-sdk = android-nixpkgs.sdk.aarch64-darwin (sdkPkgs: with sdkPkgs; [
-          cmdline-tools-latest
-          build-tools-34-0-0
-          platform-tools
-          platforms-android-34
-          emulator
-        ]);
-      in pkgs-stable.mkShellNoCC {
-        buildInputs = [
-          pkgs-unstable.flutter  # Includes Dart SDK 3.9+
-          android-sdk
-          pkgs-stable.jdk
-        ];
-        
-        shellHook = ''
-          echo "🚀 Entering rocket-kit development environment"
-          echo "Flutter: $(flutter --version | head -1)"
-          echo "Dart: $(dart --version)"
-          echo ""
-          
-          # Configure Flutter to use Nix JDK
-          flutter config --jdk-dir "${pkgs-stable.jdk}"
-          echo "🔧 Flutter configured to use JDK: ${pkgs-stable.jdk}"
-          echo ""
-          
-          # Show README if it exists in workspace
-          if [ -f workspace/README.md ]; then
-            echo "📖 Project README:"
-            echo "==================="
-            cat workspace/README.md
-            echo ""
-          fi
-          
-          # Run startup script if it exists and nushell is available
-          if [ -f startup.nu ] && command -v nu >/dev/null 2>&1 && nu -c "version" >/dev/null 2>&1; then
-            nu startup.nu
-          elif [ -f startup.nu ]; then
-            echo ""
-            echo "🔧 To start the development environment, run: ./startup.nu"
-          fi
-        '';
-      };
+      # Custom base64 wrapper for Darwin to fix CocoaPods compatibility
+      # This forces the use of system base64 rather than coreutils
+      darwinBase64 = pkgs-stable.writeShellScriptBin "base64" ''
+        exec /usr/bin/base64 "$@"
+      '';
+    in
+      pkgs-stable.mkShellNoCC {
+        buildInputs =
+          [
+            pkgs-stable.jdk
+          ]
+          ++ pkgs-stable.lib.optionals pkgs-stable.stdenv.isDarwin [
+            darwinBase64 # Fix CocoaPods compatibility on macOS
+          ];
 
-      x86_64-darwin.default = let
-        pkgs-unstable = nixpkgs-unstable.legacyPackages.x86_64-darwin;
-        pkgs-stable = nixpkgs-stable.legacyPackages.x86_64-darwin;
-        android-sdk = android-nixpkgs.sdk.x86_64-darwin (sdkPkgs: with sdkPkgs; [
-          cmdline-tools-latest
-          build-tools-34-0-0
-          platform-tools
-          platforms-android-34
-          emulator
-        ]);
-      in pkgs-stable.mkShellNoCC {
-        buildInputs = [
-          pkgs-unstable.flutter  # Includes Dart SDK 3.9+
-          android-sdk
-          pkgs-stable.jdk
-        ];
-        
         shellHook = ''
           echo "🚀 Entering rocket-kit development environment"
-          echo "Flutter: $(flutter --version | head -1)"
-          echo "Dart: $(dart --version)"
+          echo "Flutter: $(flutter --version 2>/dev/null | head -1 || echo 'Not found - install via Android Studio')"
+          echo "Dart: $(dart --version 2>/dev/null || echo 'Not found - install via Android Studio')"
+          echo "☕ JDK: ${pkgs-stable.jdk}"
           echo ""
-          
-          # Configure Flutter to use Nix JDK
-          flutter config --jdk-dir "${pkgs-stable.jdk}"
-          echo "🔧 Flutter configured to use JDK: ${pkgs-stable.jdk}"
-          echo ""
-          
+
           # Show README if it exists in workspace
           if [ -f workspace/README.md ]; then
             echo "📖 Project README:"
-            echo "==================="
-            cat workspace/README.md
+            echo "=================="
+            if command -v bat >/dev/null 2>&1; then
+              bat --style=plain workspace/README.md
+            else
+              cat workspace/README.md
+            fi
             echo ""
           fi
-          
+
           # Run startup script if it exists and nushell is available
           if [ -f startup.nu ] && command -v nu >/dev/null 2>&1 && nu -c "version" >/dev/null 2>&1; then
             nu startup.nu
@@ -195,6 +63,11 @@
           fi
         '';
       };
-    };
+  in {
+    devShells = builtins.listToAttrs (map (system: {
+        name = system;
+        value = {default = makeDevShell system;};
+      })
+      supportedSystems);
   };
 }

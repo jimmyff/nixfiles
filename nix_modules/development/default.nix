@@ -231,7 +231,9 @@ in {
         nix-direnv
         firebase-tools
         google-cloud-sdk
-        flutter # Includes Dart SDK
+        # Flutter and Android SDK are provided by Android Studio instead of Nix
+        # This avoids iOS build issues where Xcode cannot write to read-only Flutter root
+        # See: https://github.com/flutter/flutter/pull/155139
 
         # Development utilities
         curl
@@ -261,8 +263,7 @@ in {
       };
     };
 
-    # Set Flutter pub cache to writable location
-    environment.variables.PUB_CACHE = "${homeDir}/.cache/flutter/pub-cache";
+    # Flutter pub cache handled by Android Studio installation
 
     # NOTE: nix-darwin only supports hardcoded activation script names. Custom names are silently ignored.
     # Supported names: preActivation, postActivation, extraActivation, and ~20 system-specific ones.
@@ -273,12 +274,8 @@ in {
       # Create dev directory structure
       mkdir -p ${homeDir}/dev
 
-      # Create Flutter pub cache directory
-      mkdir -p ${homeDir}/.cache/flutter/pub-cache
-
       # Set ownership, but don't fail if chown doesn't work
       chown ${username}:${userGroup} ${homeDir}/dev 2>/dev/null || echo "Warning: Could not set ownership of ${homeDir}/dev"
-      chown -R ${username}:${userGroup} ${homeDir}/.cache/flutter 2>/dev/null || echo "Warning: Could not set ownership of ${homeDir}/.cache/flutter"
 
       echo "Development environment setup complete!"
       echo "Run 'dev-setup' to clone repositories and setup project files."
