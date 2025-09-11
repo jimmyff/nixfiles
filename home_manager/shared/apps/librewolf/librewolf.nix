@@ -156,6 +156,16 @@
               definedAliases = ["@wiki"];
             };
 
+            "Pub.dev" = {
+              urls = [
+                {
+                  template = "https://pub.dev/packages?q={searchTerms}";
+                }
+              ];
+              icon = "https://pub.dev/favicon.ico";
+              definedAliases = ["@pub"];
+            };
+
             bing.metaData.hidden = true;
           };
         };

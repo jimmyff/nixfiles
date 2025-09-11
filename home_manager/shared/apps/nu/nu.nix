@@ -15,7 +15,9 @@
         // {
           # Force nushell to use home-manager managed config directory
           NU_CONFIG_PATH = "${config.xdg.configHome}/nushell";
-          # Set Flutter pub cache to writable location
+          # Flutter and Android SDK environment variables
+          ANDROID_HOME = "${config.home.homeDirectory}/.local/share/android/sdk";
+          FLUTTER_ROOT = "${config.home.homeDirectory}/.local/share/flutter";
           PUB_CACHE = "${config.home.homeDirectory}/.cache/flutter/pub-cache";
         };
 
@@ -47,6 +49,10 @@
           "~/.nix-profile/bin"
           "~/.local/bin"
           "~/.pub-cache/bin"
+          "~/.local/share/flutter/bin"
+          "~/.local/share/android/sdk/platform-tools"
+          "~/.local/share/android/sdk/tools/bin"
+          "~/.local/share/android/sdk/cmdline-tools/latest/bin"
           "/etc/profiles/per-user/${username}/bin"
           "/run/current-system/sw/bin"
         ]

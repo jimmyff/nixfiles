@@ -47,7 +47,7 @@
             echo "📖 Project README:"
             echo "=================="
             if command -v bat >/dev/null 2>&1; then
-              bat --style=plain workspace/README.md
+              bat -pp workspace/README.md
             else
               cat workspace/README.md
             fi

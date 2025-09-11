@@ -44,6 +44,47 @@
   devSetupScript = pkgs.writeShellScriptBin "dev-setup" ''
     echo "🚀 Development Project Setup"
     echo "============================="
+    echo ""
+
+    # Check Flutter and Android SDK installation
+    echo "📱 Checking Flutter and Android SDK installation..."
+    
+    ERRORS=""
+    
+    if [ ! -d "${homeDir}/.local/share/flutter" ]; then
+      echo "❌ ERROR: Flutter SDK not found at ${homeDir}/.local/share/flutter"
+      echo "   Please install Flutter via Android Studio or manually"
+      ERRORS="1"
+    else
+      echo "✅ Flutter SDK found at ${homeDir}/.local/share/flutter"
+    fi
+    
+    if [ ! -d "${homeDir}/.local/share/android/sdk" ]; then
+      echo "❌ ERROR: Android SDK not found at ${homeDir}/.local/share/android/sdk"
+      echo "   Please install Android SDK via Android Studio"
+      ERRORS="1"
+    else
+      echo "✅ Android SDK found at ${homeDir}/.local/share/android/sdk"
+      
+      # Check for command-line tools specifically
+      if [ ! -d "${homeDir}/.local/share/android/sdk/cmdline-tools" ]; then
+        echo "⚠️  WARNING: Android command-line tools not found"
+        echo "   In Android Studio: Tools → SDK Manager → SDK Tools → Android SDK Command-line Tools"
+      else
+        echo "✅ Android command-line tools found"
+      fi
+    fi
+    
+    if [ ! -z "$ERRORS" ]; then
+      echo ""
+      echo "🚨 SETUP ERRORS DETECTED 🚨"
+      echo "Please fix the above errors before proceeding with development."
+      echo "See docs/development.md for installation instructions."
+      exit 1
+    fi
+    
+    echo "✅ All Flutter and Android SDK checks passed!"
+    echo ""
 
     cd ${homeDir}/dev || { echo "Error: ~/dev directory not found"; exit 1; }
 
@@ -263,7 +304,12 @@ in {
       };
     };
 
-    # Flutter pub cache handled by Android Studio installation
+    # Flutter and Android SDK environment variables for Android Studio installation
+    environment.variables = {
+      ANDROID_HOME = "${homeDir}/.local/share/android/sdk";
+      FLUTTER_ROOT = "${homeDir}/.local/share/flutter";
+      PUB_CACHE = "${homeDir}/.cache/flutter/pub-cache";
+    };
 
     # NOTE: nix-darwin only supports hardcoded activation script names. Custom names are silently ignored.
     # Supported names: preActivation, postActivation, extraActivation, and ~20 system-specific ones.
@@ -274,8 +320,12 @@ in {
       # Create dev directory structure
       mkdir -p ${homeDir}/dev
 
+      # Create Flutter pub cache directory (this is just a cache, safe to create)
+      mkdir -p ${homeDir}/.cache/flutter/pub-cache
+
       # Set ownership, but don't fail if chown doesn't work
       chown ${username}:${userGroup} ${homeDir}/dev 2>/dev/null || echo "Warning: Could not set ownership of ${homeDir}/dev"
+      chown -R ${username}:${userGroup} ${homeDir}/.cache/flutter 2>/dev/null || echo "Warning: Could not set ownership of ${homeDir}/.cache/flutter"
 
       echo "Development environment setup complete!"
       echo "Run 'dev-setup' to clone repositories and setup project files."
