@@ -33,6 +33,12 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    # NUR (Nix User Repository) - for Firefox extensions
+    nur = {
+      url = "github:nix-community/NUR";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
   
   };
 
@@ -43,6 +49,7 @@
     home-manager,
     nixos-hardware,
     agenix,
+    nur,
     # nvf,
     ... 
   } : let 

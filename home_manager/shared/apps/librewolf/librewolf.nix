@@ -2,115 +2,158 @@
 # References:
 # - LibreWolf module: https://raw.githubusercontent.com/nix-community/home-manager/refs/heads/master/modules/programs/librewolf.nix
 # - Firefox module (LibreWolf is a Firefox fork): https://raw.githubusercontent.com/nix-community/home-manager/refs/heads/master/modules/programs/firefox/mkFirefoxModule.nix
-
-{ config, lib, pkgs, inputs, ... }:
-
 {
+  config,
+  lib,
+  pkgs,
+  inputs,
+  ...
+}: {
   options = {
     librewolf_module.enable = lib.mkEnableOption "Enable LibreWolf browser configuration";
   };
 
   config = lib.mkIf config.librewolf_module.enable {
     home.sessionVariables.BROWSER = "librewolf";
-    
+
     programs.librewolf = {
       enable = true;
 
-      policies = {
-        ExtensionSettings = {
-          # BookmarkHub
-          "{9c37f9a3-ea04-4a2b-9fcc-c7a814c14311}" = {
-            install_url = "https://addons.mozilla.org/firefox/downloads/file/3815080/bookmarkhub-0.0.4.xpi";
-            installation_mode = "force_installed";
-            default_area = "menupanel";
-          };
-          # Bitwarden Password Manager
-          "{446900e4-71c2-419f-a6a7-df9c091e268b}" = {
-            install_url = "https://addons.mozilla.org/firefox/downloads/file/4567044/bitwarden_password_manager-2025.8.2.xpi";
-            installation_mode = "force_installed";
-            default_area = "menupanel";
-          };
-          # Proton Pass
-          "78272b6fa58f4a1abaac99321d503a20@proton.me" = {
-            install_url = "https://addons.mozilla.org/firefox/downloads/file/4567405/proton_pass-1.32.5.xpi";
-            installation_mode = "force_installed";
-            default_area = "menupanel";
-          };
-          # Vimium
-          "{d7742d87-e61d-4b78-b8a1-b469842139fa}" = {
-            install_url = "https://addons.mozilla.org/firefox/downloads/file/4524018/vimium_ff-2.3.xpi";
-            installation_mode = "force_installed";
-            default_area = "menupanel";
-          };
-          # Dark Reader
-          "addon@darkreader.org" = {
-            install_url = "https://addons.mozilla.org/firefox/downloads/file/4535824/darkreader-4.9.110.xpi";
-            installation_mode = "force_installed";
-            default_area = "menupanel";
-          };
-          # uBlock Origin
-          "uBlock0@raymondhill.net" = {
-            install_url = "https://addons.mozilla.org/firefox/downloads/file/4531307/ublock_origin-1.65.0.xpi";
-            installation_mode = "force_installed";
-            default_area = "menupanel";
-          };
-        };
-      };
-      
       profiles.jimmyff = {
         id = 0;
         isDefault = true;
 
+        extensions.packages = with inputs.nur.legacyPackages.${pkgs.system}.repos.rycee.firefox-addons; [
+          bitwarden
+          # TODO: bookmarkhub not available in NUR - https://gitlab.com/rycee/nur-expressions/-/issues/334
+          proton-pass
+          vimium
+          darkreader
+          ublock-origin
+        ];
+
         search = {
           force = true;
-          default = "Searx";
+          default = "DuckDuckGo Lite";
           engines = {
+            "DuckDuckGo Lite" = {
+              urls = [
+                {
+                  template = "https://lite.duckduckgo.com/lite/?q={searchTerms}";
+                }
+              ];
+              icon = "https://duckduckgo.com/favicon.ico";
+              definedAliases = ["@ddgl"];
+            };
+
+            "Startpage" = {
+              urls = [
+                {
+                  template = "https://www.startpage.com/do/search?q={searchTerms}";
+                }
+              ];
+              icon = "https://www.startpage.com/sp/cdn/favicons/favicon-96x96.png";
+              definedAliases = ["@sp"];
+            };
+
+            "GitHub" = {
+              urls = [
+                {
+                  template = "https://github.com/search?q={searchTerms}";
+                }
+              ];
+              icon = "https://github.com/favicon.ico";
+              definedAliases = ["@gh"];
+            };
+
+            "Nix Home Manager Options" = {
+              urls = [
+                {
+                  template = "https://home-manager-options.extranix.com/?query={searchTerms}";
+                }
+              ];
+              icon = "https://home-manager-options.extranix.com/favicon.ico";
+              definedAliases = ["@hm"];
+            };
+
             "Nix Packages" = {
-              urls = [{
-                template = "https://search.nixos.org/packages";
-                params = [
-                  { name = "type"; value = "packages"; }
-                  { name = "query"; value = "{searchTerms}"; }
-                ];
-              }];
+              urls = [
+                {
+                  template = "https://search.nixos.org/packages";
+                  params = [
+                    {
+                      name = "type";
+                      value = "packages";
+                    }
+                    {
+                      name = "query";
+                      value = "{searchTerms}";
+                    }
+                  ];
+                }
+              ];
               icon = "https://search.nixos.org/favicon.png";
-              definedAliases = [ "@np" ];
+              definedAliases = ["@np"];
             };
 
             "NixOS Wiki" = {
-              urls = [{
-                template = "https://nixos.wiki/index.php?search={searchTerms}";
-              }];
+              urls = [
+                {
+                  template = "https://nixos.wiki/index.php?search={searchTerms}";
+                }
+              ];
               icon = "https://nixos.wiki/favicon.png";
-              definedAliases = [ "@nw" ];
+              definedAliases = ["@nw"];
             };
 
             "Nix Options" = {
-              urls = [{
-                template = "https://search.nixos.org/options";
-                params = [
-                  { name = "channel"; value = "unstable"; }
-                  { name = "query"; value = "{searchTerms}"; }
-                ];
-              }];
+              urls = [
+                {
+                  template = "https://search.nixos.org/options";
+                  params = [
+                    {
+                      name = "channel";
+                      value = "unstable";
+                    }
+                    {
+                      name = "query";
+                      value = "{searchTerms}";
+                    }
+                  ];
+                }
+              ];
               icon = "https://search.nixos.org/favicon.png";
-              definedAliases = [ "@no" ];
+              definedAliases = ["@no"];
             };
 
             google = {
-              urls = [{
-                template = "https://www.google.com/search?q={searchTerms}";
-              }];
+              urls = [
+                {
+                  template = "https://www.google.com/search?q={searchTerms}";
+                }
+              ];
               icon = "https://www.google.com/favicon.ico";
-              definedAliases = [ "@g" ];
+              definedAliases = ["@g"];
             };
 
             "Searx" = {
-              urls = [{
-                template = "https://searx.org/search?q={searchTerms}";
-              }];
+              urls = [
+                {
+                  template = "https://searx.org/search?q={searchTerms}";
+                }
+              ];
               icon = "https://searx.org/static/themes/simple/img/favicon.png";
-              definedAliases = [ "@searx" ];
+              definedAliases = ["@searx"];
+            };
+
+            "Wikipedia" = {
+              urls = [
+                {
+                  template = "https://en.wikipedia.org/wiki/Special:Search?search={searchTerms}";
+                }
+              ];
+              icon = "https://en.wikipedia.org/favicon.ico";
+              definedAliases = ["@wiki"];
             };
 
             bing.metaData.hidden = true;
@@ -124,44 +167,59 @@
           "privacy.partition.network_state" = false;
           "privacy.history.custom" = true;
           "browser.privatebrowsing.autostart" = false;
-          
+
           # Search and navigation
           "browser.search.suggest.enabled" = false;
           "browser.search.suggest.enabled.private" = false;
           "browser.urlbar.suggest.searches" = false;
           "browser.urlbar.showSearchSuggestionsFirst" = false;
-          
+
           # Performance settings
           "browser.sessionstore.warnOnQuit" = false;
           "browser.tabs.warnOnClose" = false;
           "browser.warnOnQuit" = false;
-          
+
           # UI preferences
           "browser.compactmode.show" = true;
           "browser.uidensity" = 1;
-          
+
           # Enable vertical tabs
           "sidebar.verticalTabs" = true;
           "sidebar.collapsed" = true;
-          
+
           # Dark theme
           "extensions.activeThemeID" = "firefox-compact-dark@mozilla.org";
-          
+          "ui.systemUsesDarkTheme" = true;
+          "browser.theme.dark-private-windows" = true;
+
           # Downloads
           "browser.download.useDownloadDir" = false;
           "browser.download.dir" = "~/Downloads";
-          
+
           # Disable telemetry and data collection
           "datareporting.healthreport.uploadEnabled" = false;
           "datareporting.policy.dataSubmissionEnabled" = false;
           "toolkit.telemetry.enabled" = false;
           "toolkit.telemetry.unified" = false;
-          
+
           # Set startup homepage to blank page
           "browser.startup.homepage" = "about:blank";
-          
+
           # Set new tab page to blank
           "browser.newtabpage.enabled" = false;
+
+          # Auto-enable extensions
+          "extensions.autoDisableScopes" = 0;
+
+          # Hardware acceleration
+          "media.ffmpeg.vaapi.enabled" = true;
+          "layers.acceleration.force-enabled" = true;
+          "gfx.webrender.all" = true;
+
+          # Enable theme/dark mode switching
+          "privacy.resistFingerprinting" = false;
+          "privacy.fingerprintingProtection" = true;
+          "privacy.fingerprintingProtection.overrides" = "+AllTargets,-CSSPrefersColorScheme";
         };
       };
     };
