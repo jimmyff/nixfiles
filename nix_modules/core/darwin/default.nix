@@ -9,6 +9,7 @@
     ../shared/stow.nix
     ../../apps/signal.nix
     ../../apps/raycast.nix
+    ../../apps/google-chrome.nix
   ];
 
   system.primaryUser = username;

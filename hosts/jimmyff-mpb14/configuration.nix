@@ -16,4 +16,5 @@
   # Applications
   signal.enable = true;
   raycast.enable = true;
+  google-chrome.enable = true;
 }

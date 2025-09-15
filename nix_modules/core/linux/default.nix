@@ -8,6 +8,7 @@
     ../shared/fonts.nix
     ../shared/stow.nix
     ../../apps/signal.nix
+    ../../apps/google-chrome.nix
   ];
 
  
