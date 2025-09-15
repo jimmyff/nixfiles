@@ -30,6 +30,7 @@
           vimium
           darkreader
           ublock-origin
+          # shortkeys
         ];
 
         search = {

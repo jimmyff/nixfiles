@@ -12,3 +12,4 @@ Thumbs.db
 dotfiles/zed/.config/zed/prompts/
 dotfiles/**/*.bak*
 dotfiles/vscode/**/*Storage/
+dotfiles/vscode/**/History/

@@ -7,7 +7,7 @@
   "files.trimTrailingWhitespaceInRegexAndStrings": false,
 
   // Appearance
-  "editor.fontFamily": "JetBrains Nerd Font",
+  "editor.fontFamily": "JetBrainsMono Nerd Font Mono, Menlo, Monospace",
   "editor.fontSize": 14,
   "chat.editor.fontSize": 14,
   "workbench.iconTheme": "vs-minimal",
@@ -49,7 +49,6 @@
 
   // Terminal
   "terminal.integrated.lineHeight": 1.3,
-  "terminal.integrated.shellIntegration.enabled": true,
 
   // Spelling
   "cSpell.userWords": [
@@ -95,7 +94,7 @@
   },
 
   "[plaintext]": {
-    "editor.fontFamily": "HackMono, mono, Monospace",
+    "editor.fontFamily": "JetBrainsMono Nerd Font Mono, Menlo, Monospace",
     "editor.wordWrap": "off",
     "editor.fontSize": 14,
     "editor.renderWhitespace": "all",
@@ -118,12 +117,9 @@
     "editor.tabCompletion": "onlySnippets",
     "editor.wordBasedSuggestions": "off"
   },
-  "dart.flutterSdkPath": "/Users/jimmyff/sdks/flutter",
-  "dart.sdkPaths": ["/usr/local/Cellar/dart"],
-  "dart.debugExternalLibraries": true,
   "dart.debugSdkLibraries": false,
   "dart.analyzerAdditionalArgs": ["enable-completion-model"],
-  "dart.runPubGetOnPubspecChanges": false,
+  "dart.runPubGetOnPubspecChanges": "prompt",
   "dart.autoImportCompletions": false,
 
   // Javascript
@@ -197,7 +193,6 @@
 
   // OSX
   "terminal.integrated.defaultProfile.osx": "nu",
-  "geminicodeassist.project": "onesceneapp",
   "workbench.editor.enablePreview": false,
   "workbench.editorAssociations": {
     "*.svg": "default"

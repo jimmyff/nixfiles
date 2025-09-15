@@ -50,8 +50,8 @@
   "lsp": {
     "dart": {
       "binary": {
-        "path": "~/.local/share/flutter/bin/flutter",
-        "arguments": ["debug_adapter"]
+        "path": "/Users/jimmyff/.local/share/flutter/bin/dart",
+        "arguments": ["language-server", "--protocol=lsp"]
       }
     }
   },
