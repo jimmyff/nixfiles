@@ -10,7 +10,7 @@ after-login-command = []
 # 'after-startup-command' is run after 'after-login-command'
 # Available commands : https://nikitabobko.github.io/AeroSpace/commands
 after-startup-command = [
-  'exec-and-forget borders active_color=0xffe1e3e4 inactive_color=0xff494d64 width=8.0',
+  #  'exec-and-forget borders active_color=0xffe1e3e4 inactive_color=0xff494d64 width=8.0',
 ]
 
 # Start AeroSpace at login
@@ -99,15 +99,17 @@ outer.right = 8
 # end tell'
 # '''
 
+cmd-t = ["exec-and-forget /etc/profiles/per-user/jimmyff/bin/kitty"]
+
 # See: https://nikitabobko.github.io/AeroSpace/commands#layout
 cmd-shift-slash = 'layout tiles horizontal vertical'
 cmd-shift-comma = 'layout accordion horizontal vertical'
 
 # See: https://nikitabobko.github.io/AeroSpace/commands#focus
-cmd-alt-h = 'focus left'
-cmd-alt-j = 'focus down'
-cmd-alt-k = 'focus up'
-cmd-alt-l = 'focus right'
+cmd-h = 'focus left'
+cmd-j = 'focus down'
+cmd-k = 'focus up'
+cmd-l = 'focus right'
 
 # See: https://nikitabobko.github.io/AeroSpace/commands#move
 cmd-shift-h = 'move left'
@@ -116,8 +118,8 @@ cmd-shift-k = 'move up'
 cmd-shift-l = 'move right'
 
 # See: https://nikitabobko.github.io/AeroSpace/commands#resize
-cmd-shift-minus = 'resize smart -50'
-cmd-shift-equal = 'resize smart +50'
+cmd-minus = 'resize smart -50'
+cmd-equal = 'resize smart +50'
 
 # See: https://nikitabobko.github.io/AeroSpace/commands#workspace
 # alt-1 = 'workspace 1'

@@ -10,3 +10,4 @@ ehthumbs.db
 Thumbs.db
 
 dotfiles/zed/.config/zed/prompts/
+dotfiles/**/*.bak*

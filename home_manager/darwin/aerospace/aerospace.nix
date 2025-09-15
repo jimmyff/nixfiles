@@ -1,15 +1,24 @@
 # AeroSpace module for Darwin
-{ pkgs, lib, config, ... }: {
+{
+  pkgs,
+  lib,
+  config,
+  ...
+}: {
+  options = {
+    aerospace_module.enable = lib.mkEnableOption "enables aerospace_module";
+  };
 
-    options = {
+  config = lib.mkIf config.aerospace_module.enable {
+    home.packages = [pkgs.aerospace];
 
-        aerospace_module.enable = lib.mkEnableOption "enables aerospace_module";
-
+    services.jankyborders = {
+      enable = true;
+      settings = {
+        active_color = "0xfffff98c";
+        inactive_color = "0xff494d64";
+        width = 8;
+      };
     };
-
-    config = lib.mkIf config.aerospace_module.enable {
-
-        home.packages = [ pkgs.aerospace ];
-
-    };
+  };
 }
