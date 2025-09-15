@@ -99,7 +99,9 @@ outer.right = 8
 # end tell'
 # '''
 
-cmd-t = ["exec-and-forget /etc/profiles/per-user/jimmyff/bin/kitty"]
+cmd-t = [
+  "exec-and-forget /etc/profiles/per-user/jimmyff/bin/kitty /Users/jimmyff/",
+]
 
 # See: https://nikitabobko.github.io/AeroSpace/commands#layout
 cmd-shift-slash = 'layout tiles horizontal vertical'
