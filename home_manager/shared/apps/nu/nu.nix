@@ -49,6 +49,7 @@
           "~/.nix-profile/bin"
           "~/.local/bin"
           "~/.pub-cache/bin"
+          "~/.cache/flutter/pub-cache/bin"
           "~/.local/share/flutter/bin"
           "~/.local/share/android/sdk/platform-tools"
           "~/.local/share/android/sdk/tools/bin"

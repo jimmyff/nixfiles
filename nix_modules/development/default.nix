@@ -86,6 +86,18 @@
     echo "✅ All Flutter and Android SDK checks passed!"
     echo ""
 
+    # Activate Dart tooling if dart is available
+    nu -c 'print $"(ansi cyan_bold)🎯 Setting up Dart tooling...(ansi reset)"'
+    if command -v dart >/dev/null 2>&1; then
+      echo "   Activating cider (CI for Dart)"
+      dart pub global activate cider
+      echo "   ✅ Dart tooling activation complete"
+    else
+      echo "   ⚠️  Dart not found, skipping Dart tooling setup"
+    fi
+    nu -c 'print $"(ansi dark_gray_dimmed)────────────────────────────────────────(ansi reset)"'
+    echo ""
+
     cd ${homeDir}/dev || { echo "Error: ~/dev directory not found"; exit 1; }
 
     ${lib.concatStringsSep "\n" (lib.mapAttrsToList (
@@ -162,7 +174,7 @@
             fi
 
             # Always copy/update development configuration files
-            echo "Setting up development configuration files for ${name}..."
+            nu -c 'print $"(ansi blue_bold)📁 Setting up development configuration for ${name}...(ansi reset)"'
             PROJECT_DIR="${homeDir}/dev/${name}"
             PROJECT_SOURCE="${homeDir}/nixfiles/projects/${name}"
             mkdir -p "$PROJECT_DIR"
@@ -181,7 +193,7 @@
             cp "$PROJECT_SOURCE/flake.nix" "$PROJECT_DIR/" 2>/dev/null && echo "✅ Copied flake.nix" || echo "⚠️  flake.nix not found"
 
             # Setup development scripts via symlinks
-            echo "Setting up development scripts for ${name}..."
+            nu -c 'print $"(ansi purple_bold)🔗 Setting up development scripts for ${name}...(ansi reset)"'
             ${lib.concatStringsSep "\n" (
               lib.mapAttrsToList (
                 projectName: projectConfig:
@@ -231,6 +243,8 @@
                 chown -R ${username}:users "$PROJECT_DIR/" 2>/dev/null || true
               fi
             fi
+            
+            nu -c 'print $"(ansi dark_gray_dimmed)────────────────────────────────────────(ansi reset)"'
           ''
       )
       enabledProjects)}
