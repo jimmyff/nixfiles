@@ -13,6 +13,10 @@
     projects = [ "jimmyff-website" "rocket-kit" "osdn" ];
   };
 
+  # Platform-specific development tools
+  android.enable = true;
+  xcode.enable = true;
+
   # Applications
   signal.enable = true;
   raycast.enable = true;

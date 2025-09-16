@@ -20,25 +20,6 @@
     then "staff"
     else "users";
 
-  # Platform-specific packages
-  platformPackages = with pkgs;
-    {
-      darwin =
-        [
-          ruby
-          cocoapods
-        ]
-        ++ lib.optionals (pkgs.stdenv.system == "x86_64-darwin") [
-          android-studio
-        ];
-      linux = [
-        android-studio
-      ];
-    }.${
-      if pkgs.stdenv.isDarwin
-      then "darwin"
-      else "linux"
-    };
 
   # Helper script for project setup
   devSetupScript = pkgs.writeShellScriptBin "dev-setup" ''
@@ -46,7 +27,8 @@
     echo "============================="
     echo ""
 
-    # Check Flutter and Android SDK installation
+    # Check Flutter and Android SDK installation (only if Android is enabled)
+    ${lib.optionalString (config.android.enable or false) ''
     echo "📱 Checking Flutter and Android SDK installation..."
     
     ERRORS=""
@@ -85,6 +67,7 @@
     
     echo "✅ All Flutter and Android SDK checks passed!"
     echo ""
+    ''}
 
     # Activate Dart tooling if dart is available
     nu -c 'print $"(ansi cyan_bold)🎯 Setting up Dart tooling...(ansi reset)"'
@@ -264,6 +247,11 @@
   # Collect all packages from enabled projects
   projectPackages = lib.flatten (lib.mapAttrsToList (_: project: project.packages or []) enabledProjects);
 in {
+  imports = [
+    ./android.nix
+    ./xcode.nix
+  ];
+
   options.development = {
     enable = lib.mkEnableOption "development environment";
 
@@ -300,8 +288,7 @@ in {
         # Project setup helper
         devSetupScript
       ]
-      ++ projectPackages
-      ++ platformPackages;
+      ++ projectPackages;
 
     # Enable nix-direnv globally
     programs.direnv = {
@@ -318,12 +305,6 @@ in {
       };
     };
 
-    # Flutter and Android SDK environment variables for Android Studio installation
-    environment.variables = {
-      ANDROID_HOME = "${homeDir}/.local/share/android/sdk";
-      FLUTTER_ROOT = "${homeDir}/.local/share/flutter";
-      PUB_CACHE = "${homeDir}/.cache/flutter/pub-cache";
-    };
 
     # NOTE: nix-darwin only supports hardcoded activation script names. Custom names are silently ignored.
     # Supported names: preActivation, postActivation, extraActivation, and ~20 system-specific ones.
@@ -334,12 +315,8 @@ in {
       # Create dev directory structure
       mkdir -p ${homeDir}/dev
 
-      # Create Flutter pub cache directory (this is just a cache, safe to create)
-      mkdir -p ${homeDir}/.cache/flutter/pub-cache
-
       # Set ownership, but don't fail if chown doesn't work
       chown ${username}:${userGroup} ${homeDir}/dev 2>/dev/null || echo "Warning: Could not set ownership of ${homeDir}/dev"
-      chown -R ${username}:${userGroup} ${homeDir}/.cache/flutter 2>/dev/null || echo "Warning: Could not set ownership of ${homeDir}/.cache/flutter"
 
       echo "Development environment setup complete!"
       echo "Run 'dev-setup' to clone repositories and setup project files."

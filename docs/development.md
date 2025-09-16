@@ -12,3 +12,7 @@
 - Android SDK: `~/.local/share/android/sdk/`
 
 **Setup:** Run `dev-setup` to validate and clone projects.
+
+## Android Keystore
+
+Encrypted with agenix in `secrets/vault/` (private submodule). Deployed to `~/.local/share/android/key.jks` on hosts with `android.enable = true`.

@@ -9,6 +9,10 @@
 ehthumbs.db
 Thumbs.db
 
+# Secrets vault protection
+secrets/vault/
+*.age
+
 dotfiles/zed/.config/zed/prompts/
 dotfiles/**/*.bak*
 dotfiles/vscode/**/*Storage/

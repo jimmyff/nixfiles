@@ -98,7 +98,7 @@
         ./hosts/jimmyff-mpb14/configuration.nix
         ./nix_modules/core/darwin
 
-        agenix.nixosModules.default
+        agenix.darwinModules.default
         home-manager.darwinModules.home-manager
         {
           home-manager.useGlobalPkgs = true;

@@ -26,6 +26,9 @@
     projects = [ "jimmyff-website" "rocket-kit" "osdn" ];
   };
 
+  # Platform-specific development tools
+  android.enable = true;
+
   # Applications
   signal.enable = true;
   google-chrome.enable = false;

@@ -21,7 +21,8 @@
   ├── hosts/            # Host config
   ├── nix_modules/      # Nix modules
   ├── projects/         # Development project templates
-  └── scripts/          # Utility scripts
+  ├── scripts/          # Utility scripts
+  └── secrets/          # Encrypted secrets (vault/ submodule)
 
 ```
 
@@ -29,6 +30,7 @@
 
 - **Multi-platform:** NixOS + macOS Darwin support
 - **Project environments:** Declarative dev setup with direnv
+- **Encrypted secrets:** agenix + private submodule for sensitive files
 - **Git management:** [`gm.nu`](scripts/git-manager/) - mono repo git manager
 - **Flutter/Dart management:** [`dartboard.nu`](scripts/dartboard/) - batch pub operations
 
