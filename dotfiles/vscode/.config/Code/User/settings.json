@@ -204,5 +204,6 @@
   "chat.todoListTool.enabled": true,
 
   // Shell
-  "terminal.integrated.shellIntegration.enabled": false
+  "terminal.integrated.shellIntegration.enabled": false,
+  "dart.openDevTools": "flutter"
 }
