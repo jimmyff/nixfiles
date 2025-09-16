@@ -33,6 +33,7 @@
 - **Encrypted secrets:** agenix + private submodule for sensitive files
 - **Git management:** [`gm.nu`](scripts/git-manager/) - mono repo git manager
 - **Flutter/Dart management:** [`dartboard.nu`](scripts/dartboard/) - batch pub operations
+- **Flutter hot reload:** [`flitter.nu`](scripts/flitter/) - hot reloading with optional Doppler secrets
 
 ---
 

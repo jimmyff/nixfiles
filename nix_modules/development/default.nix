@@ -284,6 +284,8 @@ in {
         jq
         tree
         lnav
+        doppler
+        entr
 
         # Project setup helper
         devSetupScript
