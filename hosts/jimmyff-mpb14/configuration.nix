@@ -16,6 +16,7 @@
   # Platform-specific development tools
   android.enable = true;
   xcode.enable = true;
+  rust.enable = true;
 
   # Applications
   signal.enable = true;

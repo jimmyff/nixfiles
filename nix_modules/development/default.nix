@@ -250,6 +250,7 @@ in {
   imports = [
     ./android.nix
     ./xcode.nix
+    ./rust.nix
   ];
 
   options.development = {
