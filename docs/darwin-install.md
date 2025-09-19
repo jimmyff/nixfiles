@@ -16,8 +16,6 @@
 | New Tab | ^T |
 | Select Next Tab | ^⌘L |
 | Select Previous Tab | ^⌘H |
-| Show Next Tab | ^⌘L |
-| Show Previous Tab | ^⌘H |
 | New Window | ^N |
 | New window | ^N |
 | New Incognito window | ^⇧N |
@@ -25,6 +23,17 @@
 | Reload This Page | ^R |
 | Back | ^K |
 | Forward | ^J |
+
+## Vimium keymaps
+
+```
+map <c-w> removeTab
+map <c-t> createTab
+map <c-m-h> previousTab
+map <c-m-l> nextTab
+map <c-m-j> goBack
+map <c-m-k> goForward
+```
 
 ## Manual Installs
 
