@@ -39,6 +39,12 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    # Private vault repository for encrypted secrets
+    nixfiles-vault = {
+      url = "git+ssh://git@github.com/jimmyff/nixfiles_vault.git";
+      flake = false;
+    };
+
   
   };
 
@@ -50,11 +56,12 @@
     nixos-hardware,
     agenix,
     nur,
+    nixfiles-vault,
     # nvf,
     ... 
   } : let 
     username = "jimmyff";
-    specialArgs = { inherit inputs username; pkgs-unstable = nixpkgs.legacyPackages; };
+    specialArgs = { inherit inputs username nixfiles-vault; pkgs-unstable = nixpkgs.legacyPackages; };
   in
   {
 

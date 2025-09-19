@@ -15,4 +15,4 @@
 
 ## Android Keystore
 
-Encrypted with agenix in `secrets/vault/` (private submodule). Deployed to `~/.local/share/android/key.jks` on hosts with `android.enable = true`.
+Encrypted with agenix and sourced from private vault repository via flake input. Deployed to `~/.local/share/android/key.jks` on hosts with `android.enable = true`.

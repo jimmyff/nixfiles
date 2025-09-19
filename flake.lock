@@ -129,6 +129,22 @@
         "type": "github"
       }
     },
+    "nixfiles-vault": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1758026347,
+        "narHash": "sha256-6KNggwJMvp3PapTR+4QyjGDxI0vk65uWqL8DYe673F0=",
+        "ref": "refs/heads/main",
+        "rev": "2dd22bd0d7f014dd48dedfd222811037e39111d4",
+        "revCount": 2,
+        "type": "git",
+        "url": "ssh://git@github.com/jimmyff/nixfiles_vault.git"
+      },
+      "original": {
+        "type": "git",
+        "url": "ssh://git@github.com/jimmyff/nixfiles_vault.git"
+      }
+    },
     "nixos-hardware": {
       "locked": {
         "lastModified": 1756245047,
@@ -187,6 +203,7 @@
         "agenix": "agenix",
         "home-manager": "home-manager_2",
         "nix-darwin": "nix-darwin",
+        "nixfiles-vault": "nixfiles-vault",
         "nixos-hardware": "nixos-hardware",
         "nixpkgs": "nixpkgs",
         "nur": "nur"

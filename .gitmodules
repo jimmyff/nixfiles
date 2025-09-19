@@ -1,3 +1,0 @@
-[submodule "secrets/vault"]
-	path = secrets/vault
-	url = git@github.com:jimmyff/nixfiles_vault.git

@@ -5,7 +5,11 @@ let
     jimmyff-mbp14 = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAaZzF+34ChHrzl1Zr3crf60Snog3AQaHCrPNegyDitC jimmyff";
   };
   users = {
-    jimmyff = "age1yubikey1qg8nf40dfw4gprmywplggtg2wuvv55fcmujzrm65z8s3j6rhwje2vm3hhs7";
+    # Original yubikey key - commented out but kept for Darwin debugging if needed
+    # jimmyff = "age1yubikey1qg8nf40dfw4gprmywplggtg2wuvv55fcmujzrm65z8s3j6rhwje2vm3hhs7";
+    
+    # ed25519 SSH key derived age key
+    jimmyff = "age1qzs9ac3a9j7rhf6t25hrk5jgaqhhu7mnsnuk4n8fz5hw2603v47s9fztm2";
   };
   allUsers = builtins.attrValues users;
   allSystems = builtins.attrValues systems;

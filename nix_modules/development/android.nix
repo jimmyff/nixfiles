@@ -4,6 +4,7 @@
   lib,
   config,
   username,
+  nixfiles-vault,
   ...
 }: let
   cfg = config.android;
@@ -25,9 +26,9 @@ in {
   };
 
   config = lib.mkIf cfg.enable {
-    # Configure agenix identity paths
+    # Configure agenix identity paths for Darwin only
+    # NixOS will use default system host keys via OpenSSH service
     age.identityPaths = lib.mkIf pkgs.stdenv.isDarwin [
-      # Darwin: use user SSH keys (NixOS will use system defaults)
       "${homeDir}/.ssh/id_ed25519"
       "${homeDir}/.ssh/id_rsa"
     ];
@@ -50,7 +51,7 @@ in {
 
     # Deploy encrypted keystore using agenix
     age.secrets.android-keystore = {
-      file = inputs.self + "/secrets/vault/android-release-key.jks.age";
+      file = nixfiles-vault + "/android-release-key.jks.age";
       path = "${homeDir}/.local/share/android/key.jks";
       mode = "600";
       owner = username;
