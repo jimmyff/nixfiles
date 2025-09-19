@@ -103,8 +103,10 @@ struct Args {
 #[derive(Debug, Clone, Default)]
 struct DebugInfo {
     vm_service_url: Option<String>,
+    devtools_url: Option<String>,
     app_check_token: Option<String>,
     device_info: Option<String>,
+    device_id: Option<String>,
     build_mode: Option<String>,
     session_id: String,
     pid_file: String,
@@ -189,7 +191,7 @@ fn print_colored(color: Color, text: &str) {
 }
 
 fn print_success(text: &str) {
-    print_colored(Color::Green, &format!("✨ {}", text));
+    print_colored(Color::Green, &format!("✅ {}", text));
 }
 
 fn print_error(text: &str) {
@@ -214,6 +216,28 @@ fn print_header(title: &str) {
 
 fn generate_session_id() -> String {
     Uuid::new_v4().to_string()[..8].to_string()
+}
+
+fn get_relative_path(absolute_path: &Path, project_root: &Path) -> String {
+    absolute_path
+        .strip_prefix(project_root)
+        .unwrap_or(absolute_path)
+        .to_string_lossy()
+        .to_string()
+}
+
+fn get_timestamp() -> String {
+    use std::time::SystemTime;
+    let now = SystemTime::now()
+        .duration_since(SystemTime::UNIX_EPOCH)
+        .unwrap()
+        .as_secs();
+    
+    let hours = (now / 3600) % 24;
+    let minutes = (now / 60) % 60;
+    let seconds = now % 60;
+    
+    format!("{:02}:{:02}:{:02}", hours, minutes, seconds)
 }
 
 async fn check_prerequisites() -> Result<()> {
@@ -248,13 +272,14 @@ fn validate_flutter_project(path: &Path) -> Result<()> {
 // ============================================================================
 
 impl FlutterSession {
-    fn new(session_id: String, project_path: PathBuf) -> Self {
+    fn new(session_id: String, project_path: PathBuf, device_id: Option<String>) -> Self {
         let pid_file = PathBuf::from(format!("/tmp/flutter-{}.pid", session_id));
         
         let debug_info = DebugInfo {
             session_id: session_id.clone(),
             pid_file: pid_file.to_string_lossy().to_string(),
             project_path: project_path.to_string_lossy().to_string(),
+            device_id,
             ..Default::default()
         };
 
@@ -295,6 +320,7 @@ impl FlutterSession {
 
 struct OutputParser {
     vm_service_regex: Regex,
+    devtools_regex: Regex,
     app_check_regex: Regex,
     device_regex: Regex,
 }
@@ -303,8 +329,9 @@ impl OutputParser {
     fn new() -> Result<Self> {
         Ok(Self {
             vm_service_regex: Regex::new(r"A Dart VM Service .* is available at: (http://[^\s]+)")?,
-            app_check_regex: Regex::new(r"Firebase App Check Debug Token: ([A-F0-9-]+)")?,
-            device_regex: Regex::new(r"Launching .* on (.+?) in debug mode")?,
+            devtools_regex: Regex::new(r"The Flutter DevTools.*?is available at: (http://[^\s]+)")?,
+            app_check_regex: Regex::new(r"Enter this debug secret into the allow list.*?: ([a-f0-9-]+)")?,
+            device_regex: Regex::new(r"Launching .* on (.+?) in (\w+) mode")?,
         })
     }
 
@@ -316,21 +343,19 @@ impl OutputParser {
             print_success(&format!("Captured VM Service URL: {}", &captures[1]));
         }
 
+        if let Some(captures) = self.devtools_regex.captures(line) {
+            info.devtools_url = Some(captures[1].to_string());
+            print_success(&format!("Captured DevTools URL: {}", &captures[1]));
+        }
+
         if let Some(captures) = self.app_check_regex.captures(line) {
             info.app_check_token = Some(captures[1].to_string());
-            print_success(&format!("Captured App Check Token: {}", &captures[1]));
+            print_success(&format!("Captured Firebase App Check Token: {}", &captures[1]));
         }
 
         if let Some(captures) = self.device_regex.captures(line) {
             info.device_info = Some(captures[1].to_string());
-        }
-
-        if line.contains("debug mode") {
-            info.build_mode = Some("debug".to_string());
-        } else if line.contains("profile mode") {
-            info.build_mode = Some("profile".to_string());
-        } else if line.contains("release mode") {
-            info.build_mode = Some("release".to_string());
+            info.build_mode = Some(captures[2].to_string());
         }
     }
 }
@@ -604,28 +629,34 @@ async fn setup_keyboard_handler(event_tx: mpsc::UnboundedSender<AppEvent>) -> Re
 fn display_debug_info(debug_info: &DebugInfo) {
     print_header("Debug Information");
     
-    eprintln!("📋 Session: {}", debug_info.session_id);
-    eprintln!("📁 Project: {}", debug_info.project_path);
+    match &debug_info.build_mode {
+        Some(mode) => eprintln!("📋 Session: {} | 🔧 Build Mode: {}", debug_info.session_id, mode),
+        None => eprintln!("📋 Session: {}", debug_info.session_id),
+    }
+    eprintln!("📁 Project Path: {}", debug_info.project_path);
     eprintln!("📄 PID File: {}", debug_info.pid_file);
     
-    if let Some(mode) = &debug_info.build_mode {
-        eprintln!("🔧 Build Mode: {}", mode);
-    }
-    
     if let Some(device) = &debug_info.device_info {
-        eprintln!("📱 Device: {}", device);
+        match &debug_info.device_id {
+            Some(device_id) => eprintln!("📱 Device: {} ({})", device, device_id),
+            None => eprintln!("📱 Device: {}", device),
+        }
     }
     
     if let Some(url) = &debug_info.vm_service_url {
         eprintln!("🌐 VM Service: {}", url);
     }
     
+    if let Some(url) = &debug_info.devtools_url {
+        eprintln!("🛠️ DevTools: {}", url);
+    }
+    
     if let Some(token) = &debug_info.app_check_token {
-        eprintln!("🔐 App Check Token: {}", token);
+        eprintln!("🔐 Firebase App Check Token: {}", token);
     }
     
     eprintln!();
-    print_info("Press any key to continue...");
+    eprintln!();
 }
 
 // ============================================================================
@@ -647,7 +678,7 @@ async fn main() -> Result<()> {
 
     // Generate session
     let session_id = generate_session_id();
-    let session = FlutterSession::new(session_id.clone(), project_path.clone());
+    let session = FlutterSession::new(session_id.clone(), project_path.clone(), args.device_id.clone());
 
     print_info(&format!("Session ID: {}", session_id));
     print_info(&format!("Project: {}", project_path.display()));
@@ -696,26 +727,34 @@ async fn main() -> Result<()> {
             Some(event) = event_rx.recv() => {
                 match event {
                     AppEvent::FileChanged(path) => {
-                        print_info(&format!("🔥 File changed: {}", path.display()));
+                        eprintln!();
+                        print_colored(Color::Red, &format!("🔥 {}", get_relative_path(&path, &project_path)));
                         if let Err(e) = send_signal_to_flutter(&session_pid_file, Signal::SIGUSR1).await {
                             print_warning(&format!("Hot reload failed: {}", e));
                         } else {
-                            print_success("Hot reload triggered");
+                            print_success(&format!("Hot reload triggered ({})", get_timestamp()));
                         }
+                        eprintln!();
                     }
                     AppEvent::HotReload => {
+                        eprintln!();
+                        print_colored(Color::Red, "🔥 Manual hot reload");
                         if let Err(e) = send_signal_to_flutter(&session_pid_file, Signal::SIGUSR1).await {
                             print_warning(&format!("Hot reload failed: {}", e));
                         } else {
-                            print_success("Hot reload triggered");
+                            print_success(&format!("Hot reload triggered ({})", get_timestamp()));
                         }
+                        eprintln!();
                     }
                     AppEvent::HotRestart => {
+                        eprintln!();
+                        print_colored(Color::Blue, "🔄 Manual hot restart");
                         if let Err(e) = send_signal_to_flutter(&session_pid_file, Signal::SIGUSR2).await {
                             print_warning(&format!("Hot restart failed: {}", e));
                         } else {
-                            print_success("Hot restart triggered");
+                            print_success(&format!("Hot restart triggered ({})", get_timestamp()));
                         }
+                        eprintln!();
                     }
                     AppEvent::ShowInfo => {
                         let info = session_debug_info.lock().unwrap().clone();
@@ -764,7 +803,7 @@ mod tests {
 
         // Test VM Service URL parsing
         parser.parse_line(
-            "A Dart VM Service on macOS is available at: http://127.0.0.1:52195/6p6i7h7yeS0=/",
+            "A Dart VM Service on Pixel 5 is available at: http://127.0.0.1:52195/6p6i7h7yeS0=/",
             &debug_info,
         );
         assert_eq!(
@@ -772,14 +811,38 @@ mod tests {
             Some("http://127.0.0.1:52195/6p6i7h7yeS0=/".to_string())
         );
 
-        // Test App Check token parsing
+        // Test DevTools URL parsing
         parser.parse_line(
-            "Firebase App Check Debug Token: 493FE8A7-0EA0-490D-AAE0-0891CC66C473",
+            "The Flutter DevTools debugger and profiler on Pixel 5 is available at: http://127.0.0.1:9107?uri=http://127.0.0.1:49585/gpYYaPaI9xM=/",
+            &debug_info,
+        );
+        assert_eq!(
+            debug_info.lock().unwrap().devtools_url,
+            Some("http://127.0.0.1:9107?uri=http://127.0.0.1:49585/gpYYaPaI9xM=/".to_string())
+        );
+
+        // Test App Check token parsing (new format)
+        parser.parse_line(
+            "Enter this debug secret into the allow list in the Firebase Console for your project: 3df0581b-bd02-4109-91b0-1c202ff762eb",
             &debug_info,
         );
         assert_eq!(
             debug_info.lock().unwrap().app_check_token,
-            Some("493FE8A7-0EA0-490D-AAE0-0891CC66C473".to_string())
+            Some("3df0581b-bd02-4109-91b0-1c202ff762eb".to_string())
+        );
+
+        // Test device and build mode parsing
+        parser.parse_line(
+            "Launching lib/entrypoint_onescene.dart on Pixel 5 in debug mode...",
+            &debug_info,
+        );
+        assert_eq!(
+            debug_info.lock().unwrap().device_info,
+            Some("Pixel 5".to_string())
+        );
+        assert_eq!(
+            debug_info.lock().unwrap().build_mode,
+            Some("debug".to_string())
         );
     }
 
