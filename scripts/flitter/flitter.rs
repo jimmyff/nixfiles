@@ -213,9 +213,9 @@ fn print_info(text: &str) {
 
 fn print_header(title: &str) {
     eprintln!();
-    print_colored(Color::Magenta, "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+    print_colored(Color::Magenta, "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
     print_colored(Color::Cyan, &format!("📱 {}", title));
-    print_colored(Color::Magenta, "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+    print_colored(Color::Magenta, "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
     eprintln!();
 }
 
@@ -822,7 +822,8 @@ async fn main() -> Result<()> {
                         eprintln!();
                     }
                     AppEvent::HotRestart => {
-                        eprintln!();
+                        // Clear console before restart
+                        print!("\x1B[2J\x1B[1;1H");
                         print_colored(Color::Blue, "🔄 Manual hot restart");
                         if let Err(e) = send_signal_to_flutter(&session_pid_file, Signal::SIGUSR2).await {
                             print_warning(&format!("Hot restart failed: {}", e));

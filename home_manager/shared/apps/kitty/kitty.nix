@@ -41,6 +41,10 @@
         "cmd+alt+j" = "no_op";
         "cmd+alt+k" = "no_op";
         "cmd+alt+l" = "no_op";
+        "ctrl+h" = "no_op";
+        "ctrl+j" = "no_op";
+        "ctrl+k" = "no_op";
+        "ctrl+l" = "no_op";
 
         "ctrl+n" = "new_tab";
         "ctrl+w" = "close_tab";
