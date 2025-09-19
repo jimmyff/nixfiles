@@ -614,11 +614,18 @@ async fn setup_file_watcher(
 
     let mut watcher = RecommendedWatcher::new(
         move |res: Result<NotifyEvent, notify::Error>| {
-            if let Ok(event) = res {
-                if let Some(path) = event.paths.first() {
-                    if path.extension().map_or(false, |ext| ext == "dart") {
-                        let _ = file_tx.send(path.clone());
+            match res {
+                Ok(event) => {
+                    if let Some(path) = event.paths.first() {
+                        if path.extension().map_or(false, |ext| ext == "dart") {
+                            if let Err(_) = file_tx.send(path.clone()) {
+                                print_warning("Failed to send file change event");
+                            }
+                        }
                     }
+                }
+                Err(e) => {
+                    print_warning(&format!("File watcher error: {}", e));
                 }
             }
         },
@@ -635,14 +642,24 @@ async fn setup_file_watcher(
 
     tokio::spawn(async move {
         let _watcher = watcher; // Keep watcher alive
+        print_info("File watcher task started");
         
-        while let Some(path) = file_rx.recv().await {
-            let now = Instant::now();
-            if now.duration_since(last_change) >= debounce_duration {
-                last_change = now;
-                let _ = event_tx.send(AppEvent::FileChanged(path));
+        loop {
+            match file_rx.recv().await {
+                Some(path) => {
+                    let now = Instant::now();
+                    if now.duration_since(last_change) >= debounce_duration {
+                        last_change = now;
+                        let _ = event_tx.send(AppEvent::FileChanged(path));
+                    }
+                }
+                None => {
+                    print_warning("File watcher channel closed, task exiting");
+                    break;
+                }
             }
         }
+        print_warning("File watcher task terminated");
     });
 
     Ok(())
