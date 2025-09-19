@@ -15,8 +15,7 @@
 //! 
 //! **Author**: Jimmy Forrester-Fellowes <https://www.jimmyff.co.uk> (2025)
 //! 
-//! A Rust script for Flutter development with hot reloading, debug info capture,
-//! and optional Doppler secrets management.
+//! A Rust script for Flutter development with hot reloading and debug info capture.
 
 use std::{
     path::{Path, PathBuf},
@@ -51,7 +50,7 @@ use uuid::Uuid;
 
 #[derive(Parser)]
 #[command(name = "flitter")]
-#[command(about = "Flutter Hot Reloader with Optional Doppler Integration")]
+#[command(about = "Flutter Hot Reloader")]
 #[command(version = "1.0.0")]
 #[command(author = "Jimmy Forrester-Fellowes <https://www.jimmyff.co.uk>")]
 struct Args {
@@ -59,9 +58,6 @@ struct Args {
     #[arg(default_value = ".")]
     path: PathBuf,
 
-    /// Doppler project for environment variables
-    #[arg(long, short = 'd')]
-    doppler_project: Option<String>,
 
     /// Flutter command (defaults to 'run')
     #[arg(long, short = 'c', default_value = "run")]
@@ -219,18 +215,6 @@ async fn check_prerequisites() -> Result<()> {
     Ok(())
 }
 
-async fn check_doppler() -> Result<()> {
-    if Command::new("doppler")
-        .arg("--version")
-        .output()
-        .await
-        .is_err()
-    {
-        return Err(anyhow!("Doppler CLI not found. Please install Doppler CLI when using --doppler-project."));
-    }
-
-    Ok(())
-}
 
 fn validate_flutter_project(path: &Path) -> Result<()> {
     let lib_path = path.join("lib");
@@ -352,15 +336,7 @@ async fn start_flutter_process(
     event_tx: mpsc::UnboundedSender<AppEvent>,
 ) -> Result<()> {
     // Build Flutter command
-    let mut cmd = if let Some(doppler_project) = &args.doppler_project {
-        check_doppler().await?;
-        let mut cmd = Command::new("doppler");
-        cmd.args(&["run", "--project", doppler_project, "--"]);
-        cmd.arg("flutter");
-        cmd
-    } else {
-        Command::new("flutter")
-    };
+    let mut cmd = Command::new("flutter");
 
     cmd.arg(&args.command);
     cmd.arg("--pid-file").arg(&session.pid_file);
