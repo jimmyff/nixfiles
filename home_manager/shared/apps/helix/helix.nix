@@ -54,6 +54,10 @@
             "goto_file"
             ":buffer-close! /tmp/files2open"
           ];
+          "Cmd-C-h" = "jump_view_left";
+          "Cmd-C-j" = "jump_view_down";
+          "Cmd-C-k" = "jump_view_up";
+          "Cmd-C-l" = "jump_view_right";
         };
       };
 

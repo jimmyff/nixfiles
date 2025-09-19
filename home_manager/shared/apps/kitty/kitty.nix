@@ -36,12 +36,24 @@
         "cmd+enter" = "no_op";
         "cmd+t" = "no_op";
         "cmd+n" = "no_op";
-        "cmd+w" = "no_op";
         "cmd+d" = "no_op";
         "cmd+alt+h" = "no_op";
         "cmd+alt+j" = "no_op";
         "cmd+alt+k" = "no_op";
         "cmd+alt+l" = "no_op";
+        "ctrl+h" = "no_op";
+        "ctrl+j" = "no_op";
+        "ctrl+k" = "no_op";
+        "ctrl+l" = "no_op";
+
+        "ctrl+n" = "new_tab";
+        "ctrl+w" = "close_tab";
+        "cmd+w" = "close_os_window";
+        "cmd+ctrl+h" = "previous_tab";
+        "cmd+ctrl+l" = "next_tab";
+        "ctrl+shift+h" = "move_tab_backward";
+        "ctrl+shift+j" = "move_tab_forward";
+        "cmd+ctrl+t" = "set_tab_title";
       };
 
       settings = {

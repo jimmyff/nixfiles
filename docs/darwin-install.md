@@ -6,7 +6,34 @@
 4. Setup SSH keys from Bitwarden
 5. Disable system shortcuts: System Settings → Keyboard → Shortcuts
 6. Launch Raycast, bind to ⌘+Space
+7. Configure browser keyboard shortcuts in System Settings → Keyboard → Shortcuts → App Shortcuts: → All Applications
 
+| Menu Title | Keybind |
+|------------|---------|
+| Close Tab | ^W |
+| New tab | ^T |
+| Focus Address Bar | ^L |
+| New Tab | ^T |
+| Select Next Tab | ^⌘L |
+| Select Previous Tab | ^⌘H |
+| New Window | ^N |
+| New window | ^N |
+| New Incognito window | ^⇧N |
+| New Private Window | ^⇧N |
+| Reload This Page | ^R |
+| Back | ^K |
+| Forward | ^J |
+
+## Vimium keymaps
+
+```
+map <c-w> removeTab
+map <c-t> createTab
+map <c-m-h> previousTab
+map <c-m-l> nextTab
+map <c-m-j> goBack
+map <c-m-k> goForward
+```
 
 ## Manual Installs
 
