@@ -69,13 +69,13 @@
         border: (
             red: 0.71141946,
             green: 0.736694,
-            blue: 0.8603014,
+            blue: 0.8603015,
             alpha: 1.0,
         ),
         disabled_border: (
             red: 0.71141946,
             green: 0.736694,
-            blue: 0.8603014,
+            blue: 0.8603015,
             alpha: 0.5,
         ),
     ),
@@ -92,9 +92,9 @@
         alpha: 1.0,
     ),
     small_widget: (
-        red: 0.1972925,
-        green: 0.19877127,
-        blue: 0.22108349,
+        red: 0.19729254,
+        green: 0.19877124,
+        blue: 0.22108346,
         alpha: 0.25,
     ),
 )

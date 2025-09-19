@@ -25,8 +25,9 @@ in {
   };
 
   config = lib.mkIf cfg.enable {
-    # Configure agenix identity paths for Darwin (use user SSH key)
+    # Configure agenix identity paths
     age.identityPaths = lib.mkIf pkgs.stdenv.isDarwin [
+      # Darwin: use user SSH keys (NixOS will use system defaults)
       "${homeDir}/.ssh/id_ed25519"
       "${homeDir}/.ssh/id_rsa"
     ];
