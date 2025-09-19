@@ -95,6 +95,10 @@ struct Args {
     #[arg(long, short = 'v')]
     verbose: bool,
 
+    /// Strip flutter log prefixes from output
+    #[arg(long, default_value = "true")]
+    strip_flutter_prefix: bool,
+
     /// Additional Flutter arguments
     #[arg(last = true)]
     flutter_args: Vec<String>,
@@ -108,6 +112,7 @@ struct DebugInfo {
     device_info: Option<String>,
     device_id: Option<String>,
     build_mode: Option<String>,
+    android_log_pid: Option<String>,
     session_id: String,
     pid_file: String,
     project_path: String,
@@ -238,6 +243,43 @@ fn get_timestamp() -> String {
     let seconds = now % 60;
     
     format!("{:02}:{:02}:{:02}", hours, minutes, seconds)
+}
+
+fn clean_flutter_log_line(line: &str, debug_info: &Arc<Mutex<DebugInfo>>) -> String {
+    // Check for Android format: [LEVEL]/flutter (PID): message
+    if let Some(captures) = Regex::new(r"^([DWIEV])/flutter \((\d+)\): (.*)$").unwrap().captures(line) {
+        let log_level = &captures[1];
+        let pid = &captures[2];
+        let message = &captures[3];
+        
+        // Store PID if we haven't captured it yet
+        {
+            let mut info = debug_info.lock().unwrap();
+            if info.android_log_pid.is_none() {
+                info.android_log_pid = Some(pid.to_string());
+            }
+        }
+        
+        // Convert log level to emoji
+        let emoji = match log_level {
+            "I" => "ⓘ",
+            "D" => "🐛",
+            "W" => "⚠️",
+            "E" => "❌",
+            "V" => "🔍",
+            _ => "📝", // fallback
+        };
+        
+        format!("{} {}", emoji, message)
+    }
+    // Check for macOS format: flutter: message
+    else if let Some(captures) = Regex::new(r"^flutter: (.*)$").unwrap().captures(line) {
+        captures[1].to_string()
+    }
+    // Return original line if it doesn't match any known format
+    else {
+        line.to_string()
+    }
 }
 
 async fn check_prerequisites() -> Result<()> {
@@ -435,8 +477,10 @@ async fn start_flutter_process(
 
     // Spawn output readers
     let debug_info = session.debug_info.clone();
+    let debug_info_stderr = session.debug_info.clone();
     let event_tx_stdout = event_tx.clone();
     let event_tx_stderr = event_tx.clone();
+    let strip_prefix = args.strip_flutter_prefix;
 
     tokio::spawn(async move {
         let parser = OutputParser::new().unwrap();
@@ -448,7 +492,13 @@ async fn start_flutter_process(
             if !trimmed.is_empty() {
                 parser.parse_line(trimmed, &debug_info);
                 let _ = event_tx_stdout.send(AppEvent::FlutterOutput);
-                print!("{}", line);
+                
+                if strip_prefix {
+                    let cleaned = clean_flutter_log_line(trimmed, &debug_info);
+                    println!("{}", cleaned);
+                } else {
+                    print!("{}", line);
+                }
             }
             line.clear();
         }
@@ -462,7 +512,13 @@ async fn start_flutter_process(
             let trimmed = line.trim();
             if !trimmed.is_empty() {
                 let _ = event_tx_stderr.send(AppEvent::FlutterOutput);
-                eprint!("{}", line);
+                
+                if strip_prefix {
+                    let cleaned = clean_flutter_log_line(trimmed, &debug_info_stderr);
+                    eprintln!("{}", cleaned);
+                } else {
+                    eprint!("{}", line);
+                }
             }
             line.clear();
         }
@@ -629,9 +685,11 @@ async fn setup_keyboard_handler(event_tx: mpsc::UnboundedSender<AppEvent>) -> Re
 fn display_debug_info(debug_info: &DebugInfo) {
     print_header("Debug Information");
     
-    match &debug_info.build_mode {
-        Some(mode) => eprintln!("📋 Session: {} | 🔧 Build Mode: {}", debug_info.session_id, mode),
-        None => eprintln!("📋 Session: {}", debug_info.session_id),
+    match (&debug_info.android_log_pid, &debug_info.build_mode) {
+        (Some(pid), Some(mode)) => eprintln!("📋 ID: {} / PID: {} / 🔧 {}", debug_info.session_id, pid, mode.to_uppercase()),
+        (Some(pid), None) => eprintln!("📋 ID: {} / PID: {}", debug_info.session_id, pid),
+        (None, Some(mode)) => eprintln!("📋 ID: {} / 🔧 {}", debug_info.session_id, mode.to_uppercase()),
+        (None, None) => eprintln!("📋 ID: {}", debug_info.session_id),
     }
     eprintln!("📁 Project Path: {}", debug_info.project_path);
     eprintln!("📄 PID File: {}", debug_info.pid_file);
