@@ -8,7 +8,7 @@
 //! anyhow = "1.0"
 //! regex = "1.0"
 //! uuid = { version = "1.0", features = ["v4"] }
-//! libc = "0.2"
+//! nix = { version = "0.29", features = ["signal", "process"] }
 //! ```
 //!
 //! # Flitter - Flutter Hot Reloader
@@ -32,6 +32,10 @@ use clap::Parser;
 use crossterm::{
     execute,
     style::{Color, Print, ResetColor, SetForegroundColor},
+};
+use nix::{
+    sys::signal::{self, Signal},
+    unistd::{setsid, Pid},
 };
 use notify::{Config, Event as NotifyEvent, RecommendedWatcher, RecursiveMode, Watcher};
 use regex::Regex;
@@ -105,6 +109,7 @@ struct DebugInfo {
     session_id: String,
     pid_file: String,
     project_path: String,
+    process_group_id: Option<Pid>,
 }
 
 #[derive(Debug)]
@@ -149,6 +154,16 @@ impl Drop for CleanupGuard {
         if let Some(mut session) = self.session.lock().unwrap().take() {
             // Synchronous cleanup - best effort
             print_info("Emergency cleanup on drop...");
+            
+            // Try to terminate process group synchronously
+            if let Some(pgid) = session.debug_info.lock().unwrap().process_group_id {
+                #[cfg(unix)]
+                {
+                    // Emergency kill - use SIGKILL directly
+                    let _ = signal::killpg(pgid, Signal::SIGKILL);
+                }
+            }
+            
             if session.pid_file.exists() {
                 let _ = std::fs::remove_file(&session.pid_file);
             }
@@ -254,24 +269,18 @@ impl FlutterSession {
     async fn cleanup(&mut self) -> Result<()> {
         print_info("Cleaning up processes and files...");
 
-        // Kill Flutter process
-        if let Some(mut process) = self.process.take() {
-            let _ = process.kill().await;
+        // Terminate Flutter process group first
+        if let Err(e) = terminate_flutter_process_group(&self.debug_info).await {
+            print_warning(&format!("Process group termination failed: {}", e));
+            
+            // Fallback: Kill Flutter process directly
+            if let Some(mut process) = self.process.take() {
+                let _ = process.kill().await;
+            }
         }
 
         // Remove PID file
         if self.pid_file.exists() {
-            if let Ok(pid_content) = fs::read_to_string(&self.pid_file).await {
-                if let Ok(pid) = pid_content.trim().parse::<u32>() {
-                    // Try to kill the process
-                    #[cfg(unix)]
-                    {
-                        unsafe {
-                            libc::kill(pid as i32, libc::SIGTERM);
-                        }
-                    }
-                }
-            }
             let _ = fs::remove_file(&self.pid_file).await;
         }
 
@@ -372,10 +381,26 @@ async fn start_flutter_process(
     cmd.stdout(Stdio::piped());
     cmd.stderr(Stdio::piped());
 
+    // Create new process group for proper cleanup
+    #[cfg(unix)]
+    unsafe {
+        cmd.pre_exec(|| {
+            setsid().map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?;
+            Ok(())
+        });
+    }
+
     print_info(&format!("Starting Flutter: {:?}", cmd));
 
     // Start the process
     let mut child = cmd.spawn().context("Failed to start Flutter process")?;
+    
+    // Store process group ID for cleanup
+    #[cfg(unix)]
+    {
+        let pid = child.id().unwrap();
+        session.debug_info.lock().unwrap().process_group_id = Some(Pid::from_raw(pid as i32));
+    }
     
     // Get stdout and stderr
     let stdout = child.stdout.take().unwrap();
@@ -434,7 +459,7 @@ async fn start_flutter_process(
     Err(anyhow!("Flutter failed to start - PID file not created"))
 }
 
-async fn send_signal_to_flutter(pid_file: &Path, signal: i32) -> Result<()> {
+async fn send_signal_to_flutter(pid_file: &Path, sig: Signal) -> Result<()> {
     if !pid_file.exists() {
         return Err(anyhow!("PID file not found"));
     }
@@ -444,18 +469,54 @@ async fn send_signal_to_flutter(pid_file: &Path, signal: i32) -> Result<()> {
 
     #[cfg(unix)]
     {
-        unsafe {
-            if libc::kill(pid as i32, signal) == 0 {
-                Ok(())
-            } else {
-                Err(anyhow!("Failed to send signal to Flutter process"))
-            }
-        }
+        signal::kill(Pid::from_raw(pid as i32), sig)
+            .map_err(|e| anyhow!("Failed to send signal to Flutter process: {}", e))
     }
 
     #[cfg(not(unix))]
     {
         Err(anyhow!("Signal sending not supported on this platform"))
+    }
+}
+
+async fn terminate_flutter_process_group(debug_info: &Arc<Mutex<DebugInfo>>) -> Result<()> {
+    let info = debug_info.lock().unwrap();
+    let pgid = match info.process_group_id {
+        Some(id) => id,
+        None => return Err(anyhow!("No process group ID available")),
+    };
+    drop(info);
+
+    #[cfg(unix)]
+    {
+        // First try graceful shutdown with SIGTERM
+        print_info("Sending SIGTERM to Flutter process group...");
+        signal::killpg(pgid, Signal::SIGTERM)
+            .map_err(|e| anyhow!("Failed to send SIGTERM to process group: {}", e))?;
+
+        // Wait for graceful shutdown
+        sleep(Duration::from_millis(300)).await;
+
+        // Check if process group still exists by sending signal 0
+        match signal::killpg(pgid, None) {
+            Ok(()) => {
+                // Process group still exists, force kill
+                print_warning("Process group still running, sending SIGKILL...");
+                signal::killpg(pgid, Signal::SIGKILL)
+                    .map_err(|e| anyhow!("Failed to send SIGKILL to process group: {}", e))?;
+            }
+            Err(_) => {
+                // Process group doesn't exist anymore, which is what we want
+            }
+        }
+
+        print_success("Flutter process group terminated");
+        Ok(())
+    }
+
+    #[cfg(not(unix))]
+    {
+        Err(anyhow!("Process group termination not supported on this platform"))
     }
 }
 
@@ -636,21 +697,21 @@ async fn main() -> Result<()> {
                 match event {
                     AppEvent::FileChanged(path) => {
                         print_info(&format!("🔥 File changed: {}", path.display()));
-                        if let Err(e) = send_signal_to_flutter(&session_pid_file, libc::SIGUSR1).await {
+                        if let Err(e) = send_signal_to_flutter(&session_pid_file, Signal::SIGUSR1).await {
                             print_warning(&format!("Hot reload failed: {}", e));
                         } else {
                             print_success("Hot reload triggered");
                         }
                     }
                     AppEvent::HotReload => {
-                        if let Err(e) = send_signal_to_flutter(&session_pid_file, libc::SIGUSR1).await {
+                        if let Err(e) = send_signal_to_flutter(&session_pid_file, Signal::SIGUSR1).await {
                             print_warning(&format!("Hot reload failed: {}", e));
                         } else {
                             print_success("Hot reload triggered");
                         }
                     }
                     AppEvent::HotRestart => {
-                        if let Err(e) = send_signal_to_flutter(&session_pid_file, libc::SIGUSR2).await {
+                        if let Err(e) = send_signal_to_flutter(&session_pid_file, Signal::SIGUSR2).await {
                             print_warning(&format!("Hot restart failed: {}", e));
                         } else {
                             print_success("Hot restart triggered");
