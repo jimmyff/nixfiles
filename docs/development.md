@@ -1,14 +1,13 @@
 # Development
 
-## Flutter + Android SDK (Manual Install)
+## Dart/Flutter + Android SDK
 
-**Why not Nix?**
-- [Base64 encoding bug](https://github.com/flutter/flutter/pull/155139) breaks Xcode builds
-- Nix packages lag behind releases
-- May reconsider later
+**Installation:**
+- **Dart/Flutter:** Nix on Linux, manual on macOS ([Xcode issue](https://github.com/flutter/flutter/pull/155139))  
+- **Android SDK:** Manual install via Android Studio (both platforms)
 
 **Locations:**
-- Flutter: `~/.local/share/flutter/`
+- Dart/Flutter: Nix store (Linux) / `~/.local/share/flutter/` (macOS)
 - Android SDK: `~/.local/share/android/sdk/`
 
 **Setup:** Run `dev-setup` to validate and clone projects.

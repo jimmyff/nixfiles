@@ -31,6 +31,7 @@
 - **Multi-platform:** NixOS + macOS Darwin support
 - **Project environments:** Declarative dev setup with direnv
 - **Encrypted secrets:** agenix + private flake input for sensitive files
+- **Dart/Flutter:** Nix-managed on Linux, manual on macOS (iOS compatibility)
 - **Git management:** [`gm.nu`](scripts/git-manager/) - mono repo git manager
 - **Flutter/Dart management:** [`dartboard.nu`](scripts/dartboard/) - batch pub operations
 - **Flutter hot reload:** [`flitter.rs`](scripts/flitter/) - hot reloading with debug info capture
