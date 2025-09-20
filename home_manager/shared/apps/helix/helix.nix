@@ -21,6 +21,7 @@
         alejandra # Nix formatter
         flutter # Containers Dart SDK and language server
         taplo # TOML lsp
+        lsp-ai # AI lsp
       ];
 
       settings = {
@@ -31,8 +32,25 @@
           lsp.display-messages = true;
           lsp.display-inlay-hints = true;
           auto-format = true;
-          bufferline = "multiple";
+          bufferline = "never";
           soft-wrap.enable = true;
+          cursorline = false;
+          color-modes = true;
+          popup-border = "all";
+
+          # inline-diagnostics
+          end-of-line-diagnostics = "hint";
+          inline-diagnostics = {
+            cursor-line = "hint";
+            other-lines = "error";
+          };
+
+          # status
+          statusline = {
+            right = ["diagnostics" "workspace-diagnostics" "selections" "register" "position" "file-encoding"];
+            diagnostics = ["warning" "error"];
+            workspace-diagnostics = ["error"];
+          };
 
           cursor-shape = {
             insert = "bar";
@@ -63,6 +81,18 @@
 
       languages = {
         language-server = {
+          lsp-ai = {
+            command = "lsp-ai";
+            models = {
+              cs4 = {
+                type = "anthropic";
+                chat_endpoint = "https://api.anthropic.com/v1/messages";
+                model = "claude-sonnet-4-20250514";
+                auth_token_env_var_name = "ANTHROPIC_API_KEY";
+                max_requests_per_second = 1;
+              };
+            };
+          };
           nil = {
             command = "nil";
           };
@@ -85,8 +115,9 @@
           # https://github.com/helix-editor/helix/wiki/Debugger-Configurations
           {
             name = "dart";
-            language-servers = ["dart"];
+            language-servers = ["dart" "lsp-api"];
             auto-format = true;
+            rulers = [80];
             formatter = {
               command = "dart";
               args = ["format"];

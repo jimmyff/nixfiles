@@ -1,11 +1,13 @@
-{ lib, config, ... }: {
-
+{
+  lib,
+  config,
+  ...
+}: {
   options = {
     git_module.enable = lib.mkEnableOption "enables git_module";
   };
 
   config = lib.mkIf config.git_module.enable {
-    
     programs.git = {
       enable = true;
       userName = "jimmyff";
@@ -18,5 +20,9 @@
       enable = true;
     };
 
+    # Git Tui
+    programs.lazygit = {
+      enable = true;
+    };
   };
 }
