@@ -45,8 +45,7 @@ in {
     # Android environment variables
     environment.variables = {
       ANDROID_HOME = "${homeDir}/.local/share/android/sdk";
-      FLUTTER_ROOT = "${homeDir}/.local/share/flutter";
-      PUB_CACHE = "${homeDir}/.cache/flutter/pub-cache";
+      # FLUTTER_ROOT and PUB_CACHE now handled by dart.nix module
     };
 
     # Deploy encrypted keystore using agenix
@@ -66,11 +65,10 @@ in {
         # Create Android SDK directory structure
         mkdir -p ${homeDir}/.local/share/android/sdk
         mkdir -p ${homeDir}/.local/share/android
-        mkdir -p ${homeDir}/.cache/flutter/pub-cache
+        # Flutter cache directory now handled by dart.nix module
 
         # Set ownership
         chown -R ${username}:${userGroup} ${homeDir}/.local/share/android 2>/dev/null || echo "Warning: Could not set ownership of Android directories"
-        chown -R ${username}:${userGroup} ${homeDir}/.cache/flutter 2>/dev/null || echo "Warning: Could not set ownership of Flutter cache"
 
         echo "Android development environment setup complete!"
       '';

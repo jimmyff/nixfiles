@@ -16,9 +16,10 @@
           # Force nushell to use home-manager managed config directory
           NU_CONFIG_PATH = "${config.xdg.configHome}/nushell";
           # Flutter and Android SDK environment variables
-          ANDROID_HOME = "${config.home.homeDirectory}/.local/share/android/sdk";
-          FLUTTER_ROOT = "${config.home.homeDirectory}/.local/share/flutter";
-          PUB_CACHE = "${config.home.homeDirectory}/.cache/flutter/pub-cache";
+          # (These are now handled by nix_modules/development/android.nix and dart.nix)
+          # ANDROID_HOME = "${config.home.homeDirectory}/.local/share/android/sdk";
+          # FLUTTER_ROOT = "${config.home.homeDirectory}/.local/share/flutter";
+          # PUB_CACHE = "${config.home.homeDirectory}/.cache/flutter/pub-cache";
         };
 
       # The config.nu can be anywhere you want if you like to edit your Nushell with Nu
@@ -48,9 +49,11 @@
         $env.PATH ++= [
           "~/.nix-profile/bin"
           "~/.local/bin"
-          "~/.pub-cache/bin"
-          "~/.cache/flutter/pub-cache/bin"
-          "~/.local/share/flutter/bin"
+          # Flutter/Dart paths now handled by Nix packages in dart.nix module
+          # "~/.pub-cache/bin"
+          # "~/.cache/flutter/pub-cache/bin"
+          # "~/.local/share/flutter/bin"
+          # Android SDK paths (kept for manual Android Studio installation)
           "~/.local/share/android/sdk/platform-tools"
           "~/.local/share/android/sdk/tools/bin"
           "~/.local/share/android/sdk/cmdline-tools/latest/bin"

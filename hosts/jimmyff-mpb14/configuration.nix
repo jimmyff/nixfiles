@@ -15,6 +15,7 @@
 
   # Platform-specific development tools
   android.enable = true;
+  dart.enable = true;
   xcode.enable = true;
   rust.enable = true;
 

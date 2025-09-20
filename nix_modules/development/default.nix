@@ -69,9 +69,13 @@
     echo ""
     ''}
 
-    # Activate Dart tooling if dart is available
+    # Display Dart and Flutter versions and activate tooling
     nu -c 'print $"(ansi cyan_bold)🎯 Setting up Dart tooling...(ansi reset)"'
     if command -v dart >/dev/null 2>&1; then
+      echo "   📦 Dart version: $(dart --version 2>&1)"
+      if command -v flutter >/dev/null 2>&1; then
+        echo "   📦 Flutter version: $(flutter --version | head -1)"
+      fi
       echo "   Activating cider (CI for Dart)"
       dart pub global activate cider
       echo "   ✅ Dart tooling activation complete"
@@ -249,6 +253,7 @@
 in {
   imports = [
     ./android.nix
+    ./dart.nix
     ./xcode.nix
     ./rust.nix
   ];
