@@ -22,6 +22,8 @@
         flutter # Containers Dart SDK and language server
         taplo # TOML lsp
         lsp-ai # AI lsp
+        # marksman # MD lsp
+        markdown-oxide # MD lsp
       ];
 
       settings = {
@@ -37,6 +39,7 @@
           cursorline = false;
           color-modes = true;
           popup-border = "all";
+          prefix-len = 3;
 
           # inline-diagnostics
           end-of-line-diagnostics = "hint";
@@ -60,6 +63,7 @@
         };
 
         keys.normal = {
+          # Yazi file explorer
           "C-y" = [
             ":sh rm -f /tmp/files2open"
             ":set mouse false"
@@ -72,10 +76,27 @@
             "goto_file"
             ":buffer-close! /tmp/files2open"
           ];
+
+          # Keybinds for focus switching
           "Cmd-C-h" = "jump_view_left";
           "Cmd-C-j" = "jump_view_down";
           "Cmd-C-k" = "jump_view_up";
           "Cmd-C-l" = "jump_view_right";
+
+          # Smart tab recommendation
+          "tab" = "move_parent_node_end";
+          "S-tab" = "move_parent_node_start";
+        };
+
+        keys.insert = {
+          # Smart tab recommendation
+          "S-tab" = "move_parent_node_start";
+        };
+
+        keys.select = {
+          # Smart tab recommendation
+          "tab" = "extend_parent_node_end";
+          "S-tab" = "move_parent_node_start";
         };
       };
 
@@ -115,7 +136,7 @@
           # https://github.com/helix-editor/helix/wiki/Debugger-Configurations
           {
             name = "dart";
-            language-servers = ["dart" "lsp-api"];
+            language-servers = ["dart" "lsp-ai"];
             auto-format = true;
             rulers = [80];
             formatter = {
