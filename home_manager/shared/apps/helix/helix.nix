@@ -22,8 +22,9 @@
         flutter # Containers Dart SDK and language server
         taplo # TOML lsp
         lsp-ai # AI lsp
-        # marksman # MD lsp
+        marksman # MD lsp
         markdown-oxide # MD lsp
+        dprint # code formatter
       ];
 
       settings = {
@@ -39,13 +40,14 @@
           cursorline = false;
           color-modes = true;
           popup-border = "all";
-          prefix-len = 3;
+          rulers = [80];
 
           # inline-diagnostics
           end-of-line-diagnostics = "hint";
           inline-diagnostics = {
             cursor-line = "hint";
             other-lines = "error";
+            prefix-len = 3;
           };
 
           # status
@@ -138,7 +140,6 @@
             name = "dart";
             language-servers = ["dart" "lsp-ai"];
             auto-format = true;
-            rulers = [80];
             formatter = {
               command = "dart";
               args = ["format"];
@@ -167,6 +168,14 @@
           {
             name = "markdown";
             auto-format = true;
+            formatter = {
+              command = "dprint";
+              args = [
+                "fmt"
+                "--stdin"
+                "md"
+              ];
+            };
           }
           {
             name = "json";
