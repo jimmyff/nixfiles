@@ -12,6 +12,17 @@
     # Set hx as the default editor
     home.sessionVariables.EDITOR = "hx";
 
+    # dprint configuration
+    xdg.configFile."dprint/dprint.json".text = builtins.toJSON {
+      markdown = {
+        lineWidth = 80;
+        textWrap = "maintain";
+      };
+      plugins = [
+        "${pkgs.dprint-plugins.dprint-plugin-markdown}/plugin.wasm"
+      ];
+    };
+
     programs.helix = {
       enable = true;
 
@@ -25,10 +36,13 @@
         marksman # MD lsp
         markdown-oxide # MD lsp
         dprint # code formatter
+        dprint-plugins.dprint-plugin-markdown # md plugin
       ];
 
       settings = {
-        theme = "modus_vivendi_tinted";
+        # theme = "modus_vivendi_tinted";
+        # theme = "kanagawa";
+        theme = "dark_high_contrast";
 
         editor = {
           line-number = "relative";
@@ -79,6 +93,8 @@
             ":buffer-close! /tmp/files2open"
           ];
 
+          "C-:" = ":lsp-workspace-command";
+
           # Keybinds for focus switching
           "Cmd-C-h" = "jump_view_left";
           "Cmd-C-j" = "jump_view_down";
@@ -122,6 +138,13 @@
           dart = {
             command = "dart";
             args = ["language-server" "--protocol=lsp"];
+          };
+          marksman = {
+            command = "marksman";
+            args = ["server"];
+          };
+          markdown-oxide = {
+            command = "markdown-oxide";
           };
         };
 
@@ -167,11 +190,19 @@
           }
           {
             name = "markdown";
+            language-servers = ["marksman"];
             auto-format = true;
+            soft-wrap = {
+              enable = true;
+              max-wrap = 80;
+              wrap-at-text-width = true;
+            };
             formatter = {
-              command = "dprint";
+              command = "${pkgs.dprint}/bin/dprint";
               args = [
                 "fmt"
+                "--config"
+                "${config.xdg.configHome}/dprint/dprint.json"
                 "--stdin"
                 "md"
               ];
