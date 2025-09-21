@@ -9,6 +9,7 @@
 **Locations:**
 - Dart/Flutter: Nix store (Linux) / `~/.local/share/flutter/` (macOS)
 - Android SDK: `~/.local/share/android/sdk/`
+- Dart pub cache: `~/.cache/dart-pub/`
 
 **Setup:** Run `dev-setup` to validate and clone projects.
 

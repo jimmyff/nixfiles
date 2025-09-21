@@ -14,6 +14,12 @@
     then "/Users/${username}"
     else "/home/${username}";
 
+  # XDG paths
+  xdgDataHome =
+    if pkgs.stdenv.isDarwin
+    then "${homeDir}/.local/share"
+    else "${homeDir}/.local/share";
+
   # Cross-platform user group
   userGroup =
     if pkgs.stdenv.isDarwin
@@ -35,7 +41,7 @@ in {
 
     # Rust environment variables (XDG compliant)
     environment.variables = {
-      CARGO_HOME = "${homeDir}/.local/share/cargo";
+      CARGO_HOME = "${xdgDataHome}/cargo";
     };
 
     # Setup Rust directories
@@ -44,10 +50,10 @@ in {
         echo "Setting up Rust development environment..."
 
         # Create Rust directories (XDG compliant)
-        mkdir -p ${homeDir}/.local/share/cargo/bin
+        mkdir -p ${xdgDataHome}/cargo/bin
 
         # Set ownership
-        chown -R ${username}:${userGroup} ${homeDir}/.local/share/cargo 2>/dev/null || echo "Warning: Could not set ownership of Rust cargo directory"
+        chown -R ${username}:${userGroup} ${xdgDataHome}/cargo 2>/dev/null || echo "Warning: Could not set ownership of Rust cargo directory"
 
         echo "Rust development environment setup complete!"
       '';

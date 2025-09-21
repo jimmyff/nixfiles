@@ -15,6 +15,12 @@
     then "/Users/${username}"
     else "/home/${username}";
 
+  # XDG paths
+  xdgDataHome =
+    if pkgs.stdenv.isDarwin
+    then "${homeDir}/.local/share"
+    else "${homeDir}/.local/share";
+
   # Cross-platform user group
   userGroup =
     if pkgs.stdenv.isDarwin
@@ -44,14 +50,14 @@ in {
 
     # Android environment variables
     environment.variables = {
-      ANDROID_HOME = "${homeDir}/.local/share/android/sdk";
+      ANDROID_HOME = "${xdgDataHome}/android/sdk";
       # FLUTTER_ROOT and PUB_CACHE now handled by dart.nix module
     };
 
     # Deploy encrypted keystore using agenix
     age.secrets.android-keystore = {
       file = nixfiles-vault + "/android-release-key.jks.age";
-      path = "${homeDir}/.local/share/android/key.jks";
+      path = "${xdgDataHome}/android/key.jks";
       mode = "600";
       owner = username;
       group = userGroup;
@@ -62,13 +68,13 @@ in {
       text = ''
         echo "Setting up Android development environment..."
 
-        # Create Android SDK directory structure
-        mkdir -p ${homeDir}/.local/share/android/sdk
-        mkdir -p ${homeDir}/.local/share/android
+        # Create Android SDK directory structure (XDG compliant)
+        mkdir -p ${xdgDataHome}/android/sdk
+        mkdir -p ${xdgDataHome}/android
         # Flutter cache directory now handled by dart.nix module
 
         # Set ownership
-        chown -R ${username}:${userGroup} ${homeDir}/.local/share/android 2>/dev/null || echo "Warning: Could not set ownership of Android directories"
+        chown -R ${username}:${userGroup} ${xdgDataHome}/android 2>/dev/null || echo "Warning: Could not set ownership of Android directories"
 
         echo "Android development environment setup complete!"
       '';

@@ -21,6 +21,17 @@
     then "/Users/${username}"
     else "/home/${username}";
 
+  # XDG paths
+  xdgCacheHome =
+    if pkgs.stdenv.isDarwin
+    then "${homeDir}/.cache"
+    else "${homeDir}/.cache";
+
+  xdgDataHome =
+    if pkgs.stdenv.isDarwin
+    then "${homeDir}/.local/share"
+    else "${homeDir}/.local/share";
+
   # Cross-platform user group
   userGroup =
     if pkgs.stdenv.isDarwin
@@ -44,7 +55,7 @@ in {
     environment.variables = lib.mkMerge [
       # Common variables
       {
-        PUB_CACHE = "${homeDir}/.cache/flutter/pub-cache";
+        PUB_CACHE = "${xdgCacheHome}/dart-pub";
       }
       
       # Linux: Use Nix-provided Flutter root
@@ -56,7 +67,7 @@ in {
       # This avoids the read-only Nix store issue where Xcode cannot write to Flutter root
       # See: https://github.com/flutter/flutter/pull/155139
       (lib.mkIf pkgs.stdenv.isDarwin {
-        FLUTTER_ROOT = "${homeDir}/.local/share/flutter";
+        FLUTTER_ROOT = "${xdgDataHome}/flutter";
       })
     ];
 
@@ -65,20 +76,20 @@ in {
       text = ''
         echo "Setting up Dart/Flutter development environment..."
 
-        # Create Flutter cache directory
-        mkdir -p ${homeDir}/.cache/flutter/pub-cache
+        # Create Dart pub cache directory (XDG compliant)
+        mkdir -p ${xdgCacheHome}/dart-pub
 
         ${lib.optionalString pkgs.stdenv.isDarwin ''
         # Darwin: Create Flutter installation directory for manual installation
         # Flutter and Android SDK are provided by Android Studio instead of Nix on Darwin
         # This avoids iOS build issues where Xcode cannot write to read-only Flutter root
-        mkdir -p ${homeDir}/.local/share/flutter
+        mkdir -p ${xdgDataHome}/flutter
         ''}
 
         # Set ownership (don't fail if chown doesn't work)
-        chown -R ${username}:${userGroup} ${homeDir}/.cache/flutter 2>/dev/null || echo "Warning: Could not set ownership of Flutter cache"
+        chown -R ${username}:${userGroup} ${xdgCacheHome}/dart-pub 2>/dev/null || echo "Warning: Could not set ownership of Dart pub cache"
         ${lib.optionalString pkgs.stdenv.isDarwin ''
-        chown -R ${username}:${userGroup} ${homeDir}/.local/share/flutter 2>/dev/null || echo "Warning: Could not set ownership of Flutter directory"
+        chown -R ${username}:${userGroup} ${xdgDataHome}/flutter 2>/dev/null || echo "Warning: Could not set ownership of Flutter directory"
         ''}
 
         echo "Dart/Flutter development environment setup complete!"

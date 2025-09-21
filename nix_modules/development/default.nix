@@ -85,7 +85,7 @@
     nu -c 'print $"(ansi dark_gray_dimmed)────────────────────────────────────────(ansi reset)"'
     echo ""
 
-    cd ${homeDir}/dev || { echo "Error: ~/dev directory not found"; exit 1; }
+    cd ${homeDir}/Projects || { echo "Error: ~/Projects directory not found"; exit 1; }
 
     ${lib.concatStringsSep "\n" (lib.mapAttrsToList (
         name: project:
@@ -162,7 +162,7 @@
 
             # Always copy/update development configuration files
             nu -c 'print $"(ansi blue_bold)📁 Setting up development configuration for ${name}...(ansi reset)"'
-            PROJECT_DIR="${homeDir}/dev/${name}"
+            PROJECT_DIR="${homeDir}/Projects/${name}"
             PROJECT_SOURCE="${homeDir}/nixfiles/projects/${name}"
             mkdir -p "$PROJECT_DIR"
 
@@ -238,7 +238,7 @@
 
     echo ""
     echo "🎉 Project setup complete!"
-    echo "Navigate to ~/dev/<project> and run 'direnv allow' to enable the development environment."
+    echo "Navigate to ~/Projects/<project> and run 'direnv allow' to enable the development environment."
   '';
 
   # Import enabled project modules
@@ -320,11 +320,11 @@ in {
     system.activationScripts.postActivation.text = ''
       echo "Setting up development environment..."
 
-      # Create dev directory structure
-      mkdir -p ${homeDir}/dev
+      # Create Projects directory structure
+      mkdir -p ${homeDir}/Projects
 
       # Set ownership, but don't fail if chown doesn't work
-      chown ${username}:${userGroup} ${homeDir}/dev 2>/dev/null || echo "Warning: Could not set ownership of ${homeDir}/dev"
+      chown ${username}:${userGroup} ${homeDir}/Projects 2>/dev/null || echo "Warning: Could not set ownership of ${homeDir}/Projects"
 
       echo "Development environment setup complete!"
       echo "Run 'dev-setup' to clone repositories and setup project files."

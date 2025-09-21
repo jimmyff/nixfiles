@@ -47,7 +47,7 @@ sudo darwin-rebuild check|switch --flake ~/nixfiles/#jimmyff-mbp14
 home-manager switch --flake ~/nixfiles
 
 # Development projects (see projects/)
-dev-setup && cd ~/dev/<project> && direnv allow
+dev-setup && cd ~/Projects/<project> && direnv allow
 
 # Updates & maintenance
 nix flake update

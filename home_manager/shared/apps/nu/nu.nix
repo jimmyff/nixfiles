@@ -54,9 +54,9 @@
           # "~/.cache/flutter/pub-cache/bin"
           # "~/.local/share/flutter/bin"
           # Android SDK paths (kept for manual Android Studio installation)
-          "~/.local/share/android/sdk/platform-tools"
-          "~/.local/share/android/sdk/tools/bin"
-          "~/.local/share/android/sdk/cmdline-tools/latest/bin"
+          "${config.xdg.dataHome}/android/sdk/platform-tools"
+          "${config.xdg.dataHome}/android/sdk/tools/bin"
+          "${config.xdg.dataHome}/android/sdk/cmdline-tools/latest/bin"
           "/etc/profiles/per-user/${username}/bin"
           "/run/current-system/sw/bin"
         ]
