@@ -9,10 +9,18 @@
   };
 
   config = lib.mkIf config.helix_module.enable {
-    # Set hx as the default editor
+    # ================================================================
+    # ENVIRONMENT SETUP
+    # ================================================================
+    
+    # Set helix as the default system editor
     home.sessionVariables.EDITOR = "hx";
 
-    # dprint configuration
+    # ================================================================
+    # EXTERNAL TOOL CONFIGURATIONS
+    # ================================================================
+    
+    # Configure dprint formatter for markdown files
     xdg.configFile."dprint/dprint.json".text = builtins.toJSON {
       markdown = {
         lineWidth = 80;
@@ -23,40 +31,57 @@
       ];
     };
 
+    # ================================================================
+    # HELIX CONFIGURATION
+    # ================================================================
+    
     programs.helix = {
       enable = true;
 
-      # Include necessary language servers and formatters
+      # External packages required for language support
       extraPackages = with pkgs; [
+        # Nix ecosystem
         nil # Nix language server
         alejandra # Nix formatter
-        flutter # Containers Dart SDK and language server
-        taplo # TOML lsp
-        lsp-ai # AI lsp
-        marksman # MD lsp
-        markdown-oxide # MD lsp
-        dprint # code formatter
-        dprint-plugins.dprint-plugin-markdown # md plugin
+        
+        # Markdown ecosystem
+        marksman # Markdown LSP server
+        markdown-oxide # Alternative markdown LSP
+        dprint # Code formatter
+        dprint-plugins.dprint-plugin-markdown # Markdown plugin for dprint
+        
+        # Other language support
+        taplo # TOML language server
+        lsp-ai # AI-powered language server
       ];
 
       settings = {
-        # theme = "modus_vivendi_tinted";
-        # theme = "kanagawa";
+        # ============================================================
+        # APPEARANCE & THEME
+        # ============================================================
+        
         theme = "dark_high_contrast";
 
+        # ============================================================
+        # EDITOR BEHAVIOR
+        # ============================================================
+        
         editor = {
+          # Line numbering and visual aids
           line-number = "relative";
-          lsp.display-messages = true;
-          lsp.display-inlay-hints = true;
-          auto-format = true;
-          bufferline = "never";
-          soft-wrap.enable = true;
+          rulers = [80];
           cursorline = false;
           color-modes = true;
           popup-border = "all";
-          rulers = [80];
-
-          # inline-diagnostics
+          
+          # Text wrapping and formatting
+          soft-wrap.enable = true;
+          auto-format = true;
+          bufferline = "never";
+          
+          # LSP and diagnostics display
+          lsp.display-messages = true;
+          lsp.display-inlay-hints = true;
           end-of-line-diagnostics = "hint";
           inline-diagnostics = {
             cursor-line = "hint";
@@ -64,13 +89,14 @@
             prefix-len = 3;
           };
 
-          # status
+          # Status line configuration
           statusline = {
             right = ["diagnostics" "workspace-diagnostics" "selections" "register" "position" "file-encoding"];
             diagnostics = ["warning" "error"];
             workspace-diagnostics = ["error"];
           };
 
+          # Cursor appearance per mode
           cursor-shape = {
             insert = "bar";
             normal = "block";
@@ -78,8 +104,13 @@
           };
         };
 
+        # ============================================================
+        # KEY BINDINGS
+        # ============================================================
+        
+        # Normal mode keybindings
         keys.normal = {
-          # Yazi file explorer
+          # File explorer integration (Yazi)
           "C-y" = [
             ":sh rm -f /tmp/files2open"
             ":set mouse false"
@@ -93,33 +124,40 @@
             ":buffer-close! /tmp/files2open"
           ];
 
+          # LSP workspace commands
           "C-:" = ":lsp-workspace-command";
 
-          # Keybinds for focus switching
+          # Window/pane navigation
           "Cmd-C-h" = "jump_view_left";
           "Cmd-C-j" = "jump_view_down";
           "Cmd-C-k" = "jump_view_up";
           "Cmd-C-l" = "jump_view_right";
 
-          # Smart tab recommendation
+          # Smart syntax tree navigation
           "tab" = "move_parent_node_end";
           "S-tab" = "move_parent_node_start";
         };
 
+        # Insert mode keybindings
         keys.insert = {
-          # Smart tab recommendation
           "S-tab" = "move_parent_node_start";
         };
 
+        # Select mode keybindings
         keys.select = {
-          # Smart tab recommendation
           "tab" = "extend_parent_node_end";
           "S-tab" = "move_parent_node_start";
         };
       };
 
+      # ============================================================
+      # LANGUAGE SUPPORT
+      # ============================================================
+      
       languages = {
+        # Language server definitions
         language-server = {
+          # AI-powered language server
           lsp-ai = {
             command = "lsp-ai";
             models = {
@@ -132,13 +170,19 @@
               };
             };
           };
+          
+          # Nix language server
           nil = {
             command = "nil";
           };
+          
+          # Dart language server
           dart = {
             command = "dart";
             args = ["language-server" "--protocol=lsp"];
           };
+          
+          # Markdown language servers
           marksman = {
             command = "marksman";
             args = ["server"];
@@ -148,17 +192,18 @@
           };
         };
 
+        # Per-language configurations
         language = [
+          # Nix language configuration
           {
             name = "nix";
+            auto-format = true;
             formatter = {
               command = "alejandra";
             };
-            auto-format = true;
           }
-          # Attempting to get Dart DAP connected. See:
-          # https://github.com/dart-lang/sdk/blob/main/third_party/pkg/dap/tool/README.md
-          # https://github.com/helix-editor/helix/wiki/Debugger-Configurations
+          
+          # Dart/Flutter language configuration with debugging support
           {
             name = "dart";
             language-servers = ["dart" "lsp-ai"];
@@ -167,6 +212,7 @@
               command = "dart";
               args = ["format"];
             };
+            # Flutter debugging configuration
             debugger = {
               name = "dart";
               transport = "stdio";
@@ -188,10 +234,13 @@
               ];
             };
           }
+          
+          # Markdown language configuration with word wrapping
           {
             name = "markdown";
             language-servers = ["marksman"];
             auto-format = true;
+            # Enable word wrapping at 80 characters for markdown
             soft-wrap = {
               enable = true;
               max-wrap = 80;
@@ -208,10 +257,14 @@
               ];
             };
           }
+          
+          # JSON language configuration
           {
             name = "json";
             auto-format = true;
           }
+          
+          # TOML language configuration
           {
             name = "toml";
             auto-format = true;
