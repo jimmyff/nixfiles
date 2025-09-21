@@ -22,7 +22,5 @@
   # Let Home Manager install and manage itself.
   programs.home-manager.enable = true;
 
-  # Enable ghostty terminal for Linux
-  ghostty_module.enable = true;
   
 }

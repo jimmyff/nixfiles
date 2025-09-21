@@ -4,7 +4,6 @@
 
     ./helix/helix.nix
     ./kitty/kitty.nix
-    ./ghostty/ghostty.nix
     ./rio/rio.nix
     ./alacritty/alacritty.nix
     ./zellij/zellij.nix
@@ -34,7 +33,6 @@
 
   # Terminals
   kitty_module.enable = lib.mkDefault true;
-  ghostty_module.enable = lib.mkDefault false;
   rio_module.enable = lib.mkDefault true;
   alacritty_module.enable = lib.mkDefault true;
   zellij_module.enable = lib.mkDefault true;

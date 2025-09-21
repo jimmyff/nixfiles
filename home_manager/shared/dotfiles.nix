@@ -52,7 +52,6 @@ in {
     # Create directory symlinks
     safe_symlink ${dotfilesPath}/vscode/.config/Code ~/.config/Code
     safe_symlink ${dotfilesPath}/zed/.config/zed ~/.config/zed
-    safe_symlink ${dotfilesPath}/ghostty/.config/ghostty ~/.config/ghostty
     safe_symlink ${dotfilesPath}/zellij/.config/zellij ~/.config/zellij
     safe_symlink ${dotfilesPath}/aerospace ~/.config/aerospace
     
