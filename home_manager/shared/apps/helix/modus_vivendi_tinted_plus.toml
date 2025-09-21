@@ -1,0 +1,24 @@
+# Custom theme based on modus_vivendi_tinted with improvements
+# Inherits from the base theme and overrides specific elements
+
+inherits = "modus_vivendi_tinted"
+
+# UI Customizations
+# Uncomment and modify these to customize the interface
+# "ui.background" = "#0e1419"
+# "ui.cursor" = "#ffcc66" 
+# "ui.selection" = "#3e4451"
+# "ui.statusline" = "#2d3142"
+
+# Syntax Highlighting Customizations  
+# Uncomment and modify these to customize code colors
+# "keyword" = "#ff7733"
+# "string" = "#99d582" 
+# "comment" = "#5c6773"
+# "function" = "#ffb454"
+
+# Diagnostic Colors
+# "error" = "#ff3333"
+# "warning" = "#ffcc66"
+# "info" = "#66ccff"
+# "hint" = "#99ff99"

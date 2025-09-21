@@ -31,6 +31,9 @@
       ];
     };
 
+    # Custom helix theme (symlinked for real-time editing)
+    home.file.".config/helix/themes/modus_vivendi_tinted_plus.toml".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/nixfiles/home_manager/shared/apps/helix/modus_vivendi_tinted_plus.toml";
+
     # ================================================================
     # HELIX CONFIGURATION
     # ================================================================
@@ -60,8 +63,7 @@
         # APPEARANCE & THEME
         # ============================================================
 
-        # theme = "dark_high_contrast";
-        theme = "modus_vivendi_tinted";
+        theme = "modus_vivendi_tinted_plus";
 
         # ============================================================
         # EDITOR BEHAVIOR
