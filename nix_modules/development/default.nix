@@ -20,7 +20,6 @@
     then "staff"
     else "users";
 
-
   # Helper script for project setup
   devSetupScript = pkgs.writeShellScriptBin "dev-setup" ''
     echo "🚀 Development Project Setup"
@@ -29,49 +28,49 @@
 
     # Check Flutter and Android SDK installation (only if Android is enabled)
     ${lib.optionalString (config.android.enable or false) ''
-    echo "📱 Checking Flutter and Android SDK installation..."
-    
-    ERRORS=""
-    
-    # Check for nix-managed Flutter first, then fall back to manual installation
-    if command -v flutter >/dev/null 2>&1; then
-      FLUTTER_PATH=$(which flutter)
-      echo "✅ Flutter SDK found at $FLUTTER_PATH (nix-managed)"
-    elif [ -d "${homeDir}/.local/share/flutter" ]; then
-      echo "✅ Flutter SDK found at ${homeDir}/.local/share/flutter (manual installation)"
-    else
-      echo "❌ ERROR: Flutter SDK not found"
-      echo "   Flutter should be available via nix-managed packages or manual installation"
-      ERRORS="1"
-    fi
-    
-    # Check for Nix-managed Android SDK
-    if [ -n "$ANDROID_HOME" ] && [ -d "$ANDROID_HOME" ]; then
-      echo "✅ Android SDK found at $ANDROID_HOME (Nix-managed)"
-      
-      # Check for command-line tools specifically
-      if [ ! -d "$ANDROID_HOME/cmdline-tools" ]; then
-        echo "⚠️  WARNING: Android command-line tools not found in Nix-managed SDK"
-        echo "   This may indicate an issue with the android-nixpkgs configuration"
+      echo "📱 Checking Flutter and Android SDK installation..."
+
+      ERRORS=""
+
+      # Check for nix-managed Flutter first, then fall back to manual installation
+      if command -v flutter >/dev/null 2>&1; then
+        FLUTTER_PATH=$(which flutter)
+        echo "✅ Flutter SDK found at $FLUTTER_PATH (nix-managed)"
+      elif [ -d "${homeDir}/.local/share/flutter" ]; then
+        echo "✅ Flutter SDK found at ${homeDir}/.local/share/flutter (manual installation)"
       else
-        echo "✅ Android command-line tools found"
+        echo "❌ ERROR: Flutter SDK not found"
+        echo "   Flutter should be available via nix-managed packages or manual installation"
+        ERRORS="1"
       fi
-    else
-      echo "❌ ERROR: Android SDK not found via ANDROID_HOME environment variable"
-      echo "   Please ensure android.enable = true in your Nix configuration"
-      ERRORS="1"
-    fi
-    
-    if [ ! -z "$ERRORS" ]; then
+
+      # Check for Nix-managed Android SDK
+      if [ -n "$ANDROID_HOME" ] && [ -d "$ANDROID_HOME" ]; then
+        echo "✅ Android SDK found at $ANDROID_HOME (Nix-managed)"
+
+        # Check for command-line tools specifically
+        if [ ! -d "$ANDROID_HOME/cmdline-tools" ]; then
+          echo "⚠️  WARNING: Android command-line tools not found in Nix-managed SDK"
+          echo "   This may indicate an issue with the android-nixpkgs configuration"
+        else
+          echo "✅ Android command-line tools found"
+        fi
+      else
+        echo "❌ ERROR: Android SDK not found via ANDROID_HOME environment variable"
+        echo "   Please ensure android.enable = true in your Nix configuration"
+        ERRORS="1"
+      fi
+
+      if [ ! -z "$ERRORS" ]; then
+        echo ""
+        echo "🚨 SETUP ERRORS DETECTED 🚨"
+        echo "Please fix the above errors before proceeding with development."
+        echo "See docs/development.md for installation instructions."
+        exit 1
+      fi
+
+      echo "✅ All Flutter and Android SDK checks passed!"
       echo ""
-      echo "🚨 SETUP ERRORS DETECTED 🚨"
-      echo "Please fix the above errors before proceeding with development."
-      echo "See docs/development.md for installation instructions."
-      exit 1
-    fi
-    
-    echo "✅ All Flutter and Android SDK checks passed!"
-    echo ""
     ''}
 
     # Display Dart and Flutter versions and activate tooling
@@ -235,7 +234,7 @@
                 chown -R ${username}:users "$PROJECT_DIR/" 2>/dev/null || true
               fi
             fi
-            
+
             nu -c 'print $"(ansi dark_gray_dimmed)────────────────────────────────────────(ansi reset)"'
           ''
       )
@@ -298,6 +297,10 @@ in {
         doppler
         entr
 
+        # build tools
+        cmake
+        gcc
+
         # Project setup helper
         devSetupScript
       ]
@@ -317,7 +320,6 @@ in {
         package = pkgs.nix-direnv;
       };
     };
-
 
     # NOTE: nix-darwin only supports hardcoded activation script names. Custom names are silently ignored.
     # Supported names: preActivation, postActivation, extraActivation, and ~20 system-specific ones.
