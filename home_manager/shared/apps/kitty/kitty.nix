@@ -63,7 +63,7 @@
         cursor_trail_decay = "0.1 0.4";
         adjust_line_height = "125%";
         # Launch nushell through login shell to inherit system environment variables
-        shell = "/bin/zsh -l -c '${pkgs.nushell}/bin/nu'";
+        shell = "${pkgs.bash}/bin/bash -l -c '${pkgs.nushell}/bin/nu'";
         # Modus Vivendi Tinted theme by Protesilaos Stavrou
         foreground = "#ffffff";
         background = "#0d0e1c";

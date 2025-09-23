@@ -1,33 +1,37 @@
-{ config, pkgs, lib, inputs, username, ... }:
-
 {
-  imports =
-    [
-      ./hardware-configuration.nix
+  config,
+  pkgs,
+  lib,
+  inputs,
+  username,
+  ...
+}: {
+  imports = [
+    ./hardware-configuration.nix
 
-      # nixos specific configuration
-      ../../nix_modules/core/nixos/kanata.nix
+    # nixos specific configuration
+    ../../nix_modules/core/nixos/kanata.nix
 
-      # hardware specific configuration
-      ../../nix_modules/hardware/pixelbook-go
+    # hardware specific configuration
+    ../../nix_modules/hardware/pixelbook-go
 
-      # desktop audio support
-      ../../nix_modules/desktop/sound.nix
+    # desktop audio support
+    ../../nix_modules/desktop/sound.nix
 
-      # development environment
-      ../../nix_modules/development
-    ];
+    # development environment
+    ../../nix_modules/development
+  ];
 
   networking.hostName = "nixelbook";
 
   # Development environment configuration
   development = {
     enable = true;
-    projects = [ "jimmyff-website" "rocket-kit" "osdn" "jotter" ];
+    projects = ["jimmyff-website" "rocket-kit" "osdn" "jotter"];
   };
 
   # Platform-specific development tools
-  android.enable = true;
+  android.enable = false;
   dart.enable = true;
   rust.enable = true;
 
@@ -42,17 +46,14 @@
   # I decided to set to keycode: 58	(Logo Left (-> Option))
   # Need to figure out how to configure `sudo setkeycodes e058 58`
 
-
-
   # Allow the user to control the keyboard backlight brightness
-    services.udev.extraRules = ''
-      SUBSYSTEM=="leds", KERNEL=="chromeos::kbd_backlight", GROUP="video", MODE="0664"
-    '';
+  services.udev.extraRules = ''
+    SUBSYSTEM=="leds", KERNEL=="chromeos::kbd_backlight", GROUP="video", MODE="0664"
+  '';
 
   # control the brightness of the screen (works with wayland)
   environment.systemPackages = with pkgs; [
     pkgs.brightnessctl
-
   ];
 
   # services.actkbd = {
@@ -62,5 +63,4 @@
   #     { keys = [ 225 ]; events = [ "key" ]; command = "/run/wrappers/bin/light -U 10"; }
   #   ];
   # };
-
 }

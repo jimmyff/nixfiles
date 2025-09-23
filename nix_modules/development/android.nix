@@ -32,16 +32,16 @@
   androidSdk = inputs.android-nixpkgs.sdk.${pkgs.system} (sdkPkgs:
     with sdkPkgs; [
       cmdline-tools-latest
-      build-tools-34-0-0
+      # build-tools-34-0-0
       build-tools-35-0-0
       platform-tools
-      platforms-android-34
-      platforms-android-35
+      # platforms-android-34
+      # platforms-android-35
       platforms-android-36
       emulator
       ndk-bundle
-      ndk-26-1-10909125
-      ndk-26-3-11579264
+      # ndk-26-1-10909125
+      # ndk-26-3-11579264
       ndk-27-0-12077973
       cmake-3-22-1
     ]);
