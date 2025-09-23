@@ -33,28 +33,33 @@
     
     ERRORS=""
     
-    if [ ! -d "${homeDir}/.local/share/flutter" ]; then
-      echo "❌ ERROR: Flutter SDK not found at ${homeDir}/.local/share/flutter"
-      echo "   Please install Flutter via Android Studio or manually"
-      ERRORS="1"
+    # Check for nix-managed Flutter first, then fall back to manual installation
+    if command -v flutter >/dev/null 2>&1; then
+      FLUTTER_PATH=$(which flutter)
+      echo "✅ Flutter SDK found at $FLUTTER_PATH (nix-managed)"
+    elif [ -d "${homeDir}/.local/share/flutter" ]; then
+      echo "✅ Flutter SDK found at ${homeDir}/.local/share/flutter (manual installation)"
     else
-      echo "✅ Flutter SDK found at ${homeDir}/.local/share/flutter"
+      echo "❌ ERROR: Flutter SDK not found"
+      echo "   Flutter should be available via nix-managed packages or manual installation"
+      ERRORS="1"
     fi
     
-    if [ ! -d "${homeDir}/.local/share/android/sdk" ]; then
-      echo "❌ ERROR: Android SDK not found at ${homeDir}/.local/share/android/sdk"
-      echo "   Please install Android SDK via Android Studio"
-      ERRORS="1"
-    else
-      echo "✅ Android SDK found at ${homeDir}/.local/share/android/sdk"
+    # Check for Nix-managed Android SDK
+    if [ -n "$ANDROID_HOME" ] && [ -d "$ANDROID_HOME" ]; then
+      echo "✅ Android SDK found at $ANDROID_HOME (Nix-managed)"
       
       # Check for command-line tools specifically
-      if [ ! -d "${homeDir}/.local/share/android/sdk/cmdline-tools" ]; then
-        echo "⚠️  WARNING: Android command-line tools not found"
-        echo "   In Android Studio: Tools → SDK Manager → SDK Tools → Android SDK Command-line Tools"
+      if [ ! -d "$ANDROID_HOME/cmdline-tools" ]; then
+        echo "⚠️  WARNING: Android command-line tools not found in Nix-managed SDK"
+        echo "   This may indicate an issue with the android-nixpkgs configuration"
       else
         echo "✅ Android command-line tools found"
       fi
+    else
+      echo "❌ ERROR: Android SDK not found via ANDROID_HOME environment variable"
+      echo "   Please ensure android.enable = true in your Nix configuration"
+      ERRORS="1"
     fi
     
     if [ ! -z "$ERRORS" ]; then
@@ -74,7 +79,7 @@
     if command -v dart >/dev/null 2>&1; then
       echo "   📦 Dart version: $(dart --version 2>&1)"
       if command -v flutter >/dev/null 2>&1; then
-        echo "   📦 Flutter version: $(flutter --version | head -1)"
+        echo "   📦 Flutter version: $(flutter --version 2>/dev/null | head -1)"
       fi
       echo "   Activating cider (CI for Dart)"
       dart pub global activate cider

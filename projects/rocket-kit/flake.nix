@@ -29,7 +29,7 @@
       pkgs-stable.mkShellNoCC {
         buildInputs =
           [
-            pkgs-stable.jdk
+            # JDK is provided by system-wide dart module
           ]
           ++ pkgs-stable.lib.optionals pkgs-stable.stdenv.isDarwin [
             darwinBase64 # Fix CocoaPods compatibility on macOS

@@ -3,6 +3,7 @@
   username,
   config,
   lib,
+  inputs,
   ...
 }: {
   programs = {
@@ -15,11 +16,7 @@
         // {
           # Force nushell to use home-manager managed config directory
           NU_CONFIG_PATH = "${config.xdg.configHome}/nushell";
-          # Flutter and Android SDK environment variables
-          # (These are now handled by nix_modules/development/android.nix and dart.nix)
-          # ANDROID_HOME = "${config.home.homeDirectory}/.local/share/android/sdk";
-          # FLUTTER_ROOT = "${config.home.homeDirectory}/.local/share/flutter";
-          # PUB_CACHE = "${config.home.homeDirectory}/.cache/flutter/pub-cache";
+          # FLUTTER_ROOT, ANDROID_HOME, JAVA_HOME, PUB_CACHE should be inherited from dart.nix and android.nix modules
         };
 
       # The config.nu can be anywhere you want if you like to edit your Nushell with Nu
@@ -46,19 +43,11 @@
             }
           }
         }
+        # Most paths should now be inherited from the system environment
+        # Only add paths that are truly custom and not provided by Nix modules
         $env.PATH ++= [
-          "~/.nix-profile/bin"
           "~/.local/bin"
-          # Flutter/Dart paths now handled by Nix packages in dart.nix module
-          # "~/.pub-cache/bin"
-          # "~/.cache/flutter/pub-cache/bin"
-          # "~/.local/share/flutter/bin"
-          # Android SDK paths (kept for manual Android Studio installation)
-          "${config.xdg.dataHome}/android/sdk/platform-tools"
-          "${config.xdg.dataHome}/android/sdk/tools/bin"
-          "${config.xdg.dataHome}/android/sdk/cmdline-tools/latest/bin"
-          "/etc/profiles/per-user/${username}/bin"
-          "/run/current-system/sw/bin"
+          "${config.xdg.cacheHome}/dart-pub/bin"
         ]
 
         def --env y [...args] {
@@ -72,111 +61,111 @@
         }
 
         ${lib.optionalString config.programs.atuin.enable ''
-        # Atuin shell history integration
-        # minimum supported version = 0.93.0
-        module compat {
-          export def --wrapped "random uuid -v 7" [...rest] { atuin uuid }
-        }
-        use (if not (
-            (version).major > 0 or
-            (version).minor >= 103
-        ) { "compat" }) *
+          # Atuin shell history integration
+          # minimum supported version = 0.93.0
+          module compat {
+            export def --wrapped "random uuid -v 7" [...rest] { atuin uuid }
+          }
+          use (if not (
+              (version).major > 0 or
+              (version).minor >= 103
+          ) { "compat" }) *
 
-        $env.ATUIN_SESSION = (random uuid -v 7 | str replace -a "-" "")
-        hide-env -i ATUIN_HISTORY_ID
+          $env.ATUIN_SESSION = (random uuid -v 7 | str replace -a "-" "")
+          hide-env -i ATUIN_HISTORY_ID
 
-        # Magic token to make sure we don't record commands run by keybindings
-        let ATUIN_KEYBINDING_TOKEN = $"# (random uuid)"
+          # Magic token to make sure we don't record commands run by keybindings
+          let ATUIN_KEYBINDING_TOKEN = $"# (random uuid)"
 
-        let _atuin_pre_execution = {||
-            if ($nu | get history-enabled?) == false {
-                return
-            }
-            let cmd = (commandline)
-            if ($cmd | is-empty) {
-                return
-            }
-            if not ($cmd | str starts-with $ATUIN_KEYBINDING_TOKEN) {
-                $env.ATUIN_HISTORY_ID = (atuin history start -- $cmd)
-            }
-        }
+          let _atuin_pre_execution = {||
+              if ($nu | get history-enabled?) == false {
+                  return
+              }
+              let cmd = (commandline)
+              if ($cmd | is-empty) {
+                  return
+              }
+              if not ($cmd | str starts-with $ATUIN_KEYBINDING_TOKEN) {
+                  $env.ATUIN_HISTORY_ID = (atuin history start -- $cmd)
+              }
+          }
 
-        let _atuin_pre_prompt = {||
-            let last_exit = $env.LAST_EXIT_CODE
-            if 'ATUIN_HISTORY_ID' not-in $env {
-                return
-            }
-            with-env { ATUIN_LOG: error } {
-                if (version).minor >= 104 or (version).major > 0 {
-                    job spawn -t atuin {
-                        ^atuin history end $"--exit=($env.LAST_EXIT_CODE)" -- $env.ATUIN_HISTORY_ID | complete
-                    } | ignore
-                } else {
-                    do { atuin history end $"--exit=($last_exit)" -- $env.ATUIN_HISTORY_ID } | complete
-                }
+          let _atuin_pre_prompt = {||
+              let last_exit = $env.LAST_EXIT_CODE
+              if 'ATUIN_HISTORY_ID' not-in $env {
+                  return
+              }
+              with-env { ATUIN_LOG: error } {
+                  if (version).minor >= 104 or (version).major > 0 {
+                      job spawn -t atuin {
+                          ^atuin history end $"--exit=($env.LAST_EXIT_CODE)" -- $env.ATUIN_HISTORY_ID | complete
+                      } | ignore
+                  } else {
+                      do { atuin history end $"--exit=($last_exit)" -- $env.ATUIN_HISTORY_ID } | complete
+                  }
 
-            }
-            hide-env ATUIN_HISTORY_ID
-        }
+              }
+              hide-env ATUIN_HISTORY_ID
+          }
 
-        def _atuin_search_cmd [...flags: string] {
-            [
-                $ATUIN_KEYBINDING_TOKEN,
-                ([
-                    $'with-env { ATUIN_LOG: error, ATUIN_QUERY: (commandline) } {',
-                        'commandline edit',
-                        '(run-external atuin search',
-                            ($flags | append [--interactive] | each {|e| $'"($e)"'}),
-                        ' e>| str trim)',
-                    $'}',
-                ] | flatten | str join ' '),
-            ] | str join "\n"
-        }
+          def _atuin_search_cmd [...flags: string] {
+              [
+                  $ATUIN_KEYBINDING_TOKEN,
+                  ([
+                      $'with-env { ATUIN_LOG: error, ATUIN_QUERY: (commandline) } {',
+                          'commandline edit',
+                          '(run-external atuin search',
+                              ($flags | append [--interactive] | each {|e| $'"($e)"'}),
+                          ' e>| str trim)',
+                      $'}',
+                  ] | flatten | str join ' '),
+              ] | str join "\n"
+          }
 
-        $env.config = ($env | default {} config).config
-        $env.config = ($env.config | default {} hooks)
-        $env.config = (
-            $env.config | upsert hooks (
-                $env.config.hooks
-                | upsert pre_execution (
-                    $env.config.hooks | get pre_execution? | default [] | append $_atuin_pre_execution)
-                | upsert pre_prompt (
-                    $env.config.hooks | get pre_prompt? | default [] | append $_atuin_pre_prompt)
-            )
-        )
+          $env.config = ($env | default {} config).config
+          $env.config = ($env.config | default {} hooks)
+          $env.config = (
+              $env.config | upsert hooks (
+                  $env.config.hooks
+                  | upsert pre_execution (
+                      $env.config.hooks | get pre_execution? | default [] | append $_atuin_pre_execution)
+                  | upsert pre_prompt (
+                      $env.config.hooks | get pre_prompt? | default [] | append $_atuin_pre_prompt)
+              )
+          )
 
-        $env.config = ($env.config | default [] keybindings)
+          $env.config = ($env.config | default [] keybindings)
 
-        $env.config = (
-            $env.config | upsert keybindings (
-                $env.config.keybindings
-                | append {
-                    name: atuin
-                    modifier: control
-                    keycode: char_r
-                    mode: [emacs, vi_normal, vi_insert]
-                    event: { send: executehostcommand cmd: (_atuin_search_cmd) }
-                }
-            )
-        )
+          $env.config = (
+              $env.config | upsert keybindings (
+                  $env.config.keybindings
+                  | append {
+                      name: atuin
+                      modifier: control
+                      keycode: char_r
+                      mode: [emacs, vi_normal, vi_insert]
+                      event: { send: executehostcommand cmd: (_atuin_search_cmd) }
+                  }
+              )
+          )
 
-        $env.config = (
-            $env.config | upsert keybindings (
-                $env.config.keybindings
-                | append {
-                    name: atuin
-                    modifier: none
-                    keycode: up
-                    mode: [emacs, vi_normal, vi_insert]
-                    event: {
-                        until: [
-                            {send: menuup}
-                            {send: executehostcommand cmd: (_atuin_search_cmd '--shell-up-key-binding') }
-                        ]
-                    }
-                }
-            )
-        )
+          $env.config = (
+              $env.config | upsert keybindings (
+                  $env.config.keybindings
+                  | append {
+                      name: atuin
+                      modifier: none
+                      keycode: up
+                      mode: [emacs, vi_normal, vi_insert]
+                      event: {
+                          until: [
+                              {send: menuup}
+                              {send: executehostcommand cmd: (_atuin_search_cmd '--shell-up-key-binding') }
+                          ]
+                      }
+                  }
+              )
+          )
         ''}
 
       '';
@@ -248,12 +237,12 @@
       NUSHELL_DEFAULT_PATH="$HOME/Library/Application Support/nushell"
       # Path to our home-manager nushell config
       NUSHELL_HM_PATH="${config.xdg.configHome}/nushell"
-      
+
       echo "Setting up nushell configuration symlink for Darwin..."
-      
+
       # Create the Application Support directory if it doesn't exist
       mkdir -p "$(dirname "$NUSHELL_DEFAULT_PATH")"
-      
+
       # Check if the default path already exists
       if [ -e "$NUSHELL_DEFAULT_PATH" ] || [ -L "$NUSHELL_DEFAULT_PATH" ]; then
         # Check if it's already a symlink to our config
@@ -270,23 +259,23 @@
           echo "Existing config backed up to: $BACKUP_PATH"
         fi
       fi
-      
+
       # Remove any existing symlink or directory (if backup failed above, we'll error out)
       rm -rf "$NUSHELL_DEFAULT_PATH" 2>/dev/null || true
-      
+
       # Create the symlink
       echo "Creating symlink: $NUSHELL_DEFAULT_PATH -> $NUSHELL_HM_PATH"
       if ! ln -sf "$NUSHELL_HM_PATH" "$NUSHELL_DEFAULT_PATH"; then
         echo "ERROR: Failed to create nushell configuration symlink" >&2
         exit 1
       fi
-      
+
       # Verify the symlink was created correctly
       if [ ! -L "$NUSHELL_DEFAULT_PATH" ] || [ "$(readlink "$NUSHELL_DEFAULT_PATH")" != "$NUSHELL_HM_PATH" ]; then
         echo "ERROR: Nushell symlink verification failed" >&2
         exit 1
       fi
-      
+
       echo "Successfully configured nushell symlink on Darwin"
     '';
   };

@@ -45,6 +45,12 @@
       flake = false;
     };
 
+    # Android SDK packages
+    android-nixpkgs = {
+      url = "github:tadfisher/android-nixpkgs/stable";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
   
   };
 
@@ -57,6 +63,7 @@
     agenix,
     nur,
     nixfiles-vault,
+    android-nixpkgs,
     # nvf,
     ... 
   } : let 

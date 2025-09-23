@@ -17,6 +17,6 @@
     pkgs.bat                      # Cat clone with syntax highlighting
   ];
 
-  environment.shells = with pkgs; [ nushell ];
+  environment.shells = with pkgs; [ bash zsh nushell ];
 
 }
