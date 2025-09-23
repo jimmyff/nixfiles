@@ -26,6 +26,18 @@
     if pkgs.stdenv.isDarwin
     then "staff"
     else "users";
+
+  # Android SDK from android-nixpkgs
+  androidSdk = inputs.android-nixpkgs.sdk.${pkgs.system} (sdkPkgs: with sdkPkgs; [
+    cmdline-tools-latest
+    build-tools-34-0-0
+    build-tools-33-0-2
+    platform-tools
+    platforms-android-34
+    platforms-android-33
+    emulator
+    ndk-26-1-10909125
+  ]);
 in {
   options.android = {
     enable = lib.mkEnableOption "Android development environment";
@@ -39,20 +51,27 @@ in {
       "${homeDir}/.ssh/id_rsa"
     ];
 
-    # Android Studio package (platform-specific)
-    environment.systemPackages = with pkgs;
-      lib.optionals pkgs.stdenv.isDarwin [
-        (lib.mkIf (pkgs.stdenv.system == "x86_64-darwin") android-studio)
-      ]
-      ++ lib.optionals pkgs.stdenv.isLinux [
-        android-studio
-      ];
+    # Android development packages
+    environment.systemPackages = with pkgs; [
+      androidSdk
+    ] ++ lib.optionals pkgs.stdenv.isLinux [
+      android-studio
+    ];
 
     # Android environment variables
     environment.variables = {
-      ANDROID_HOME = "${xdgDataHome}/android/sdk";
+      ANDROID_HOME = "${androidSdk}/share/android-sdk";
+      ANDROID_SDK_ROOT = "${androidSdk}/share/android-sdk";
       # FLUTTER_ROOT and PUB_CACHE now handled by dart.nix module
     };
+
+    # Add Android SDK tools to system PATH
+    environment.extraInit = ''
+      export PATH="${androidSdk}/share/android-sdk/platform-tools:$PATH"
+      export PATH="${androidSdk}/share/android-sdk/cmdline-tools/latest/bin:$PATH"
+      export PATH="${androidSdk}/share/android-sdk/build-tools/34.0.0:$PATH"
+      export PATH="${androidSdk}/share/android-sdk/build-tools/33.0.2:$PATH"
+    '';
 
     # Deploy encrypted keystore using agenix
     age.secrets.android-keystore = {
@@ -63,13 +82,12 @@ in {
       group = userGroup;
     };
 
-    # Setup Android directories and keystore deployment
+    # Setup Android keystore deployment directory
     system.activationScripts.androidSetup = {
       text = ''
         echo "Setting up Android development environment..."
 
-        # Create Android SDK directory structure (XDG compliant)
-        mkdir -p ${xdgDataHome}/android/sdk
+        # Create Android keystore directory (XDG compliant)
         mkdir -p ${xdgDataHome}/android
         # Flutter cache directory now handled by dart.nix module
 

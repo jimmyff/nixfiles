@@ -5,6 +5,7 @@
     ../shared/apps.nix
     ../users.nix
     ../shared/ssh.nix
+    ./ssh.nix
     ../shared/fonts.nix
     ../shared/stow.nix
     ../../apps/signal.nix

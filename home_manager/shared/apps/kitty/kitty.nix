@@ -62,8 +62,8 @@
         cursor_trail = 3;
         cursor_trail_decay = "0.1 0.4";
         adjust_line_height = "125%";
-        # Explicitly specify nushell with config path for reliable startup
-        shell = "${pkgs.nushell}/bin/nu --config ${config.xdg.configHome}/nushell/config.nu";
+        # Launch nushell through login shell to inherit system environment variables
+        shell = "/bin/zsh -l -c '${pkgs.nushell}/bin/nu'";
         # Modus Vivendi Tinted theme by Protesilaos Stavrou
         foreground = "#ffffff";
         background = "#0d0e1c";

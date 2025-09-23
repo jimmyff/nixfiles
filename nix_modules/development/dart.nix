@@ -46,32 +46,27 @@ in {
     # Platform-specific Flutter and Dart installation
     # On Linux: Use Nix packages for reproducible builds
     # On Darwin: Use manual installation to avoid iOS build issues
-    environment.systemPackages = with nixpkgs; lib.optionals pkgs.stdenv.isLinux [
+    environment.systemPackages = with nixpkgs; [
       flutter
       dart
+      zulu17  # JDK 17 for Android development (compatible with Flutter/Gradle)
     ];
 
     # Platform-specific environment variables
-    environment.variables = lib.mkMerge [
+    environment.variables = {
       # Common variables
-      {
-        PUB_CACHE = "${xdgCacheHome}/dart-pub";
-      }
+      PUB_CACHE = "${xdgCacheHome}/dart-pub";
       
-      # Linux: Use Nix-provided Flutter root
-      (lib.mkIf pkgs.stdenv.isLinux {
-        FLUTTER_ROOT = "${nixpkgs.flutter}";
-      })
-      
-      # Darwin: Use manual Flutter installation to avoid iOS build issues
-      # This avoids the read-only Nix store issue where Xcode cannot write to Flutter root
+      # Use Nix-provided Flutter root
+      # Note: This may cause iOS build issues on Darwin where Xcode cannot write to Flutter root
       # See: https://github.com/flutter/flutter/pull/155139
-      (lib.mkIf pkgs.stdenv.isDarwin {
-        FLUTTER_ROOT = "${xdgDataHome}/flutter";
-      })
-    ];
+      FLUTTER_ROOT = "${nixpkgs.flutter}";
+      
+      # Set JAVA_HOME to JDK 17 for Flutter compatibility
+      JAVA_HOME = "${nixpkgs.zulu17}";
+    };
 
-    # Setup Flutter cache directory and platform-specific requirements
+    # Setup Flutter cache directory and JDK configuration
     system.activationScripts.dartSetup = {
       text = ''
         echo "Setting up Dart/Flutter development environment..."
@@ -79,22 +74,15 @@ in {
         # Create Dart pub cache directory (XDG compliant)
         mkdir -p ${xdgCacheHome}/dart-pub
 
-        ${lib.optionalString pkgs.stdenv.isDarwin ''
-        # Darwin: Create Flutter installation directory for manual installation
-        # Flutter and Android SDK are provided by Android Studio instead of Nix on Darwin
-        # This avoids iOS build issues where Xcode cannot write to read-only Flutter root
-        mkdir -p ${xdgDataHome}/flutter
-        ''}
-
         # Set ownership (don't fail if chown doesn't work)
-        chown -R ${username}:${userGroup} ${xdgCacheHome}/dart-pub 2>/dev/null || echo "Warning: Could not set ownership of Dart pub cache"
-        ${lib.optionalString pkgs.stdenv.isDarwin ''
-        chown -R ${username}:${userGroup} ${xdgDataHome}/flutter 2>/dev/null || echo "Warning: Could not set ownership of Flutter directory"
-        ''}
+        chown -R ${username}:${userGroup} ${xdgCacheHome}/dart-pub 2>/dev/null || echo "⚠️  Warning: Could not set ownership of Dart pub cache"
+
+        # Configure Flutter to use Nix JDK 17 (run as user, not root)
+        sudo -u ${username} ${nixpkgs.flutter}/bin/flutter config --jdk-dir="${nixpkgs.zulu17}" 2>/dev/null || echo "⚠️  Warning: Could not configure Flutter JDK"
 
         echo "Dart/Flutter development environment setup complete!"
         ${lib.optionalString pkgs.stdenv.isDarwin ''
-        echo "Note: On macOS, Flutter should be installed via Android Studio to avoid iOS build issues."
+        echo "📱 Note: iOS builds may have issues due to read-only Nix store. See: https://github.com/flutter/flutter/pull/155139"
         ''}
       '';
       deps = ["users" "groups"];
