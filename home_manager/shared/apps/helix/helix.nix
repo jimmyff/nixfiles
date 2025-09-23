@@ -241,7 +241,7 @@
           # Markdown language configuration with word wrapping
           {
             name = "markdown";
-            language-servers = ["marksman"];
+            language-servers = ["marksman" "markdown-oxide"];
             auto-format = true;
             # Enable word wrapping at 80 characters for markdown
             soft-wrap = {
