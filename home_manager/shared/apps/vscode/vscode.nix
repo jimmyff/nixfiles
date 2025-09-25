@@ -1,4 +1,14 @@
-{ pkgs, lib, config, ... }: {
+{ pkgs, lib, config, ... }: let
+  # Import shared utilities
+  sharedLib = import ../../lib.nix { inherit lib config pkgs; };
+
+  # Create Doppler-wrapped VSCode package
+  wrappedVSCode = sharedLib.mkDopplerWrapper {
+    package = pkgs.vscode;
+    project = "ide";
+    binaries = [ "code" ];
+  };
+in {
 
     options = {
         vscode_module.enable = lib.mkEnableOption "enables vscode_module";
@@ -7,7 +17,7 @@
     config = lib.mkIf config.vscode_module.enable {
         home.packages = [
             # pkgs.code-cursor
-            pkgs.vscode
+            wrappedVSCode
         ];
 
         # Darwin-specific: Create symlink from default VSCode location to dotfiles config

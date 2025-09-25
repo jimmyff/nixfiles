@@ -1,4 +1,21 @@
 { lib, config, pkgs }: {
+  # Helper function to wrap packages with Doppler environment injection
+  mkDopplerWrapper = { package, project, config ? "dev", binaries ? null }:
+    let
+      # If binaries not specified, try to infer from package name
+      defaultBinaries = [ (lib.getName package) ];
+      wrappedBinaries = if binaries != null then binaries else defaultBinaries;
+    in
+    pkgs.symlinkJoin {
+      name = "${lib.getName package}-doppler-wrapped";
+      paths = [ package ];
+      buildInputs = [ pkgs.makeWrapper ];
+      postBuild = lib.concatMapStringsSep "\n" (binary: ''
+        wrapProgram $out/bin/${binary} \
+          --run 'export $(${pkgs.doppler}/bin/doppler secrets download --no-file --format env --project ${project} --config ${config})'
+      '') wrappedBinaries;
+    };
+
   # Helper function to create Darwin Application Support symlinks to XDG config
   mkDarwinAppSupportSymlink = { appName, dagEntry ? "writeBoundary" }:
     lib.mkIf pkgs.stdenv.isDarwin {

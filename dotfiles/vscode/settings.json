@@ -191,6 +191,15 @@
     "<C-f>": false
   },
 
+  // Helix : https://github.com/jasonwilliams/vscode-helix
+  "helixKeymap.toggleRelativeLineNumbers": true,
+
+  // enable helix in own thread
+  "extensions.experimental.affinity": {
+    "jasew.vscode-helix-emulation": 1
+  },
+
+
   // OSX
   "terminal.integrated.defaultProfile.osx": "nu",
   "workbench.editor.enablePreview": false,
@@ -204,6 +213,6 @@
   "chat.todoListTool.enabled": true,
 
   // Shell
-  "terminal.integrated.shellIntegration.enabled": false,
+  "terminal.integrated.shellIntegration.enabled": true,
   "dart.openDevTools": "flutter"
 }
