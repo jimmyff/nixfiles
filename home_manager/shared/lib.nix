@@ -12,7 +12,7 @@
       buildInputs = [ pkgs.makeWrapper ];
       postBuild = lib.concatMapStringsSep "\n" (binary: ''
         wrapProgram $out/bin/${binary} \
-          --run 'export $(${pkgs.doppler}/bin/doppler secrets download --no-file --format env --project ${project} --config ${config})'
+          --run 'while IFS="=" read -r key value; do [[ $key =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]] && { value=''${value#\"}; value=''${value%\"}; export "$key"="$value"; }; done < <(${pkgs.doppler}/bin/doppler secrets download --no-file --format env --project ${project} --config ${config})'
       '') wrappedBinaries;
     };
 
