@@ -5,6 +5,8 @@
   "extensions.ignoreRecommendations": true,
   "editor.suggestSelection": "first",
   "files.trimTrailingWhitespaceInRegexAndStrings": false,
+  "workbench.startupEditor": "none",
+
 
   // Appearance
   "editor.fontFamily": "JetBrainsMono Nerd Font Mono, Menlo, Monospace",

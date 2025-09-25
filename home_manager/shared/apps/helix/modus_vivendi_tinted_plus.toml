@@ -1,4 +1,5 @@
 # Tweaks to modus vivendi tinted to add some additional syntax highlighting to enhance code and markdown readability
+# https://docs.helix-editor.com/themes.html#syntax-highlighting
 
 inherits = "modus_vivendi_tinted"
 
@@ -7,8 +8,21 @@ inherits = "modus_vivendi_tinted"
 "ui.virtual.inlay-hint.parameter" = { fg = "fg-dim", bg = "bg-dim" }
 "ui.virtual.inlay-hint.type" = { fg = "fg-dim", bg = "bg-dim" }
 
+
+"" = "fg-dim"
 "variable" = "cyan-intense"
 "variable.other.member" = "magenta-faint"
+"function" = "blue-cooler"
+"function.method" = "yellow-intense"
+"namespace" = "fg-main"
+"attribute" = "fg-clay"
+"type" = "fg-alt"
+"constant" = "magenta-cooler"
+"string" = "fg-dim"
+"builtin" = "blue-faint"
+"punctuation" = "cyan"
+"operator" = "magenta"
+"identifier" = "blue-warmer"
 
 "keyword" = "magenta-warmer"
 
