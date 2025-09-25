@@ -35,4 +35,17 @@
   # this is required if you want to use darwin's default shell - zsh
   programs.zsh.enable = true;
 
+  # Set up environment variables for GUI applications via launchd
+  # This ensures GUI apps like VS Code inherit the proper PATH from Nix
+  # Lists are automatically concatenated with colons (:)
+  launchd.user.envVariables = {
+    PATH = [
+      "/Users/${username}/.nix-profile/bin"
+      "/etc/profiles/per-user/${username}/bin"
+      "/run/current-system/sw/bin"
+      "/nix/var/nix/profiles/default/bin"
+      "$PATH"  # Include existing PATH
+    ];
+  };
+
 }
