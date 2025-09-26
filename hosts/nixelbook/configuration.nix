@@ -38,6 +38,7 @@
   # Applications
   signal.enable = true;
   google-chrome.enable = false;
+  playwright.enable = false;
 
   # Pixelbook keyboard issue:
   # `sudo libinput debug-events` failed to show chromos key press

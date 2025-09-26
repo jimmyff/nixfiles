@@ -10,8 +10,8 @@
 
   // Appearance
   "editor.fontFamily": "JetBrainsMono Nerd Font Mono, Menlo, Monospace",
-  "editor.fontSize": 14,
-  "chat.editor.fontSize": 14,
+  "editor.fontSize": 13,
+  "chat.editor.fontSize": 13,
   "workbench.iconTheme": "vs-minimal",
   "workbench.preferredDarkColorTheme": "Default Dark Modern",
   "workbench.sideBar.location": "right",

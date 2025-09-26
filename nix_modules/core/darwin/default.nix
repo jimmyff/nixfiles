@@ -7,6 +7,7 @@
     ../shared/ssh.nix
     ../shared/fonts.nix
     ../shared/stow.nix
+    ../shared/playwright.nix
     ../../apps/signal.nix
     ../../apps/raycast.nix
     ../../apps/google-chrome.nix
