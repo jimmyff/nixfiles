@@ -3,7 +3,17 @@
   lib,
   config,
   ...
-}: {
+}: let
+  # Import shared utilities
+  sharedLib = import ../../lib.nix { inherit lib config pkgs; };
+
+  # Create Doppler-wrapped helix package
+  wrappedHelix = sharedLib.mkDopplerWrapper {
+    package = pkgs.helix;
+    project = "ide";
+    binaries = [ "hx" ];
+  };
+in {
   options = {
     helix_module.enable = lib.mkEnableOption "enables helix_module";
   };
@@ -40,6 +50,7 @@
 
     programs.helix = {
       enable = true;
+      package = wrappedHelix;
 
       # External packages required for language support
       extraPackages = with pkgs; [
@@ -84,7 +95,7 @@
 
           # LSP and diagnostics display
           lsp.display-messages = true;
-          lsp.display-inlay-hints = true;
+          lsp.display-inlay-hints = false;
           end-of-line-diagnostics = "hint";
           inline-diagnostics = {
             cursor-line = "hint";
@@ -131,10 +142,10 @@
           "C-:" = ":lsp-workspace-command";
 
           # Window/pane navigation
-          "Cmd-C-h" = "jump_view_left";
-          "Cmd-C-j" = "jump_view_down";
-          "Cmd-C-k" = "jump_view_up";
-          "Cmd-C-l" = "jump_view_right";
+          "Cmd-A-h" = "jump_view_left";
+          "Cmd-A-j" = "jump_view_down";
+          "Cmd-A-k" = "jump_view_up";
+          "Cmd-A-l" = "jump_view_right";
 
           # Smart syntax tree navigation
           "tab" = "move_parent_node_end";

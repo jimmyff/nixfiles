@@ -1,0 +1,19 @@
+{
+  "contextFileName": [
+    "CLAUDE.md"
+  ],
+  "disableAutoUpdate": true,
+  "loadMemoryFromIncludeDirectories": true,
+  "preferredEditor": "hx",
+  "selectedAuthType": "oauth-personal",
+  "theme": "Dracula",
+  "usageStatisticsEnabled": false,
+  "vimMode": true,
+  "advanced": {
+    "excludeEnvVars": [
+      "IDE_ANTHROPIC_API_KEY",
+      "ANDROID_KEYSTORE_PASSWORD",
+      "ANDROID_KEY_PASSWORD"
+    ]
+  }
+}

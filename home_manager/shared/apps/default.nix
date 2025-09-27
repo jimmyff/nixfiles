@@ -15,6 +15,7 @@
     ./nu/nu.nix
     ./yazi/yazi.nix
     ./atuin/atuin.nix
+    ./iamb.nix
     ./ai.nix
     
     # Import services
@@ -45,6 +46,7 @@
   # programs
   git_module.enable = lib.mkDefault true;
   atuin_module.enable = lib.mkDefault true;
+  iamb_module.enable = lib.mkDefault true;
 
 
   home.packages = [

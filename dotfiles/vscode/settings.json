@@ -5,11 +5,13 @@
   "extensions.ignoreRecommendations": true,
   "editor.suggestSelection": "first",
   "files.trimTrailingWhitespaceInRegexAndStrings": false,
+  "workbench.startupEditor": "none",
+
 
   // Appearance
   "editor.fontFamily": "JetBrainsMono Nerd Font Mono, Menlo, Monospace",
-  "editor.fontSize": 14,
-  "chat.editor.fontSize": 14,
+  "editor.fontSize": 13,
+  "chat.editor.fontSize": 13,
   "workbench.iconTheme": "vs-minimal",
   "workbench.preferredDarkColorTheme": "Default Dark Modern",
   "workbench.sideBar.location": "right",
@@ -191,6 +193,15 @@
     "<C-f>": false
   },
 
+  // Helix : https://github.com/jasonwilliams/vscode-helix
+  "helixKeymap.toggleRelativeLineNumbers": true,
+
+  // enable helix in own thread
+  "extensions.experimental.affinity": {
+    "jasew.vscode-helix-emulation": 1
+  },
+
+
   // OSX
   "terminal.integrated.defaultProfile.osx": "nu",
   "workbench.editor.enablePreview": false,
@@ -204,6 +215,6 @@
   "chat.todoListTool.enabled": true,
 
   // Shell
-  "terminal.integrated.shellIntegration.enabled": false,
+  "terminal.integrated.shellIntegration.enabled": true,
   "dart.openDevTools": "flutter"
 }

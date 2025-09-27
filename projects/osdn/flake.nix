@@ -20,6 +20,22 @@
       pkgs-unstable = nixpkgs-unstable.legacyPackages.${system};
       pkgs-stable = nixpkgs-stable.legacyPackages.${system};
 
+      # Helper function to generate safe Doppler environment loading
+      mkDopplerShellHook = { project, config ? "dev" }: ''
+        # Load Doppler environment variables safely without eval
+        set -a
+        while IFS='=' read -r key value; do
+          # Only export valid variable names and non-empty keys
+          if [[ $key =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]]; then
+            # Strip surrounding quotes if present
+            value=''${value#\"}
+            value=''${value%\"}
+            export "$key"="$value"
+          fi
+        done < <(doppler secrets download --no-file --format env --project ${project} --config ${config})
+        set +a
+      '';
+
       # Custom base64 wrapper for Darwin to fix CocoaPods compatibility
       # This forces the use of system base64 rather than coreutils
       darwinBase64 = pkgs-stable.writeShellScriptBin "base64" ''
@@ -36,6 +52,8 @@
           ];
 
         shellHook = ''
+          # Load Doppler environment variables with safe parsing for special characters
+          ${mkDopplerShellHook { project = "rocketware"; config = "dev"; }}
           echo "🚀 Entering OSDN development environment"
           echo "Flutter: $(flutter --version 2>/dev/null | head -1 || echo 'Not found - install via Android Studio')"
           echo "Dart: $(dart --version 2>/dev/null || echo 'Not found - install via Android Studio')"

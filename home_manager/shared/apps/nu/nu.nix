@@ -5,7 +5,10 @@
   lib,
   inputs,
   ...
-}: {
+}:
+let
+  sharedLib = import ../../lib.nix { inherit lib config pkgs; };
+in {
   programs = {
     # Docs: https://www.nushell.sh/book/configuration.html
     nushell = {
@@ -230,53 +233,5 @@
   };
 
   # Darwin-specific: Create symlink from default nushell location to home-manager config
-  # This ensures all terminals use the same configuration
-  home.activation = lib.mkIf pkgs.stdenv.isDarwin {
-    setupNushellSymlink = lib.hm.dag.entryAfter ["writeBoundary"] ''
-      # Path to the default macOS nushell config location
-      NUSHELL_DEFAULT_PATH="$HOME/Library/Application Support/nushell"
-      # Path to our home-manager nushell config
-      NUSHELL_HM_PATH="${config.xdg.configHome}/nushell"
-
-      echo "Setting up nushell configuration symlink for Darwin..."
-
-      # Create the Application Support directory if it doesn't exist
-      mkdir -p "$(dirname "$NUSHELL_DEFAULT_PATH")"
-
-      # Check if the default path already exists
-      if [ -e "$NUSHELL_DEFAULT_PATH" ] || [ -L "$NUSHELL_DEFAULT_PATH" ]; then
-        # Check if it's already a symlink to our config
-        if [ -L "$NUSHELL_DEFAULT_PATH" ] && [ "$(readlink "$NUSHELL_DEFAULT_PATH")" = "$NUSHELL_HM_PATH" ]; then
-          echo "Nushell symlink already correctly configured"
-        else
-          echo "Backing up existing nushell config..."
-          # Create backup with timestamp
-          BACKUP_PATH="$NUSHELL_DEFAULT_PATH.backup.$(date +%Y%m%d_%H%M%S)"
-          if ! mv "$NUSHELL_DEFAULT_PATH" "$BACKUP_PATH"; then
-            echo "ERROR: Failed to backup existing nushell config" >&2
-            exit 1
-          fi
-          echo "Existing config backed up to: $BACKUP_PATH"
-        fi
-      fi
-
-      # Remove any existing symlink or directory (if backup failed above, we'll error out)
-      rm -rf "$NUSHELL_DEFAULT_PATH" 2>/dev/null || true
-
-      # Create the symlink
-      echo "Creating symlink: $NUSHELL_DEFAULT_PATH -> $NUSHELL_HM_PATH"
-      if ! ln -sf "$NUSHELL_HM_PATH" "$NUSHELL_DEFAULT_PATH"; then
-        echo "ERROR: Failed to create nushell configuration symlink" >&2
-        exit 1
-      fi
-
-      # Verify the symlink was created correctly
-      if [ ! -L "$NUSHELL_DEFAULT_PATH" ] || [ "$(readlink "$NUSHELL_DEFAULT_PATH")" != "$NUSHELL_HM_PATH" ]; then
-        echo "ERROR: Nushell symlink verification failed" >&2
-        exit 1
-      fi
-
-      echo "Successfully configured nushell symlink on Darwin"
-    '';
-  };
+  home.activation = sharedLib.mkDarwinAppSupportSymlink { appName = "nushell"; };
 }

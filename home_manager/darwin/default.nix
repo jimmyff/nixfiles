@@ -46,4 +46,5 @@
     XDG_STATE_HOME  = "/Users/${username}/.local/state";
     XDG_CACHE_HOME  = "/Users/${username}/.cache";
   };
+
 }

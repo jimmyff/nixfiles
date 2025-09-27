@@ -2,41 +2,46 @@
 [
     // Keybindings for Navigation
     {
-        "key": "ctrl+k",
+        "key": "cmd+alt+k",
         "command": "workbench.action.navigateUp"
     },
     {
-        "key": "ctrl+j",
+        "key": "cmd+alt+j",
         "command": "workbench.action.navigateDown"
     },
     {
-        "key": "ctrl+h",
+        "key": "cmd+alt+h",
         "command": "workbench.action.navigateLeft"
     },
     {
-        "key": "ctrl+l",
+        "key": "cmd+alt+l",
         "command": "workbench.action.navigateRight"
     },
-    // vertical
+    // panels
     {
-        "key": "ctrl+h",
+        "key": "cmd+alt+h",
         "command": "workbench.action.previousPanelView",
         "when": "panelFocus"
     },
     {
-        "key": "ctrl+l",
+        "key": "cmd+alt+l",
         "command": "workbench.action.nextPanelView",
         "when": "panelFocus"
     },
     // tabs
     {
-        "key": "ctrl+shift+h",
+        "key": "cmd+ctrl+h",
         "command": "workbench.action.previousEditorInGroup",
         "when": "editorFocus"
     },
     {
-        "key": "ctrl+shift+l",
+        "key": "cmd+ctrl+l",
         "command": "workbench.action.nextEditorInGroup",
+        "when": "editorFocus"
+    },
+    {
+        "key": "ctrl+w",
+        "command": "workbench.action.closeActiveEditor",
         "when": "editorFocus"
     },
     
@@ -58,5 +63,10 @@
             "text": "\\\r\n"
         },
         "when": "terminalFocus"
+    },
+    {
+        "key": "ctrl+g ctrl+w",
+        "command": "jump-extension.jump-to-the-start-of-a-word",
+        "when": "editorTextFocus"
     }
 ]
