@@ -34,6 +34,8 @@
             pkgs-stable.libgit2
             pkgs-stable.pkg-config
             pkgs-stable.gcc
+            pkgs-unstable.uv
+            pkgs-stable.python313
           ]
           ++ pkgs-stable.lib.optionals pkgs-stable.stdenv.isDarwin [
             darwinBase64 # Fix CocoaPods compatibility on macOS
@@ -65,6 +67,9 @@
             echo ""
             echo "🔧 To start the development environment, run: ./startup.nu"
           fi
+
+          # Install speckit
+          uv tool install specify-cli --from git+https://github.com/github/spec-kit.git
         '';
       };
   in {
