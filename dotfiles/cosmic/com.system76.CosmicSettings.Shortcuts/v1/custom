@@ -1,10 +1,21 @@
 {
     (
         modifiers: [
-            Super
+            Super,
         ],
         key: "space",
     ): System(Launcher),
+    (
+        modifiers: [],
+        key: "Print",
+    ): Disable,
+    (
+        modifiers: [
+            Ctrl,
+            Alt,
+        ],
+        key: "3",
+    ): System(Screenshot),
     (
         modifiers: [
             Shift,

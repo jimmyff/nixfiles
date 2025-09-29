@@ -34,6 +34,7 @@
   android.enable = false;
   dart.enable = true;
   rust.enable = true;
+  linux-development.enable = true;
 
   # Applications
   signal.enable = true;

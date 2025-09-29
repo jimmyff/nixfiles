@@ -27,6 +27,7 @@
       '';
     in
       pkgs-stable.mkShellNoCC {
+
         buildInputs =
           [
             pkgs-stable.jdk
@@ -47,6 +48,7 @@
           echo "Dart: $(dart --version 2>/dev/null || echo 'Not found - install via Android Studio')"
           echo "☕ JDK: ${pkgs-stable.jdk}"
           echo ""
+
 
           # Show README if it exists in workspace
           if [ -f workspace/README.md ]; then

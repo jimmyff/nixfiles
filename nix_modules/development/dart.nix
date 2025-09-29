@@ -78,7 +78,6 @@ in {
     # Setup Flutter cache directory and JDK configuration
     system.activationScripts.dartSetup = {
       text = ''
-        echo "Setting up Dart/Flutter development environment..."
 
         # Create Dart pub cache directory (XDG compliant)
         mkdir -p ${xdgCacheHome}/dart-pub
@@ -93,7 +92,7 @@ in {
         # Configure Flutter to use Nix JDK 17 (run as user, not root)
         sudo -u ${username} ${nixpkgs.flutter332}/bin/flutter config --jdk-dir="${nixpkgs.zulu17}" 2>/dev/null || echo "⚠️  Warning: Could not configure Flutter JDK"
 
-        echo "Dart/Flutter development environment setup complete!"
+        echo "🎯 Activated Dart/Flutter development environment"
         ${lib.optionalString pkgs.stdenv.isDarwin ''
           echo "📱 Note: iOS builds may have issues due to read-only Nix store. See: https://github.com/flutter/flutter/pull/155139"
         ''}
