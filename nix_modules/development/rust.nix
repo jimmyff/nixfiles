@@ -47,15 +47,13 @@ in {
     # Setup Rust directories
     system.activationScripts.rustSetup = {
       text = ''
-        echo "Setting up Rust development environment..."
-
         # Create Rust directories (XDG compliant)
         mkdir -p ${xdgDataHome}/cargo/bin
 
         # Set ownership
         chown -R ${username}:${userGroup} ${xdgDataHome}/cargo 2>/dev/null || echo "Warning: Could not set ownership of Rust cargo directory"
 
-        echo "Rust development environment setup complete!"
+        echo "🦀 Activated Rust development environment"
       '';
       deps = ["users" "groups"];
     };

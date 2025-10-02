@@ -1,7 +1,9 @@
-{pkgs, lib, ... }: {
-
+{
+  pkgs,
+  lib,
+  ...
+}: {
   imports = [
-
     ./helix/helix.nix
     ./kitty/kitty.nix
     ./rio/rio.nix
@@ -17,7 +19,7 @@
     ./atuin/atuin.nix
     ./iamb.nix
     ./ai.nix
-    
+
     # Import services
     ../services/git.nix
     ../services/ssh.nix
@@ -48,10 +50,12 @@
   atuin_module.enable = lib.mkDefault true;
   iamb_module.enable = lib.mkDefault true;
 
-
   home.packages = [
     pkgs.wget
     pkgs.neofetch
+
+    # Probably temp - maybe need a module for it
+    pkgs.yubikey-manager
   ];
 
   # btop
@@ -65,6 +69,4 @@
 
   # ripgrep - required for nvim telescope
   programs.ripgrep.enable = true;
-
-
 }

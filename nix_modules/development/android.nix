@@ -94,8 +94,6 @@ in {
     # Setup Android keystore deployment directory
     system.activationScripts.androidSetup = {
       text = ''
-        echo "Setting up Android development environment..."
-
         # Create Android keystore directory (XDG compliant)
         mkdir -p ${xdgDataHome}/android
         # Flutter cache directory now handled by dart.nix module
@@ -103,7 +101,7 @@ in {
         # Set ownership
         chown -R ${username}:${userGroup} ${xdgDataHome}/android 2>/dev/null || echo "Warning: Could not set ownership of Android directories"
 
-        echo "Android development environment setup complete!"
+        echo "🤖 Activated Android development environment"
       '';
       deps = ["users" "groups"];
     };

@@ -260,6 +260,7 @@ in {
     ./dart.nix
     ./xcode.nix
     ./rust.nix
+    ./linux-development.nix
   ];
 
   options.development = {

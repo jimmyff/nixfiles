@@ -18,6 +18,7 @@
   dart.enable = true;
   xcode.enable = true;
   rust.enable = true;
+  linux-development.enable = false;
 
   # Applications
   signal.enable = true;

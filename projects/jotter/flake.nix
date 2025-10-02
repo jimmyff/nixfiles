@@ -27,6 +27,7 @@
       '';
     in
       pkgs-stable.mkShellNoCC {
+
         buildInputs =
           [
             pkgs-stable.jdk
@@ -34,6 +35,8 @@
             pkgs-stable.libgit2
             pkgs-stable.pkg-config
             pkgs-stable.gcc
+            pkgs-unstable.uv
+            pkgs-stable.python313
           ]
           ++ pkgs-stable.lib.optionals pkgs-stable.stdenv.isDarwin [
             darwinBase64 # Fix CocoaPods compatibility on macOS
@@ -45,6 +48,7 @@
           echo "Dart: $(dart --version 2>/dev/null || echo 'Not found - install via Android Studio')"
           echo "☕ JDK: ${pkgs-stable.jdk}"
           echo ""
+
 
           # Show README if it exists in workspace
           if [ -f workspace/README.md ]; then
@@ -65,6 +69,9 @@
             echo ""
             echo "🔧 To start the development environment, run: ./startup.nu"
           fi
+
+          # Install speckit
+          uv tool install specify-cli --from git+https://github.com/github/spec-kit.git
         '';
       };
   in {
