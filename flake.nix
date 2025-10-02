@@ -2,7 +2,14 @@
   description = "Nixos config flake";
 
   inputs = {
+    # Default nixpkgs - will be removed once migration to specialized inputs is complete
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
+
+    # Specialized nixpkgs inputs for different update cadences
+    nixpkgs-stable.url = "github:nixos/nixpkgs/nixos-25.05";           # Core system, rarely changes
+    nixpkgs-desktop.url = "github:nixos/nixpkgs/nixos-unstable";       # Desktop environments
+    nixpkgs-apps.url = "github:nixos/nixpkgs/nixos-unstable";          # User applications
+    nixpkgs-ai.url = "github:nixos/nixpkgs/nixpkgs-unstable";          # AI tools, bleeding edge
 
     # macOS
     nix-darwin.url = "github:nix-darwin/nix-darwin/master";
@@ -54,10 +61,14 @@
   
   };
 
-  outputs = inputs @ { 
-    self, 
-    nixpkgs, 
-    nix-darwin, 
+  outputs = inputs @ {
+    self,
+    nixpkgs,
+    nixpkgs-stable,
+    nixpkgs-desktop,
+    nixpkgs-apps,
+    nixpkgs-ai,
+    nix-darwin,
     home-manager,
     nixos-hardware,
     agenix,
@@ -65,10 +76,27 @@
     nixfiles-vault,
     android-nixpkgs,
     # nvf,
-    ... 
-  } : let 
+    ...
+  } : let
     username = "jimmyff";
-    specialArgs = { inherit inputs username nixfiles-vault; pkgs-unstable = nixpkgs.legacyPackages; };
+
+    # Helper to create specialized packages for a system
+    mkSpecialArgs = system: {
+      inherit inputs username nixfiles-vault;
+      pkgs-unstable = nixpkgs.legacyPackages.${system};
+      pkgs-ai = import nixpkgs-ai {
+        inherit system;
+        config.allowUnfree = true;
+      };
+      pkgs-apps = import nixpkgs-apps {
+        inherit system;
+        config.allowUnfree = true;
+      };
+    };
+
+    # Define once per system
+    linuxArgs = mkSpecialArgs "x86_64-linux";
+    darwinArgs = mkSpecialArgs "aarch64-darwin";
   in
   {
 
@@ -77,7 +105,7 @@
 
       # Jimmy's Pixelbook
       nixelbook = nixpkgs.lib.nixosSystem {
-        inherit specialArgs;
+        specialArgs = linuxArgs;
 
         modules = [
 
@@ -95,7 +123,7 @@
           {
             home-manager.useGlobalPkgs = true;
             home-manager.useUserPackages = true;
-            home-manager.extraSpecialArgs = specialArgs;
+            home-manager.extraSpecialArgs = linuxArgs;
             home-manager.users.${username} = import ./home_manager/linux;
           }
         ];
@@ -105,7 +133,7 @@
 
     # MacOS configurations
     darwinConfigurations.jimmyff-mbp14 = nix-darwin.lib.darwinSystem {
-      inherit specialArgs;
+      specialArgs = darwinArgs;
 
       system = "aarch64-darwin";
       modules = [ 
@@ -117,7 +145,7 @@
         {
           home-manager.useGlobalPkgs = true;
           home-manager.useUserPackages = true;
-          home-manager.extraSpecialArgs = specialArgs;
+          home-manager.extraSpecialArgs = darwinArgs;
           home-manager.users.${username} = import ./home_manager/darwin;
         }
       ];
