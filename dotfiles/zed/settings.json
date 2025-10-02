@@ -44,8 +44,9 @@
     "dark": "Ayu Dark"
   },
   "ui_font_family": "JetBrainsMono Nerd Font",
-  "ui_font_size": 14,
-  "vim_mode": true,
+  "ui_font_size": 15,
+
+  "helix_mode": true,
 
   "lsp": {
     "dart": {
