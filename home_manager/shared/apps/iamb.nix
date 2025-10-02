@@ -1,11 +1,11 @@
 {
-  pkgs,
+  pkgs-apps,
   lib,
   config,
   ...
 }:
 let
-  sharedLib = import ../lib.nix { inherit lib config pkgs; };
+  sharedLib = import ../lib.nix { inherit lib config; pkgs = pkgs-apps; };
 in {
   options = {
     iamb_module.enable = lib.mkEnableOption "enables iamb_module";

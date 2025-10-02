@@ -1,5 +1,5 @@
 {
-  pkgs,
+  pkgs-apps,
   lib,
   config,
   ...
@@ -12,7 +12,7 @@ in {
 
   config = lib.mkIf cfg.enable {
     environment.systemPackages = [
-      pkgs.google-chrome
+      pkgs-apps.google-chrome
     ];
   };
 }

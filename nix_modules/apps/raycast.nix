@@ -1,5 +1,5 @@
 {
-  pkgs,
+  pkgs-apps,
   lib,
   config,
   ...
@@ -10,9 +10,9 @@ in {
     enable = lib.mkEnableOption "Raycast productivity application";
   };
 
-  config = lib.mkIf (cfg.enable && pkgs.stdenv.hostPlatform.isDarwin) {
+  config = lib.mkIf (cfg.enable && pkgs-apps.stdenv.hostPlatform.isDarwin) {
     environment.systemPackages = [
-      pkgs.raycast
+      pkgs-apps.raycast
     ];
   };
 }

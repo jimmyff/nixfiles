@@ -1,10 +1,10 @@
-{ pkgs, lib, config, ... }: 
+{ pkgs-desktop, lib, config, ... }:
 
-let 
+let
 
   # Jimmy's power menu
-  tofiPowerMenu = pkgs.writeScriptBin "tofi-power-menu" ''
-    #!${pkgs.nushell}/bin/nu
+  tofiPowerMenu = pkgs-desktop.writeScriptBin "tofi-power-menu" ''
+    #!${pkgs-desktop.nushell}/bin/nu
 
     # A simple list of strings for the menu options
     let options = [
@@ -18,14 +18,14 @@ let
     # Pipe the list to tofi. The `try` block handles the user pressing Esc.
     try {
         # `str join` creates the newline-separated string tofi expects
-        let chosen = ($options | str join "\n" | ${pkgs.tofi}/bin/tofi --prompt-text "\u{23fb}")
+        let chosen = ($options | str join "\n" | ${pkgs-desktop.tofi}/bin/tofi --prompt-text "\u{23fb}")
 
         match $chosen {
             "Lock" => { swaylock }
-            "Sleep" => { ${pkgs.systemd}/bin/systemctl suspend }
-            "Reboot" => { ${pkgs.systemd}/bin/systemctl reboot }
+            "Sleep" => { ${pkgs-desktop.systemd}/bin/systemctl suspend }
+            "Reboot" => { ${pkgs-desktop.systemd}/bin/systemctl reboot }
             "Logout" => { swaymsg exit }
-            "Shutdown" => { ${pkgs.systemd}/bin/systemctl poweroff }
+            "Shutdown" => { ${pkgs-desktop.systemd}/bin/systemctl poweroff }
         }
     }
   '';

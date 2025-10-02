@@ -29,12 +29,28 @@
 ## Highlights
 
 - **Multi-platform:** NixOS + macOS Darwin support
+- **Granular updates:** Specialized nixpkgs inputs for independent update control per layer
 - **Project environments:** Declarative dev setup with direnv + Doppler secrets
 - **Encrypted secrets:** agenix + private flake input for sensitive files
 - **IDE integration:** Wrapped IDEs with Doppler secret injection
 - **Git management:** [`gm.nu`](scripts/git-manager/) - mono repo git manager
 - **Flutter/Dart management:** [`dartboard.nu`](scripts/dartboard/) - batch pub operations
 - **Flutter hot reload:** [`flitter.rs`](scripts/flitter/) - hot reloading with debug info capture
+
+---
+
+## Package Inputs
+
+| Input | Branch | Purpose |
+|-------|--------|---------|
+| `pkgs-stable` | nixos-25.05 | Core system utilities |
+| `pkgs-desktop` | nixos-unstable | Desktop environments |
+| `pkgs-apps` | nixos-unstable | User applications |
+| `pkgs-dev-tools` | nixos-unstable | Editors, LSPs, formatters |
+| `pkgs-ai` | nixpkgs-unstable | AI tools (bleeding edge) |
+| `pkgs-dev-flutter` | nixos-unstable | Flutter/Dart SDK |
+| `pkgs-dev-rust` | nixos-unstable | Rust toolchain |
+| `pkgs-dev-android` | nixos-unstable | Android SDK |
 
 ---
 
@@ -50,7 +66,8 @@ home-manager switch --flake ~/nixfiles
 dev-setup && cd ~/Projects/<project> && direnv allow
 
 # Updates & maintenance
-nix flake update
+nix flake update                           # Update all inputs
+nix flake lock --update-input pkgs-ai      # Update specific input
 sudo nixos-rebuild --rollback switch
 ```
 

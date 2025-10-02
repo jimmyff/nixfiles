@@ -1,4 +1,4 @@
-{ inputs, pkgs, lib, username, ... }:
+{ inputs, lib, username, ... }:
 {
   imports = [
     # development environment

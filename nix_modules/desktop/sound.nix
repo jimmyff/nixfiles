@@ -1,4 +1,4 @@
-{ pkgs, ... }:
+{ ... }:
 {
   # Generic PipeWire audio configuration
   # Hardware-specific configuration is in hardware modules
@@ -16,7 +16,7 @@
 
     # Enable WirePlumber session manager for better device management
     wireplumber.enable = true;
-    
+
     # WirePlumber configuration to prevent audio device suspension
     wireplumber.extraConfig = {
       "10-disable-suspend" = {

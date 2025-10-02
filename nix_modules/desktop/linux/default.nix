@@ -1,4 +1,4 @@
-{pkgs, lib, ... }: {
+{lib, ... }: {
 
   imports = [
     ../desktop_system.nix
@@ -6,7 +6,7 @@
 
     # Sway
     # ../environment_sway
-        
+
     # Cosmic
     ../environment_cosmic
   ];

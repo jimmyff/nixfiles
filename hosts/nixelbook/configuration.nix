@@ -1,6 +1,6 @@
 {
   config,
-  pkgs,
+  pkgs-desktop,
   lib,
   inputs,
   username,
@@ -54,8 +54,8 @@
   '';
 
   # control the brightness of the screen (works with wayland)
-  environment.systemPackages = with pkgs; [
-    pkgs.brightnessctl
+  environment.systemPackages = [
+    pkgs-desktop.brightnessctl
   ];
 
   # services.actkbd = {

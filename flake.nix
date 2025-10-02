@@ -6,10 +6,14 @@
     nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
 
     # Specialized nixpkgs inputs for different update cadences
-    nixpkgs-stable.url = "github:nixos/nixpkgs/nixos-25.05";           # Core system, rarely changes
-    nixpkgs-desktop.url = "github:nixos/nixpkgs/nixos-unstable";       # Desktop environments
-    nixpkgs-apps.url = "github:nixos/nixpkgs/nixos-unstable";          # User applications
-    nixpkgs-ai.url = "github:nixos/nixpkgs/nixpkgs-unstable";          # AI tools, bleeding edge
+    pkgs-stable.url = "github:nixos/nixpkgs/nixos-25.05";           # Core system, rarely changes
+    pkgs-desktop.url = "github:nixos/nixpkgs/nixos-unstable";       # Desktop environments
+    pkgs-apps.url = "github:nixos/nixpkgs/nixos-unstable";          # User applications
+    pkgs-ai.url = "github:nixos/nixpkgs/nixpkgs-unstable";          # AI tools, bleeding edge
+    pkgs-dev-tools.url = "github:nixos/nixpkgs/nixos-unstable";     # Dev tools (editors, LSPs, formatters)
+    pkgs-dev-flutter.url = "github:nixos/nixpkgs/nixos-unstable";   # Flutter/Dart development
+    pkgs-dev-rust.url = "github:nixos/nixpkgs/nixos-unstable";      # Rust development
+    pkgs-dev-android.url = "github:nixos/nixpkgs/nixos-unstable";   # Android development
 
     # macOS
     nix-darwin.url = "github:nix-darwin/nix-darwin/master";
@@ -64,10 +68,14 @@
   outputs = inputs @ {
     self,
     nixpkgs,
-    nixpkgs-stable,
-    nixpkgs-desktop,
-    nixpkgs-apps,
-    nixpkgs-ai,
+    pkgs-stable,
+    pkgs-desktop,
+    pkgs-apps,
+    pkgs-ai,
+    pkgs-dev-tools,
+    pkgs-dev-flutter,
+    pkgs-dev-rust,
+    pkgs-dev-android,
     nix-darwin,
     home-manager,
     nixos-hardware,
@@ -84,11 +92,35 @@
     mkSpecialArgs = system: {
       inherit inputs username nixfiles-vault;
       pkgs-unstable = nixpkgs.legacyPackages.${system};
-      pkgs-ai = import nixpkgs-ai {
+      pkgs-stable = import pkgs-stable {
         inherit system;
         config.allowUnfree = true;
       };
-      pkgs-apps = import nixpkgs-apps {
+      pkgs-desktop = import pkgs-desktop {
+        inherit system;
+        config.allowUnfree = true;
+      };
+      pkgs-apps = import pkgs-apps {
+        inherit system;
+        config.allowUnfree = true;
+      };
+      pkgs-ai = import pkgs-ai {
+        inherit system;
+        config.allowUnfree = true;
+      };
+      pkgs-dev-tools = import pkgs-dev-tools {
+        inherit system;
+        config.allowUnfree = true;
+      };
+      pkgs-dev-flutter = import pkgs-dev-flutter {
+        inherit system;
+        config.allowUnfree = true;
+      };
+      pkgs-dev-rust = import pkgs-dev-rust {
+        inherit system;
+        config.allowUnfree = true;
+      };
+      pkgs-dev-android = import pkgs-dev-android {
         inherit system;
         config.allowUnfree = true;
       };
@@ -128,7 +160,6 @@
           }
         ];
       };
-      homeManagerModules.default = ./home;
     };
 
     # MacOS configurations

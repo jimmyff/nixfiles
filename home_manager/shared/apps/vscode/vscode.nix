@@ -1,10 +1,10 @@
-{ pkgs, lib, config, ... }: let
+{ pkgs-dev-tools, lib, config, ... }: let
   # Import shared utilities
-  sharedLib = import ../../lib.nix { inherit lib config pkgs; };
+  sharedLib = import ../../lib.nix { inherit lib config; pkgs = pkgs-dev-tools; };
 
   # Create Doppler-wrapped VSCode package
   wrappedVSCode = sharedLib.mkDopplerWrapper {
-    package = pkgs.vscode;
+    package = pkgs-dev-tools.vscode;
     project = "ide";
     binaries = [ "code" ];
   };
@@ -22,7 +22,7 @@ in {
 
         # Darwin-specific: Create symlink from default VSCode location to dotfiles config
         # This ensures VSCode uses our managed configuration
-        home.activation = lib.mkIf pkgs.stdenv.isDarwin {
+        home.activation = lib.mkIf pkgs-dev-tools.stdenv.isDarwin {
             setupVSCodeSymlink = lib.hm.dag.entryAfter ["writeBoundary"] ''
                 # Path to the default macOS VSCode config location
                 VSCODE_DEFAULT_PATH="$HOME/Library/Application Support/Code/User"

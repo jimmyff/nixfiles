@@ -1,5 +1,5 @@
 {
-  pkgs,
+  pkgs-apps,
   username,
   config,
   lib,
@@ -7,7 +7,7 @@
   ...
 }:
 let
-  sharedLib = import ../../lib.nix { inherit lib config pkgs; };
+  sharedLib = import ../../lib.nix { inherit lib config; pkgs = pkgs-apps; };
 in {
   programs = {
     # Docs: https://www.nushell.sh/book/configuration.html

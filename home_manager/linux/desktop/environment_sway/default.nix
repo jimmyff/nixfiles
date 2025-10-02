@@ -1,4 +1,4 @@
-{pkgs, lib, ... }: {
+{pkgs-desktop, lib, ... }: {
 
   imports = [
 
@@ -20,7 +20,7 @@
 
   # Cursor
   home.pointerCursor = {
-    package = pkgs.bibata-cursors;
+    package = pkgs-desktop.bibata-cursors;
     name = "Bibata-Modern-Ice";
     size = 22;
     gtk.enable = true;
@@ -29,20 +29,20 @@
 
 home.packages = [
 
-    #pkgs.fuzzel		                  # launcher (niri)
-    #pkgs.wofi                         # launcher (sway)
-    pkgs.mako				                  # notifications
-    pkgs.wl-clipboard                 # clipboard
-    #pkgs.nautilus			              # file manager
-    #pkgs.font-awesome		            # font icons
-    #pkgs.nerd-fonts.jetbrains-mono   # font
-    pkgs.slurp                        # screenshots
-    pkgs.grim                         # screenshots
+    #pkgs-desktop.fuzzel		                  # launcher (niri)
+    #pkgs-desktop.wofi                         # launcher (sway)
+    pkgs-desktop.mako				                  # notifications
+    pkgs-desktop.wl-clipboard                 # clipboard
+    #pkgs-desktop.nautilus			              # file manager
+    #pkgs-desktop.font-awesome		            # font icons
+    #pkgs-desktop.nerd-fonts.jetbrains-mono   # font
+    pkgs-desktop.slurp                        # screenshots
+    pkgs-desktop.grim                         # screenshots
 
-    pkgs.bemoji
-    pkgs.playerctl
-    pkgs.wl-clipboard
-    pkgs.wdisplays
+    pkgs-desktop.bemoji
+    pkgs-desktop.playerctl
+    pkgs-desktop.wl-clipboard
+    pkgs-desktop.wdisplays
 
   ];
 

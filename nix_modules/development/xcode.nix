@@ -1,5 +1,5 @@
 {
-  pkgs,
+  pkgs-stable,
   lib,
   config,
   ...
@@ -12,7 +12,7 @@ in {
 
   config = lib.mkIf cfg.enable {
     # Xcode/iOS development packages (only available on Darwin)
-    environment.systemPackages = lib.optionals pkgs.stdenv.isDarwin (with pkgs; [
+    environment.systemPackages = lib.optionals pkgs-stable.stdenv.isDarwin (with pkgs-stable; [
       ruby
       cocoapods
     ]);

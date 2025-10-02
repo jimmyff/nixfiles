@@ -1,9 +1,9 @@
-{ pkgs, ... }:
+{ pkgs-stable, ... }:
 {
 
   nix.enable = true;
-  nix.package = pkgs.nix;
-  nixpkgs.config.allowUnfree = true; 
+  nix.package = pkgs-stable.nix;
+  nixpkgs.config.allowUnfree = true;
 
   nix.settings.experimental-features = ["nix-command" "flakes"];
 
@@ -12,11 +12,11 @@
 
 
   environment.systemPackages = [
-    pkgs.age                      # Encryption library  
-    pkgs.agenix-cli               # Age nix tool
-    pkgs.bat                      # Cat clone with syntax highlighting
+    pkgs-stable.age                      # Encryption library
+    pkgs-stable.agenix-cli               # Age nix tool
+    pkgs-stable.bat                      # Cat clone with syntax highlighting
   ];
 
-  environment.shells = with pkgs; [ bash zsh nushell ];
+  environment.shells = with pkgs-stable; [ bash zsh nushell ];
 
 }

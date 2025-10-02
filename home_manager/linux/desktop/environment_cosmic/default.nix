@@ -1,10 +1,10 @@
-{pkgs, lib, config, ... }: {
+{pkgs-desktop, lib, config, ... }: {
 
   # imports = [  ];
 
   # Cursor
   home.pointerCursor = {
-    package = pkgs.bibata-cursors;
+    package = pkgs-desktop.bibata-cursors;
     name = "Bibata-Modern-Ice";
     size = 22;
     gtk.enable = true;

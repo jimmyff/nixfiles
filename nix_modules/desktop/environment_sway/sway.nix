@@ -1,4 +1,4 @@
-{ pkgs, lib, config, inputs, ... }: {
+{ lib, config, inputs, ... }: {
 
     options = {
         sway_module.enable = lib.mkEnableOption "enables sway_module";

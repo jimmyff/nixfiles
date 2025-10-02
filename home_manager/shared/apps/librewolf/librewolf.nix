@@ -5,7 +5,7 @@
 {
   config,
   lib,
-  pkgs,
+  pkgs-apps,
   inputs,
   ...
 }: {
@@ -23,7 +23,7 @@
         id = 0;
         isDefault = true;
 
-        extensions.packages = with inputs.nur.legacyPackages.${pkgs.system}.repos.rycee.firefox-addons; [
+        extensions.packages = with inputs.nur.legacyPackages.${pkgs-apps.system}.repos.rycee.firefox-addons; [
           bitwarden
           bookmarkhub
           proton-pass

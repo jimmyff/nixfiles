@@ -1,6 +1,6 @@
 {
   inputs,
-  pkgs,
+  pkgs-dev-rust,
   lib,
   config,
   username,
@@ -10,19 +10,19 @@
 
   # Cross-platform home directory
   homeDir =
-    if pkgs.stdenv.isDarwin
+    if pkgs-dev-rust.stdenv.isDarwin
     then "/Users/${username}"
     else "/home/${username}";
 
   # XDG paths
   xdgDataHome =
-    if pkgs.stdenv.isDarwin
+    if pkgs-dev-rust.stdenv.isDarwin
     then "${homeDir}/.local/share"
     else "${homeDir}/.local/share";
 
   # Cross-platform user group
   userGroup =
-    if pkgs.stdenv.isDarwin
+    if pkgs-dev-rust.stdenv.isDarwin
     then "staff"
     else "users";
 in {
@@ -32,7 +32,7 @@ in {
 
   config = lib.mkIf cfg.enable {
     # Rust development packages
-    environment.systemPackages = with pkgs; [
+    environment.systemPackages = with pkgs-dev-rust; [
       cargo
       rustc
       rust-analyzer

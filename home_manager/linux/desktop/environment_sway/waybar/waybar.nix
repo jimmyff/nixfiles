@@ -1,5 +1,5 @@
 # Sway module
-{ pkgs, lib, config, ... }: {
+{ pkgs-desktop, lib, config, ... }: {
 
     options = {
 

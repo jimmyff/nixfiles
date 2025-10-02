@@ -1,4 +1,4 @@
-{ pkgs, lib, config, ... }: {
+{ pkgs-apps, lib, config, ... }: {
 
     options = {
         chromium_module.enable = lib.mkEnableOption "enables chromium_module";

@@ -1,6 +1,6 @@
 {
   inputs,
-  pkgs,
+  pkgs-dev-android,
   lib,
   config,
   username,
@@ -11,25 +11,25 @@
 
   # Cross-platform home directory
   homeDir =
-    if pkgs.stdenv.isDarwin
+    if pkgs-dev-android.stdenv.isDarwin
     then "/Users/${username}"
     else "/home/${username}";
 
   # XDG paths
   xdgDataHome =
-    if pkgs.stdenv.isDarwin
+    if pkgs-dev-android.stdenv.isDarwin
     then "${homeDir}/.local/share"
     else "${homeDir}/.local/share";
 
   # Cross-platform user group
   userGroup =
-    if pkgs.stdenv.isDarwin
+    if pkgs-dev-android.stdenv.isDarwin
     then "staff"
     else "users";
 
   # Android SDK from android-nixpkgs
   # https://github.com/tadfisher/android-nixpkgs/tree/main/channels/beta
-  androidSdk = inputs.android-nixpkgs.sdk.${pkgs.system} (sdkPkgs:
+  androidSdk = inputs.android-nixpkgs.sdk.${pkgs-dev-android.system} (sdkPkgs:
     with sdkPkgs; [
       cmdline-tools-latest
       # build-tools-34-0-0
@@ -53,17 +53,17 @@ in {
   config = lib.mkIf cfg.enable {
     # Configure agenix identity paths for Darwin only
     # NixOS will use default system host keys via OpenSSH service
-    age.identityPaths = lib.mkIf pkgs.stdenv.isDarwin [
+    age.identityPaths = lib.mkIf pkgs-dev-android.stdenv.isDarwin [
       "${homeDir}/.ssh/id_ed25519"
       "${homeDir}/.ssh/id_rsa"
     ];
 
     # Android development packages
-    environment.systemPackages = with pkgs;
+    environment.systemPackages = with pkgs-dev-android;
       [
         androidSdk
       ]
-      ++ lib.optionals pkgs.stdenv.isLinux [
+      ++ lib.optionals pkgs-dev-android.stdenv.isLinux [
         android-studio
       ];
 

@@ -1,5 +1,5 @@
 
-{ pkgs, ... }:
+{ pkgs-desktop, ... }:
 {
 
   # Bootloader.
@@ -12,11 +12,11 @@
   xdg.portal = {
     enable = true;
     xdgOpenUsePortal = true;
-    extraPortals = [ 
-      pkgs.xdg-desktop-portal-gtk	  # Standard handler
-      pkgs.gnome-keyring		      # for some apps
+    extraPortals = [
+      pkgs-desktop.xdg-desktop-portal-gtk	  # Standard handler
+      pkgs-desktop.gnome-keyring		      # for some apps
     ];
-  
+
     # TODO: do something better here
     config.common.default = "*";
   };
@@ -27,7 +27,7 @@
   services.libinput = {
     enable = true;
     mouse.naturalScrolling = true;
-    touchpad.naturalScrolling = true;  
+    touchpad.naturalScrolling = true;
   };
 
   # Ignore the power off button
@@ -35,12 +35,12 @@
 
   # gnome secrets vault
   services.gnome.gnome-keyring.enable = true;
-  
+
   # Networking
   networking.networkmanager.enable = true;
-  
+
    environment.systemPackages = [
-    pkgs.networkmanagerapplet
+    pkgs-desktop.networkmanagerapplet
   ];
 
   # Enable CUPS to print documents.
@@ -59,5 +59,5 @@
     LC_PAPER = "en_GB.UTF-8";
     LC_TELEPHONE = "en_GB.UTF-8";
     LC_TIME = "en_GB.UTF-8";
-  }; 
+  };
 }

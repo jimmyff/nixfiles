@@ -1,5 +1,7 @@
 {
-  pkgs,
+  pkgs-apps,
+  pkgs-stable,
+  pkgs-dev-tools,
   lib,
   ...
 }: {
@@ -51,11 +53,11 @@
   iamb_module.enable = lib.mkDefault true;
 
   home.packages = [
-    pkgs.wget
-    pkgs.neofetch
+    pkgs-stable.wget
+    pkgs-apps.neofetch
 
     # Probably temp - maybe need a module for it
-    pkgs.yubikey-manager
+    pkgs-apps.yubikey-manager
   ];
 
   # btop

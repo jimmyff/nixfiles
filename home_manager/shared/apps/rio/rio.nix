@@ -1,5 +1,5 @@
 {
-  pkgs,
+  pkgs-apps,
   lib,
   config,
   ...
@@ -18,7 +18,7 @@
         };
 
         shell = {
-          program = "${pkgs.nushell}/bin/nu";
+          program = "${pkgs-apps.nushell}/bin/nu";
           args = ["--config" "${config.xdg.configHome}/nushell/config.nu"];
         };
 

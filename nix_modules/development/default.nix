@@ -1,6 +1,7 @@
 {
   inputs,
-  pkgs,
+  pkgs-stable,
+  pkgs-apps,
   lib,
   config,
   username,
@@ -10,18 +11,18 @@
 
   # Cross-platform home directory
   homeDir =
-    if pkgs.stdenv.isDarwin
+    if pkgs-stable.stdenv.isDarwin
     then "/Users/${username}"
     else "/home/${username}";
 
   # Cross-platform user group
   userGroup =
-    if pkgs.stdenv.isDarwin
+    if pkgs-stable.stdenv.isDarwin
     then "staff"
     else "users";
 
   # Helper script for project setup
-  devSetupScript = pkgs.writeShellScriptBin "dev-setup" ''
+  devSetupScript = pkgs-stable.writeShellScriptBin "dev-setup" ''
     echo "🚀 Development Project Setup"
     echo "============================="
     echo ""
@@ -248,7 +249,7 @@
   # Import enabled project modules
   enabledProjects = lib.listToAttrs (map (projectName: {
       name = projectName;
-      value = import (../../projects + "/${projectName}") {inherit pkgs lib;};
+      value = import (../../projects + "/${projectName}") {pkgs = pkgs-stable; inherit lib;};
     })
     cfg.projects);
 
@@ -276,31 +277,30 @@ in {
 
   config = lib.mkIf cfg.enable {
     # Core development tools + project-specific packages + platform packages
-    environment.systemPackages = with pkgs;
+    environment.systemPackages =
       [
-        # Core development tools
-        git
-        gh
-        direnv
-        nix-direnv
-        firebase-tools
-        google-cloud-sdk
-        # Flutter and Android SDK are provided by Android Studio instead of Nix
-        # This avoids iOS build issues where Xcode cannot write to read-only Flutter root
-        # See: https://github.com/flutter/flutter/pull/155139
+        # Core development tools (stable)
+        pkgs-stable.git
+        pkgs-stable.gh
+        pkgs-stable.direnv
+        pkgs-stable.nix-direnv
 
-        # Development utilities
-        curl
-        wget
-        jq
-        tree
-        lnav
-        doppler
-        entr
+        # Development utilities (apps)
+        pkgs-apps.firebase-tools
+        pkgs-apps.google-cloud-sdk
+        pkgs-apps.doppler
+        pkgs-apps.entr
+        pkgs-apps.lnav
 
-        # build tools
-        cmake
-        gcc
+        # Basic CLI utilities (stable)
+        pkgs-stable.curl
+        pkgs-stable.wget
+        pkgs-stable.jq
+        pkgs-stable.tree
+
+        # build tools (stable)
+        pkgs-stable.cmake
+        pkgs-stable.gcc
 
         # Project setup helper
         devSetupScript
@@ -310,7 +310,7 @@ in {
     # Enable nix-direnv globally
     programs.direnv = {
       enable = true;
-      package = pkgs.direnv;
+      package = pkgs-stable.direnv;
       silent = false;
       loadInNixShell = true;
       settings = {
@@ -318,7 +318,7 @@ in {
       };
       nix-direnv = {
         enable = true;
-        package = pkgs.nix-direnv;
+        package = pkgs-stable.nix-direnv;
       };
     };
 

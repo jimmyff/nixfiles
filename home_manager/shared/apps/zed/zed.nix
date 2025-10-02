@@ -1,15 +1,15 @@
 {
-  pkgs,
+  pkgs-dev-tools,
   lib,
   config,
   ...
 }: let
   # Import shared utilities
-  sharedLib = import ../../lib.nix { inherit lib config pkgs; };
+  sharedLib = import ../../lib.nix { inherit lib config; pkgs = pkgs-dev-tools; };
 
   # Create Doppler-wrapped zed package
   wrappedZed = sharedLib.mkDopplerWrapper {
-    package = pkgs.zed-editor;
+    package = pkgs-dev-tools.zed-editor;
     project = "ide";
     binaries = [ "zeditor" ];
   };

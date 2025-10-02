@@ -1,15 +1,16 @@
 {
-  pkgs,
+  pkgs-dev-tools,
+  pkgs-ai,
   lib,
   config,
   ...
 }: let
   # Import shared utilities
-  sharedLib = import ../../lib.nix { inherit lib config pkgs; };
+  sharedLib = import ../../lib.nix { inherit lib config; pkgs = pkgs-dev-tools; };
 
   # Create Doppler-wrapped helix package
   wrappedHelix = sharedLib.mkDopplerWrapper {
-    package = pkgs.helix;
+    package = pkgs-dev-tools.helix;
     project = "ide";
     binaries = [ "hx" ];
   };
@@ -37,7 +38,7 @@ in {
         textWrap = "maintain";
       };
       plugins = [
-        "${pkgs.dprint-plugins.dprint-plugin-markdown}/plugin.wasm"
+        "${pkgs-dev-tools.dprint-plugins.dprint-plugin-markdown}/plugin.wasm"
       ];
     };
 
@@ -53,20 +54,22 @@ in {
       package = wrappedHelix;
 
       # External packages required for language support
-      extraPackages = with pkgs; [
-        # Nix ecosystem
-        nil # Nix language server
-        alejandra # Nix formatter
+      extraPackages = [
+        # Nix ecosystem (dev-tools)
+        pkgs-dev-tools.nil # Nix language server
+        pkgs-dev-tools.alejandra # Nix formatter
 
-        # Markdown ecosystem
-        marksman # Markdown LSP server
-        markdown-oxide # Alternative markdown LSP
-        dprint # Code formatter
-        dprint-plugins.dprint-plugin-markdown # Markdown plugin for dprint
+        # Markdown ecosystem (dev-tools)
+        pkgs-dev-tools.marksman # Markdown LSP server
+        pkgs-dev-tools.markdown-oxide # Alternative markdown LSP
+        pkgs-dev-tools.dprint # Code formatter
+        pkgs-dev-tools.dprint-plugins.dprint-plugin-markdown # Markdown plugin for dprint
 
-        # Other language support
-        taplo # TOML language server
-        lsp-ai # AI-powered language server
+        # Other language support (dev-tools)
+        pkgs-dev-tools.taplo # TOML language server
+
+        # AI tools (bleeding edge)
+        pkgs-ai.lsp-ai # AI-powered language server
       ];
 
       settings = {
@@ -261,7 +264,7 @@ in {
               wrap-at-text-width = true;
             };
             formatter = {
-              command = "${pkgs.dprint}/bin/dprint";
+              command = "${pkgs-dev-tools.dprint}/bin/dprint";
               args = [
                 "fmt"
                 "--config"
