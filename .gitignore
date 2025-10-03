@@ -14,6 +14,8 @@ secrets/vault/
 *.age
 
 dotfiles/zed/.config/zed/prompts/
+dotfiles/zed/prompts/
+dotfiles/zed/conversations/
 dotfiles/**/*.bak*
 dotfiles/vscode/**/*Storage/
 dotfiles/vscode/**/History/
