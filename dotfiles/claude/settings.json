@@ -1,16 +1,15 @@
 {
-  
   "env": {
-    "DISABLE_AUTOUPDATER" : "1",
-    "DISABLE_ERROR_REPORTING" : "1",
+    "DISABLE_AUTOUPDATER": "1",
+    "DISABLE_ERROR_REPORTING": "1",
     "DISABLE_TELEMETRY": "1",
     "USE_BUILTIN_RIPGREP": "0"
-    
   },
-  "includeCoAuthoredBy" : false,
+  "includeCoAuthoredBy": false,
   "statusLine": {
     "type": "command",
     "command": "~/.claude/statusline.sh",
     "padding": 0
-  }
+  },
+  "alwaysThinkingEnabled": true
 }
