@@ -100,21 +100,6 @@ Next steps:
 | `--json`         | Output as JSON                                         |
 | `-h, --help`     | Show help message                                      |
 
-## Integration
-
-### Run on system start
-
-Add to your shell config (e.g., `~/.zshrc` or `~/.config/nushell/config.nu`):
-
-```bash
-# Check for package updates on shell start (cached)
-~/nixfiles/scripts/flake-freshness/flake-freshness.nu --updates-only
-```
-
-### Daily cron/launchd
-
-Create a launchd service (macOS) or cron job to run daily and send notifications.
-
 ## Cache
 
 Cache files are stored in `~/.cache/flake-freshness/` with a 1-hour TTL. Use `--no-cache` to bypass.

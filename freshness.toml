@@ -1,0 +1,55 @@
+# flake-freshness package monitoring configuration
+#
+# Group packages by their nixpkgs input sources.
+# These inputs should match the specialized inputs defined in your flake.nix
+#
+# Copy this file to ~/.config/flake-freshness/packages.toml and customize
+# to track the packages you care about.
+
+[packages]
+
+# AI Tools (bleeding edge)
+pkgs-ai = [
+    "claude-code",
+    "gemini-cli"
+]
+
+# Development Tools (editors, LSPs, formatters)
+pkgs-dev-tools = [
+    "helix",
+    "zed-editor",
+    "vscode"
+]
+
+# Flutter/Dart Development
+pkgs-dev-flutter = [
+    "flutter",
+    "dart"
+]
+
+# Rust Development
+pkgs-dev-rust = [
+    "rustc",
+    "cargo",
+    "rust-analyzer"
+]
+
+# Android Development
+pkgs-dev-android = [
+    # "android-studio"
+]
+
+# Desktop Environments
+pkgs-desktop = [
+    "cosmic"
+]
+
+# User Applications
+pkgs-apps = [
+    # Add your application packages here
+]
+
+# Core System (stable)
+pkgs-stable = [
+    # Add your core system packages here
+]

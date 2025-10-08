@@ -67,6 +67,7 @@ home-manager switch --flake ~/nixfiles
 dev-setup && cd ~/Projects/<project> && direnv allow
 
 # Updates & maintenance
+./scripts/flake-freshness/flake-freshness.nu  # Check for package updates
 nix flake update                           # Update all inputs
 nix flake lock --update-input pkgs-ai      # Update specific input
 sudo nixos-rebuild --rollback switch
