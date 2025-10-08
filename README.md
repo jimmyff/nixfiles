@@ -36,6 +36,7 @@
 - **Git management:** [`gm.nu`](scripts/git-manager/) - mono repo git manager
 - **Flutter/Dart management:** [`dartboard.nu`](scripts/dartboard/) - batch pub operations
 - **Flutter hot reload:** [`flitter.rs`](scripts/flitter/) - hot reloading with debug info capture
+- **Package freshness:** [`flake-freshness.nu`](scripts/flake-freshness/) - monitor nix package versions across inputs
 
 ---
 

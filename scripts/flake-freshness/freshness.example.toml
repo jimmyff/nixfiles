@@ -1,0 +1,24 @@
+# flake-freshness package monitoring configuration
+#
+# Group packages by their nixpkgs input sources.
+# These inputs should match the specialized inputs defined in your flake.nix
+
+[packages]
+
+# Example: AI Tools
+pkgs-ai = [
+    "claude-code"
+]
+
+# Example: Development Tools
+pkgs-dev-tools = [
+    "helix",
+    "vscode"
+]
+
+# Add your other inputs here following the same pattern:
+# pkgs-dev-flutter = ["flutter", "dart"]
+# pkgs-dev-rust = ["rustc", "cargo"]
+# pkgs-desktop = ["cosmic"]
+# pkgs-apps = []
+# pkgs-stable = []
