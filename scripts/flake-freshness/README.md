@@ -32,6 +32,8 @@ The script will auto-discover `freshness.toml` in your project root, or check ot
 - `~/.config/flake-freshness/freshness.toml` (user-specific)
 - `scripts/flake-freshness/freshness.toml`
 
+![screenshot](https://www.jimmyff.co.uk/processed_images/flake-freshness.160abb330c918c57.webp)
+
 ## Usage
 
 ```bash
@@ -108,4 +110,4 @@ Cache files are stored in `~/.cache/flake-freshness/` with a 1-hour TTL. Use `--
 
 ## Author
 
-Jimmy Forrester-Fellowes (2025)
+[Jimmy Forrester-Fellowes](https://www.jimmyff.co.uk/) (2025)
