@@ -1,6 +1,8 @@
 # flake-freshness
 
-Monitor package versions across your flake's specialized nixpkgs inputs. Compare installed versions against latest available versions and identify which inputs need updating.
+![Callie & Marrie say Stay Fresh!](https://www.jimmyff.co.uk/processed_images/stay-fresh.453646a2f5f5794f.webp)
+
+Monitor package versions across your flake's specialized nixpkgs inputs. Compare installed versions against latest available versions and identify which inputs need updating. For background information [read my blog post](https://www.jimmyff.co.uk/blog/keeping-my-nix-inputs-fresh/).
 
 ## Features
 
