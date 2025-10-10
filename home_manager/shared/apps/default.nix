@@ -29,8 +29,8 @@
 
   # apps
   chromium_module.enable = lib.mkDefault true;
-  librewolf_module.enable = lib.mkDefault true;
-  brave_module.enable = lib.mkDefault true;
+  librewolf_module.enable = lib.mkDefault false;
+  brave_module.enable = lib.mkDefault false;
   yazi_module.enable = lib.mkDefault true;
 
   # editors

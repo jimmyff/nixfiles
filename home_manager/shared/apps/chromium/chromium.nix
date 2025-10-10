@@ -19,5 +19,6 @@
         };
 
         home.sessionVariables.BROWSER = lib.mkIf (!config.librewolf_module.enable) "chromium";
+        home.sessionVariables.CHROME_EXECUTABLE = lib.getExe pkgs-apps.chromium;
     };
 }

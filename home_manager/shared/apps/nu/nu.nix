@@ -5,9 +5,11 @@
   lib,
   inputs,
   ...
-}:
-let
-  sharedLib = import ../../lib.nix { inherit lib config; pkgs = pkgs-apps; };
+}: let
+  sharedLib = import ../../lib.nix {
+    inherit lib config;
+    pkgs = pkgs-apps;
+  };
 in {
   programs = {
     # Docs: https://www.nushell.sh/book/configuration.html
@@ -180,9 +182,9 @@ in {
       # append /usr/bin/env
       # )
       shellAliases = {
-        vi = "hx";
-        vim = "hx";
-        nano = "hx";
+        #  vi = "hx";
+        #  vim = "hx";
+        #  nano = "hx";
       };
     };
 
@@ -233,5 +235,5 @@ in {
   };
 
   # Darwin-specific: Create symlink from default nushell location to home-manager config
-  home.activation = sharedLib.mkDarwinAppSupportSymlink { appName = "nushell"; };
+  home.activation = sharedLib.mkDarwinAppSupportSymlink {appName = "nushell";};
 }
