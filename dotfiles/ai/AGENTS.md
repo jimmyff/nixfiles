@@ -37,7 +37,11 @@
 ## Workflow
 
 - If there is ever something that you are unsure about, do not continue, stop and ask the question. I would rather we resolve questions and take a little longer than making assumptions that could be incorrect
+- When I share a URL with you, make sure you read it.
+- My sysems are entirely managed by Nix, can you find my system configuration in `~/nixfiles/` if you are working in a `~/Project/...` then you are working on a specific project that enviroment is managed by a devshell configured by the flake in the project folder.
 
 ## Dart & Flutter
 
 - Use package:mockito for mocked integration tests
+- [Flutter API reference](https://api.flutter.dev/)
+- [Dart API reference](https://api.dart.dev/)

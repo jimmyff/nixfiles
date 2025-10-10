@@ -36,6 +36,7 @@
 - **Git management:** [`gm.nu`](scripts/git-manager/) - mono repo git manager
 - **Flutter/Dart management:** [`dartboard.nu`](scripts/dartboard/) - batch pub operations
 - **Flutter hot reload:** [`flitter.rs`](scripts/flitter/) - hot reloading with debug info capture
+- **Package freshness:** [`flake-freshness.nu`](scripts/flake-freshness/) - monitor nix package versions across inputs
 
 ---
 
@@ -66,6 +67,7 @@ home-manager switch --flake ~/nixfiles
 dev-setup && cd ~/Projects/<project> && direnv allow
 
 # Updates & maintenance
+./scripts/flake-freshness/flake-freshness.nu  # Check for package updates
 nix flake update                           # Update all inputs
 nix flake lock --update-input pkgs-ai      # Update specific input
 sudo nixos-rebuild --rollback switch
