@@ -9,6 +9,9 @@
 ehthumbs.db
 Thumbs.db
 
+# direnv
+.direnv/
+
 # Secrets vault protection
 secrets/vault/
 *.age
