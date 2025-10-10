@@ -180,9 +180,33 @@
               fi
             fi
 
-            cp "$PROJECT_SOURCE/.envrc" "$PROJECT_DIR/" 2>/dev/null && echo "✅ Copied .envrc" || echo "⚠️  .envrc not found"
+            # Copy .envrc with warning comment
+            if [ -f "$PROJECT_SOURCE/.envrc" ]; then
+              {
+                echo "# NOTE: Copied version: original is in nixfiles/projects/${name}/.envrc"
+                echo "# This file is read-only to prevent accidental edits. Edit the original in nixfiles instead."
+                echo ""
+                cat "$PROJECT_SOURCE/.envrc"
+              } > "$PROJECT_DIR/.envrc"
+              echo "✅ Copied .envrc (with read-only warning)"
+            else
+              echo "⚠️  .envrc not found"
+            fi
+
             cp "$PROJECT_SOURCE/startup.nu" "$PROJECT_DIR/" 2>/dev/null && echo "✅ Copied startup.nu" || echo "⚠️  startup.nu not found"
-            cp "$PROJECT_SOURCE/flake.nix" "$PROJECT_DIR/" 2>/dev/null && echo "✅ Copied flake.nix" || echo "⚠️  flake.nix not found"
+
+            # Copy flake.nix with warning comment
+            if [ -f "$PROJECT_SOURCE/flake.nix" ]; then
+              {
+                echo "# NOTE: Copied version: original is in nixfiles/projects/${name}/flake.nix"
+                echo "# This file is read-only to prevent accidental edits. Edit the original in nixfiles instead."
+                echo ""
+                cat "$PROJECT_SOURCE/flake.nix"
+              } > "$PROJECT_DIR/flake.nix"
+              echo "✅ Copied flake.nix (with read-only warning)"
+            else
+              echo "⚠️  flake.nix not found"
+            fi
 
             # Setup development scripts via symlinks
             nu -c 'print $"(ansi purple_bold)🔗 Setting up development scripts for ${name}...(ansi reset)"'
@@ -226,7 +250,8 @@
             )}
 
             # Set permissions and ownership
-            chmod u+w "$PROJECT_DIR/.envrc" "$PROJECT_DIR/flake.nix" 2>/dev/null || true
+            chmod u-w "$PROJECT_DIR/.envrc" 2>/dev/null || true
+            chmod u-w "$PROJECT_DIR/flake.nix" 2>/dev/null || true
             chmod +x "$PROJECT_DIR/startup.nu" 2>/dev/null || true
             if command -v chown >/dev/null 2>&1; then
               if [[ "$OSTYPE" == "darwin"* ]]; then
@@ -261,7 +286,6 @@ in {
     ./dart.nix
     ./xcode.nix
     ./rust.nix
-    ./linux-development.nix
   ];
 
   options.development = {
@@ -297,10 +321,6 @@ in {
         pkgs-stable.wget
         pkgs-stable.jq
         pkgs-stable.tree
-
-        # build tools (stable)
-        pkgs-stable.cmake
-        pkgs-stable.gcc
 
         # Project setup helper
         devSetupScript
