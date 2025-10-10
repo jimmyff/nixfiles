@@ -151,7 +151,7 @@ in {
                                 mode: [emacs, vi_normal, vi_insert]
                                 event: { send: executehostcommand cmd: (_atuin_search_cmd) }
                             }
-          l              )
+                        )
                     )
 
                     $env.config = (
