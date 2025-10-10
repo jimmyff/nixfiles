@@ -182,6 +182,7 @@
 
             # Copy .envrc with warning comment
             if [ -f "$PROJECT_SOURCE/.envrc" ]; then
+              chmod u+w "$PROJECT_DIR/.envrc" 2>/dev/null || true
               {
                 echo "# NOTE: Copied version: original is in nixfiles/projects/${name}/.envrc"
                 echo "# This file is read-only to prevent accidental edits. Edit the original in nixfiles instead."
@@ -197,6 +198,7 @@
 
             # Copy flake.nix with warning comment
             if [ -f "$PROJECT_SOURCE/flake.nix" ]; then
+              chmod u+w "$PROJECT_DIR/flake.nix" 2>/dev/null || true
               {
                 echo "# NOTE: Copied version: original is in nixfiles/projects/${name}/flake.nix"
                 echo "# This file is read-only to prevent accidental edits. Edit the original in nixfiles instead."
@@ -206,6 +208,14 @@
               echo "✅ Copied flake.nix (with read-only warning)"
             else
               echo "⚠️  flake.nix not found"
+            fi
+
+            # Symlink flake.lock to keep it writable and synced
+            if [ -f "$PROJECT_SOURCE/flake.lock" ]; then
+              if [ -e "$PROJECT_DIR/flake.lock" ] && [ ! -L "$PROJECT_DIR/flake.lock" ]; then
+                rm "$PROJECT_DIR/flake.lock"
+              fi
+              ln -sf "$PROJECT_SOURCE/flake.lock" "$PROJECT_DIR/flake.lock" && echo "✅ Linked flake.lock" || echo "⚠️  Failed to link flake.lock"
             fi
 
             # Setup development scripts via symlinks

@@ -42,25 +42,26 @@
           ]
           ++ pkgs-stable.lib.optionals pkgs-stable.stdenv.isLinux [
             # Linux Flutter dependencies - complete GTK stack
-            pkgs-stable.gtk3
-            pkgs-stable.gtk3.dev
-            pkgs-stable.glib
-            pkgs-stable.glib.dev
-            pkgs-stable.pango
-            pkgs-stable.pango.dev
-            pkgs-stable.cairo
-            pkgs-stable.cairo.dev
-            pkgs-stable.gdk-pixbuf
-            pkgs-stable.gdk-pixbuf.dev
-            pkgs-stable.atk
-            pkgs-stable.atk.dev
-            pkgs-stable.harfbuzz
-            pkgs-stable.harfbuzz.dev
+            # Using pkgs-unstable to match system Flutter's GTK dependencies
+            pkgs-unstable.gtk3
+            pkgs-unstable.gtk3.dev
+            pkgs-unstable.glib
+            pkgs-unstable.glib.dev
+            pkgs-unstable.pango
+            pkgs-unstable.pango.dev
+            pkgs-unstable.cairo
+            pkgs-unstable.cairo.dev
+            pkgs-unstable.gdk-pixbuf
+            pkgs-unstable.gdk-pixbuf.dev
+            pkgs-unstable.atk
+            pkgs-unstable.atk.dev
+            pkgs-unstable.harfbuzz
+            pkgs-unstable.harfbuzz.dev
             # Additional system dependencies
-            pkgs-stable.util-linux
-            pkgs-stable.pcre2
-            pkgs-stable.libepoxy
-            pkgs-stable.clang
+            pkgs-unstable.util-linux
+            pkgs-unstable.pcre2
+            pkgs-unstable.libepoxy
+            pkgs-unstable.clang
           ];
 
         shellHook = ''
