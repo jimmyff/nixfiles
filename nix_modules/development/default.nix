@@ -210,12 +210,19 @@
               echo "⚠️  flake.nix not found"
             fi
 
-            # Symlink flake.lock to keep it writable and synced
+            # Copy flake.lock to keep it in sync (Nix doesn't support symlinks for flake.lock)
             if [ -f "$PROJECT_SOURCE/flake.lock" ]; then
-              if [ -e "$PROJECT_DIR/flake.lock" ] && [ ! -L "$PROJECT_DIR/flake.lock" ]; then
-                rm "$PROJECT_DIR/flake.lock"
+              if [ -f "$PROJECT_DIR/flake.lock" ]; then
+                # Check if files differ to prevent losing local changes
+                if ! cmp -s "$PROJECT_SOURCE/flake.lock" "$PROJECT_DIR/flake.lock"; then
+                  echo "❌ ERROR: flake.lock files differ between nixfiles and project directory"
+                  echo "   Source: $PROJECT_SOURCE/flake.lock"
+                  echo "   Dest:   $PROJECT_DIR/flake.lock"
+                  echo "   Please manually sync these files to avoid losing local changes."
+                  exit 1
+                fi
               fi
-              ln -sf "$PROJECT_SOURCE/flake.lock" "$PROJECT_DIR/flake.lock" && echo "✅ Linked flake.lock" || echo "⚠️  Failed to link flake.lock"
+              cp "$PROJECT_SOURCE/flake.lock" "$PROJECT_DIR/flake.lock" && echo "✅ Copied flake.lock" || echo "⚠️  Failed to copy flake.lock"
             fi
 
             # Setup development scripts via symlinks
