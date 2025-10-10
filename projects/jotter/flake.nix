@@ -26,8 +26,7 @@
         exec /usr/bin/base64 "$@"
       '';
     in
-      pkgs-stable.mkShellNoCC {
-
+      pkgs-stable.mkShell {
         buildInputs =
           [
             pkgs-stable.jdk
@@ -40,6 +39,28 @@
           ]
           ++ pkgs-stable.lib.optionals pkgs-stable.stdenv.isDarwin [
             darwinBase64 # Fix CocoaPods compatibility on macOS
+          ]
+          ++ pkgs-stable.lib.optionals pkgs-stable.stdenv.isLinux [
+            # Linux Flutter dependencies - complete GTK stack
+            pkgs-stable.gtk3
+            pkgs-stable.gtk3.dev
+            pkgs-stable.glib
+            pkgs-stable.glib.dev
+            pkgs-stable.pango
+            pkgs-stable.pango.dev
+            pkgs-stable.cairo
+            pkgs-stable.cairo.dev
+            pkgs-stable.gdk-pixbuf
+            pkgs-stable.gdk-pixbuf.dev
+            pkgs-stable.atk
+            pkgs-stable.atk.dev
+            pkgs-stable.harfbuzz
+            pkgs-stable.harfbuzz.dev
+            # Additional system dependencies
+            pkgs-stable.util-linux
+            pkgs-stable.pcre2
+            pkgs-stable.libepoxy
+            pkgs-stable.clang
           ];
 
         shellHook = ''
