@@ -1,5 +1,8 @@
-{ pkgs, username, ... }:
 {
+  pkgs,
+  username,
+  ...
+}: {
   imports = [
     ../shared/core.nix
     ../shared/apps.nix
@@ -17,12 +20,16 @@
 
   # Optimise store
   nix.optimise.automatic = true;
-  
+
   # Garbage collection
   nix.gc = {
     automatic = true;
-    interval = { Weekday = 0; Hour = 0; Minute = 0; };
-    options = "--delete-older-than 30d";
+    interval = {
+      Weekday = 0;
+      Hour = 0;
+      Minute = 0;
+    };
+    options = "--delete-older-than 7d";
   };
 
   system = {
@@ -45,8 +52,7 @@
       "/etc/profiles/per-user/${username}/bin"
       "/run/current-system/sw/bin"
       "/nix/var/nix/profiles/default/bin"
-      "$PATH"  # Include existing PATH
+      "$PATH" # Include existing PATH
     ];
   };
-
 }
