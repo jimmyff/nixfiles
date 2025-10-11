@@ -61,6 +61,8 @@
             pkgs-unstable.util-linux
             pkgs-unstable.pcre2
             pkgs-unstable.libepoxy
+            pkgs-unstable.openssl
+            pkgs-unstable.openssl.dev
             pkgs-unstable.clang
           ];
 
