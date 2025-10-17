@@ -15,6 +15,7 @@
     pkgs-stable.age                      # Encryption library
     pkgs-stable.agenix-cli               # Age nix tool
     pkgs-stable.bat                      # Cat clone with syntax highlighting
+    pkgs-stable.vim                      # Vi/Vim text editor
   ];
 
   environment.shells = with pkgs-stable; [ bash zsh nushell ];

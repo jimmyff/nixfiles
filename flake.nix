@@ -140,10 +140,9 @@
         specialArgs = linuxArgs;
 
         modules = [
-
-
-          # add from this list: https://github.com/NixOS/nixos-hardware/blob/master/flake.nix
-          nixos-hardware.nixosModules.google-pixelbook
+          # NOTE: Removed nixos-hardware.nixosModules.google-pixelbook due to conflicts
+          # The google-pixelbook module sets i915 kernel params that break suspend/resume
+          # We use custom pixelbook-go config instead (imported in configuration.nix)
 
           ./hosts/nixelbook/configuration.nix
 
