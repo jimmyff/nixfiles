@@ -67,7 +67,7 @@
             # SQLite database support
             pkgs-unstable.sqlite
             # File picker dialog support
-            pkgs-unstable.gnome.zenity
+            pkgs-unstable.zenity
           ];
 
         shellHook = ''
