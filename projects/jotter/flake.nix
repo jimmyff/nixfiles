@@ -1,5 +1,5 @@
 {
-  description = "Development environment for Jotter - Note-taking and journaling application";
+  description = "Development environment for Blink - Note-taking and journaling application";
   # Flutter and Android SDK are provided by Android Studio instead of Nix
   # This avoids iOS build issues where Xcode cannot write to read-only Flutter root
   # See: https://github.com/flutter/flutter/pull/155139
@@ -71,7 +71,7 @@
           ];
 
         shellHook = ''
-          echo "📝 Entering Jotter development environment"
+          echo "📝 Entering Blink development environment"
           echo "Flutter: $(flutter --version 2>/dev/null | head -1 || echo 'Not found - install via Android Studio')"
           echo "Dart: $(dart --version 2>/dev/null || echo 'Not found - install via Android Studio')"
           echo "☕ JDK: ${pkgs-stable.jdk}"
