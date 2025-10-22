@@ -64,6 +64,10 @@
             pkgs-unstable.openssl
             pkgs-unstable.openssl.dev
             pkgs-unstable.clang
+            # SQLite database support
+            pkgs-unstable.sqlite
+            # File picker dialog support
+            pkgs-unstable.gnome.zenity
           ];
 
         shellHook = ''
