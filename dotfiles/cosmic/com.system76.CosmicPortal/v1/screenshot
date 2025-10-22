@@ -1,4 +1,4 @@
 (
     save_location: Clipboard,
-    choice: Rectangle,
+    choice: Window,
 )
