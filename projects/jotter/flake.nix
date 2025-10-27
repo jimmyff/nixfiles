@@ -35,7 +35,13 @@
             pkgs-stable.pkg-config
             pkgs-stable.gcc
             pkgs-unstable.uv
-            pkgs-stable.python313
+            # Python with packages required for git_dart native builds
+            # (mbedtls code generation scripts need jsonschema and jinja2)
+            # Using Python 3.12 for better compatibility with nixpkgs-stable packages
+            (pkgs-stable.python312.withPackages (ps: with ps; [
+              jsonschema
+              jinja2
+            ]))
           ]
           ++ pkgs-stable.lib.optionals pkgs-stable.stdenv.isDarwin [
             darwinBase64 # Fix CocoaPods compatibility on macOS
