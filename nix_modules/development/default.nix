@@ -1,7 +1,7 @@
 {
   inputs,
   pkgs-stable,
-  pkgs-apps,
+  pkgs-dev-tools,
   lib,
   config,
   username,
@@ -326,12 +326,12 @@ in {
         pkgs-stable.direnv
         pkgs-stable.nix-direnv
 
-        # Development utilities (apps)
-        pkgs-apps.firebase-tools
-        pkgs-apps.google-cloud-sdk
-        pkgs-apps.doppler
-        pkgs-apps.entr
-        pkgs-apps.lnav
+        # Development utilities
+        pkgs-stable.firebase-tools # Pinned to stable due to unstable build issues
+        pkgs-dev-tools.google-cloud-sdk
+        pkgs-dev-tools.doppler
+        pkgs-dev-tools.entr
+        pkgs-dev-tools.lnav
 
         # Basic CLI utilities (stable)
         pkgs-stable.curl

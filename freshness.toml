@@ -26,14 +26,17 @@ pkgs-dev-android = [
 ]
 
 # Desktop Environments
-pkgs-desktop = ["cosmic"]
+pkgs-desktop = [
+  # Core COSMIC components
+  "cosmic-session",
+  "cosmic-comp",
+  "cosmic-greeter",
+  "cosmic-panel",
+  "cosmic-settings",
+  "cosmic-files",
+  "cosmic-edit",
+  "cosmic-launcher",
+]
 
 # User Applications
-pkgs-apps = [
-  # Add your application packages here
-]
-
-# Core System (stable)
-pkgs-stable = [
-  # Add your core system packages here
-]
+pkgs-apps = ["signal-desktop-bin", "google-chrome"]
