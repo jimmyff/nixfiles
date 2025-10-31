@@ -33,6 +33,26 @@
 
       ERRORS=""
 
+      # Setup writable Flutter SDK for Android Studio (Darwin only)
+      ${lib.optionalString pkgs-stable.stdenv.isDarwin ''
+        WRITABLE_FLUTTER="${homeDir}/.local/share/flutter"
+        if [ ! -d "$WRITABLE_FLUTTER" ]; then
+          echo "📥 Cloning writable Flutter SDK for Android Studio compatibility..."
+          echo "   This enables Android Studio to work with Flutter on macOS"
+          echo "   (Terminal builds will continue using Nix-managed Flutter)"
+          mkdir -p "${homeDir}/.local/share"
+          git clone https://github.com/flutter/flutter.git "$WRITABLE_FLUTTER" --depth 1 --branch stable
+          if [ -d "$WRITABLE_FLUTTER" ]; then
+            echo "✅ Writable Flutter SDK cloned to $WRITABLE_FLUTTER"
+          else
+            echo "❌ ERROR: Failed to clone Flutter SDK"
+            ERRORS="1"
+          fi
+        else
+          echo "✅ Writable Flutter SDK found at $WRITABLE_FLUTTER (for Android Studio)"
+        fi
+      ''}
+
       # Check for nix-managed Flutter first, then fall back to manual installation
       if command -v flutter >/dev/null 2>&1; then
         FLUTTER_PATH=$(which flutter)
