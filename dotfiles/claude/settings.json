@@ -6,6 +6,21 @@
     "USE_BUILTIN_RIPGREP": "0"
   },
   "includeCoAuthoredBy": false,
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:docs.cloud.google.com)",
+      "WebFetch(domain:pub.dev)",
+      "Edit(//tmp/**)",
+      "Read(~/nixfiles/**)",
+      "Read(~/.pub-cache/**)",
+      "Bash(dart test:*)",
+      "Bash(flutter test:*)",
+      "Bash(dart pub get:*)",
+      "Bash(flutter pub get:*)",
+      "Bash(grep:*)",
+      "Bash(git log:*)"
+    ]
+  },
   "statusLine": {
     "type": "command",
     "command": "~/.claude/statusline.sh",

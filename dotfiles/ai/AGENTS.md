@@ -16,6 +16,8 @@
 
 - Always think carefully when discussing programming/technical content
 - Write clean, elegant code with concise comments
+- Always consider seperation of concerns, don't pollute the codebase.
+- Follow the DRY principle- avoid code duplication, think carefully about overall structure
 - Always go with correct solution over quick work-around. Code robustness is the top priority and I would rather take longer to achieve a technically superior solution
 - Run the language analyzer/checker on code to ensure it's free of errors and warnings
 - Follow best-practices. Don't take shortcuts, take pride in the code you create and work on
@@ -29,6 +31,7 @@
 - Add important unit tests (we don't want tests for the sake of tests)
 - Add mocked integration tests using appropriate frameworks
 - Focus on meaningful test coverage, not metrics
+- When fixing complex problems, add a thoughtful test to validate the issue which will double up as a regression test later.
 
 ## Security
 
