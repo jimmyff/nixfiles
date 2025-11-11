@@ -1,8 +1,10 @@
 {
   description = "Development environment for Blink - Note-taking and journaling application";
-  # Flutter and Android SDK are provided by Android Studio instead of Nix
-  # This avoids iOS build issues where Xcode cannot write to read-only Flutter root
-  # See: https://github.com/flutter/flutter/pull/155139
+  # Flutter and Dart are provided by system-level Nix configuration (~/nixfiles)
+  # The system config handles platform-specific setup automatically:
+  # - macOS: Writable Flutter at ~/.local/share/flutter (iOS-compatible)
+  # - Linux: Read-only Flutter from Nix store
+  # This keeps the project flake platform-agnostic
 
   inputs = {
     nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixos-unstable";
@@ -25,15 +27,25 @@
       darwinBase64 = pkgs-stable.writeShellScriptBin "base64" ''
         exec /usr/bin/base64 "$@"
       '';
+
+      # Use mkShellNoCC on Darwin to avoid NIX compiler toolchain
+      # macOS relies on Xcode's native toolchain (clang, ld, etc.)
+      # mkShellNoCC uses stdenvNoCC which excludes NIX's clang-wrapper and bintools,
+      # allowing Xcode's native /usr/bin/clang and /usr/bin/ld to be used directly
+      # without NIX wrapper interference. This is essential for Flutter/CocoaPods builds.
+      # Use mkShell on Linux which includes gcc/clang from NIX
+      shellFunc = if pkgs-stable.stdenv.isDarwin
+                  then pkgs-stable.mkShellNoCC
+                  else pkgs-stable.mkShell;
     in
-      pkgs-stable.mkShell {
+      shellFunc ({
         buildInputs =
           [
             pkgs-stable.jdk
             pkgs-stable.cmake
             pkgs-stable.libgit2
             pkgs-stable.pkg-config
-            pkgs-stable.gcc
+            # gcc moved to Linux-only section to avoid Xcode toolchain conflicts on macOS
             pkgs-unstable.uv
             # Python with packages required for git_dart native builds
             # (mbedtls code generation scripts need jsonschema and jinja2)
@@ -69,6 +81,8 @@
             pkgs-unstable.libepoxy
             pkgs-unstable.openssl
             pkgs-unstable.openssl.dev
+            # Build tools (Linux only - macOS uses Xcode's native toolchain)
+            pkgs-stable.gcc
             pkgs-unstable.clang
             # SQLite database support
             pkgs-unstable.sqlite
@@ -78,9 +92,19 @@
 
         shellHook = ''
           echo "📝 Entering Blink development environment"
-          echo "Flutter: $(flutter --version 2>/dev/null | head -1 || echo 'Not found - install via Android Studio')"
-          echo "Dart: $(dart --version 2>/dev/null || echo 'Not found - install via Android Studio')"
+          echo "Flutter: $(flutter --version 2>/dev/null | head -1 || echo 'Not available')"
+          echo "Dart: $(dart --version 2>/dev/null || echo 'Not available')"
+          echo "Flutter root: ''${FLUTTER_ROOT:-Not set}"
           echo "☕ JDK: ${pkgs-stable.jdk}"
+          ${pkgs-stable.lib.optionalString pkgs-stable.stdenv.isDarwin ''
+            echo "🔧 Toolchain: Xcode (mkShellNoCC - no NIX compiler)"
+            echo "   CC: $(which clang 2>/dev/null || echo 'not in PATH')"
+            echo "   LD: $(which ld 2>/dev/null || echo 'not in PATH')"
+          ''}
+          ${pkgs-stable.lib.optionalString pkgs-stable.stdenv.isLinux ''
+            echo "🔧 Toolchain: NIX (mkShell)"
+            echo "   CC: $(which gcc 2>/dev/null || echo 'not in PATH')"
+          ''}
           echo ""
 
 
@@ -107,7 +131,7 @@
           # Install speckit
           uv tool install specify-cli --from git+https://github.com/github/spec-kit.git
         '';
-      };
+      });
   in {
     devShells = builtins.listToAttrs (map (system: {
         name = system;

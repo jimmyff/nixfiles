@@ -1,8 +1,10 @@
 {
   description = "Development environment for OSDN Platform";
-  # Flutter and Android SDK are provided by Android Studio instead of Nix
-  # This avoids iOS build issues where Xcode cannot write to read-only Flutter root
-  # See: https://github.com/flutter/flutter/pull/155139
+  # Flutter and Dart are provided by system-level Nix configuration (~/nixfiles)
+  # The system config handles platform-specific setup automatically:
+  # - macOS: Writable Flutter at ~/.local/share/flutter (iOS-compatible)
+  # - Linux: Read-only Flutter from Nix store
+  # This keeps the project flake platform-agnostic
 
   inputs = {
     nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixos-unstable";
@@ -55,8 +57,9 @@
           # Load Doppler environment variables with safe parsing for special characters
           ${mkDopplerShellHook { project = "rocketware"; config = "dev"; }}
           echo "🚀 Entering OSDN development environment"
-          echo "Flutter: $(flutter --version 2>/dev/null | head -1 || echo 'Not found - install via Android Studio')"
-          echo "Dart: $(dart --version 2>/dev/null || echo 'Not found - install via Android Studio')"
+          echo "Flutter: $(flutter --version 2>/dev/null | head -1 || echo 'Not available')"
+          echo "Dart: $(dart --version 2>/dev/null || echo 'Not available')"
+          echo "Flutter root: ''${FLUTTER_ROOT:-Not set}"
           echo "☕ JDK: ${pkgs-stable.jdk}"
           echo ""
 

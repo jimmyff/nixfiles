@@ -31,7 +31,8 @@
 - Add important unit tests (we don't want tests for the sake of tests)
 - Add mocked integration tests using appropriate frameworks
 - Focus on meaningful test coverage, not metrics
-- When fixing complex problems, add a thoughtful test to validate the issue which will double up as a regression test later.
+- When fixing complex problems, add a thoughtful test to validate the issue which will double up as a regression test later
+- Always verify tests pass before claiming completion
 
 ## Security
 
