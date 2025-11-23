@@ -1,14 +1,28 @@
 {
-  "contextFileName": [
-    "CLAUDE.md"
-  ],
-  "disableAutoUpdate": true,
-  "loadMemoryFromIncludeDirectories": true,
-  "preferredEditor": "hx",
-  "selectedAuthType": "oauth-personal",
-  "theme": "Dracula",
-  "usageStatisticsEnabled": false,
-  "vimMode": true,
+  "context": {
+    "fileName": [
+      "CLAUDE.md"
+    ],
+    "loadFromIncludeDirectories": true
+  },
+  "general": {
+    "disableAutoUpdate": true,
+    "preferredEditor": "hx",
+    "vimMode": true
+  },
+  "security": {
+    "auth": {
+      "selectedType": "oauth-personal"
+    }
+  },
+  "ui": {
+    "theme": "Dracula",
+    "showStatusInTitle": true,
+    "showLineNumbers": true
+  },
+  "privacy": {
+    "usageStatisticsEnabled": false
+  },
   "advanced": {
     "excludeEnvVars": [
       "IDE_ANTHROPIC_API_KEY",

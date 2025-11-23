@@ -33,6 +33,7 @@
 - Focus on meaningful test coverage, not metrics
 - When fixing complex problems, add a thoughtful test to validate the issue which will double up as a regression test later
 - Always verify tests pass before claiming completion
+- When running tests always use a timeout (eg: `timeout 30 flutter test ...`), when running all tests of a complex project you may need to use 60/90 seconds.
 
 ## Security
 
