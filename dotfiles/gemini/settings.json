@@ -8,7 +8,8 @@
   "general": {
     "disableAutoUpdate": true,
     "preferredEditor": "hx",
-    "vimMode": true
+    "vimMode": true,
+    "previewFeatures": true
   },
   "security": {
     "auth": {

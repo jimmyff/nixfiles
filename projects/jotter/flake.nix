@@ -45,6 +45,7 @@
             pkgs-stable.cmake
             pkgs-stable.libgit2
             pkgs-stable.pkg-config
+            pkgs-unstable.nodejs_22 # Node.js and npm for MCP servers (22.12.0+ required for chrome-devtools-mcp)
             # gcc moved to Linux-only section to avoid Xcode toolchain conflicts on macOS
             pkgs-unstable.uv
             # Python with packages required for git_dart native builds
@@ -96,6 +97,8 @@
           echo "Dart: $(dart --version 2>/dev/null || echo 'Not available')"
           echo "Flutter root: ''${FLUTTER_ROOT:-Not set}"
           echo "☕ JDK: ${pkgs-stable.jdk}"
+          echo "🟢 Node.js: $(node --version 2>/dev/null || echo 'Not available')"
+          echo "📦 npm: $(npm --version 2>/dev/null || echo 'Not available')"
           ${pkgs-stable.lib.optionalString pkgs-stable.stdenv.isDarwin ''
             echo "🔧 Toolchain: Xcode (mkShellNoCC - no NIX compiler)"
             echo "   CC: $(which clang 2>/dev/null || echo 'not in PATH')"
@@ -127,9 +130,6 @@
             echo ""
             echo "🔧 To start the development environment, run: ./startup.nu"
           fi
-
-          # Install speckit
-          uv tool install specify-cli --from git+https://github.com/github/spec-kit.git
         '';
       });
   in {

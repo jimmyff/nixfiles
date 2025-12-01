@@ -22,7 +22,7 @@
   "buffer_font_size": 14,
   "relative_line_numbers": true,
   "inlay_hints": {
-    "enabled": true
+    "enabled": false
   },
   "indent_guides": {
     "enabled": true,
@@ -31,6 +31,7 @@
   "git": {
     "git_gutter": "tracked_files",
     "inline_blame": {
+      "enabled": false,
       "delay_ms": 1500
     }
   },

@@ -21,6 +21,7 @@
 - Always go with correct solution over quick work-around. Code robustness is the top priority and I would rather take longer to achieve a technically superior solution
 - Run the language analyzer/checker on code to ensure it's free of errors and warnings
 - Follow best-practices. Don't take shortcuts, take pride in the code you create and work on
+- Use descriptive name to give semantic clarity and avoid any ambiguity
 - Prioritize code clarity over extensive documentation
 - Defensive programming: validate inputs, handle edge cases
 - If you spot minor issues in the codebase (lacking documentation, minor code edits) then you are free to fix them as you spot them
