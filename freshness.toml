@@ -27,6 +27,8 @@ pkgs-dev-android = [
 
 # Desktop Environments
 pkgs-desktop = [
+  # macOS
+  "aerospace",
   # Core COSMIC components
   "cosmic-session",
   "cosmic-comp",

@@ -29,6 +29,7 @@
       "Bash(timeout 90 dart run build_runner build:*)",
       "Bash(dart pub get:*)",
       "Bash(flutter pub get:*)",
+      "Bash(dart analyze:*)",
       "Bash(grep:*)",
       "Bash(git log:*)"
     ]
