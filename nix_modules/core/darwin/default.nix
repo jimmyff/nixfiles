@@ -8,6 +8,7 @@
     ../shared/apps.nix
     ../users_darwin.nix
     ../shared/ssh.nix
+    ./ssh.nix
     ../shared/fonts.nix
     ../shared/stow.nix
     ../shared/playwright.nix
