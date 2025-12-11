@@ -24,6 +24,8 @@
 - Prioritize code clarity over extensive documentation
 - Defensive programming: validate inputs, handle edge cases
 - Fix minor issues as you spot them; flag bigger issues
+- No silent errors
+- Prefer required parameters, defaults can make bugs hard to find
 
 ## Testing
 

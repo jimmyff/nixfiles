@@ -3,7 +3,10 @@
     "fileName": [
       "CLAUDE.md"
     ],
-    "loadFromIncludeDirectories": true
+    "loadFromIncludeDirectories": true,
+    "fileFiltering": {
+      "respectGitIgnore": false
+    }
   },
   "general": {
     "disableAutoUpdate": true,
