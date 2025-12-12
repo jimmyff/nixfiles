@@ -90,7 +90,7 @@
 
     # Helper to create specialized packages for a system
     mkSpecialArgs = system: {
-      inherit inputs username nixfiles-vault;
+      inherit inputs username nixfiles-vault self;
       pkgs-unstable = nixpkgs.legacyPackages.${system};
       pkgs-stable = import pkgs-stable {
         inherit system;

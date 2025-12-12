@@ -39,6 +39,7 @@
   signal.enable = true;
   google-chrome.enable = false;
   playwright.enable = false;
+  rclone.enable = true;
 
   # Pixelbook keyboard issue:
   # `sudo libinput debug-events` failed to show chromos key press

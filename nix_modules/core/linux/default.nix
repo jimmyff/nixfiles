@@ -11,6 +11,7 @@
     ../shared/playwright.nix
     ../../apps/signal.nix
     ../../apps/google-chrome.nix
+    ../../apps/rclone.nix
   ];
 
  

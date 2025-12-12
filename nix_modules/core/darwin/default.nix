@@ -15,6 +15,7 @@
     ../../apps/signal.nix
     ../../apps/raycast.nix
     ../../apps/google-chrome.nix
+    ../../apps/rclone.nix
   ];
 
   system.primaryUser = username;

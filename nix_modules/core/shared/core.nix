@@ -1,4 +1,4 @@
-{ pkgs-stable, ... }:
+{ pkgs-stable, inputs, ... }:
 {
 
   nix.enable = true;
@@ -12,8 +12,8 @@
 
 
   environment.systemPackages = [
-    pkgs-stable.age                      # Encryption library
-    pkgs-stable.agenix-cli               # Age nix tool
+    pkgs-stable.age                                        # Encryption library
+    inputs.agenix.packages.${pkgs-stable.system}.default  # Age nix secrets tool
     pkgs-stable.bat                      # Cat clone with syntax highlighting
     pkgs-stable.vim                      # Vi/Vim text editor
   ];

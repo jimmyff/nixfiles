@@ -16,4 +16,5 @@ let
 in {
   "nextdns_nixelbook.age".publicKeys = allUsers ++ [systems.nixelbook];
   "android-release-key.jks.age".publicKeys = allUsers ++ [systems.nixelbook systems.jimmyff-mbp14];
+  "rclone-config-pass.age".publicKeys = allUsers ++ allSystems;
 }

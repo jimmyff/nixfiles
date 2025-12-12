@@ -24,4 +24,5 @@
   raycast.enable = true;
   google-chrome.enable = true;
   playwright.enable = true;
+  rclone.enable = true;
 }

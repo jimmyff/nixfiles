@@ -194,11 +194,11 @@
     "nixfiles-vault": {
       "flake": false,
       "locked": {
-        "lastModified": 1758026347,
-        "narHash": "sha256-6KNggwJMvp3PapTR+4QyjGDxI0vk65uWqL8DYe673F0=",
+        "lastModified": 1765477031,
+        "narHash": "sha256-LZOrRXweu+crC4c/jiK5tPC5UM5Bqb5k2FfPGWauVuU=",
         "ref": "refs/heads/main",
-        "rev": "2dd22bd0d7f014dd48dedfd222811037e39111d4",
-        "revCount": 2,
+        "rev": "398343615ec7e09512d9481c699d7b18a7cd8330",
+        "revCount": 3,
         "type": "git",
         "url": "ssh://git@github.com/jimmyff/nixfiles_vault.git"
       },
@@ -262,11 +262,11 @@
     },
     "pkgs-ai": {
       "locked": {
-        "lastModified": 1764794580,
-        "narHash": "sha256-UMVihg0OQ980YqmOAPz+zkuCEb9hpE5Xj2v+ZGNjQ+M=",
+        "lastModified": 1765270179,
+        "narHash": "sha256-g2a4MhRKu4ymR4xwo+I+auTknXt/+j37Lnf0Mvfl1rE=",
         "owner": "nixos",
         "repo": "nixpkgs",
-        "rev": "ebc94f855ef25347c314258c10393a92794e7ab9",
+        "rev": "677fbe97984e7af3175b6c121f3c39ee5c8d62c9",
         "type": "github"
       },
       "original": {
@@ -278,11 +278,11 @@
     },
     "pkgs-apps": {
       "locked": {
-        "lastModified": 1764517877,
-        "narHash": "sha256-pp3uT4hHijIC8JUK5MEqeAWmParJrgBVzHLNfJDZxg4=",
+        "lastModified": 1765186076,
+        "narHash": "sha256-hM20uyap1a0M9d344I692r+ik4gTMyj60cQWO+hAYP8=",
         "owner": "nixos",
         "repo": "nixpkgs",
-        "rev": "2d293cbfa5a793b4c50d17c05ef9e385b90edf6c",
+        "rev": "addf7cf5f383a3101ecfba091b98d0a1263dc9b8",
         "type": "github"
       },
       "original": {
