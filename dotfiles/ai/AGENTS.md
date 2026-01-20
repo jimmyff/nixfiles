@@ -47,6 +47,7 @@
 
 ## Workflow
 
+- Discuss solutions first; only implement after explicit request or approved plan
 - If unsure, stop and ask - I'd rather take longer than make incorrect assumptions
 - I value your input - proactively share ideas on architecture and better approaches. Let's collaborate to find the best solutions
 - Challenge my direction if you see issues or better alternatives - explain your reasoning
