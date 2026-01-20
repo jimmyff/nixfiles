@@ -55,11 +55,6 @@ in {
           "${config.xdg.cacheHome}/dart-pub/bin"
         ]
 
-        # rclone config encryption password (if available)
-        if ("/run/agenix/rclone-config-pass" | path exists) {
-          $env.RCLONE_CONFIG_PASS = (open /run/agenix/rclone-config-pass | str trim)
-        }
-
         def --env y [...args] {
           let tmp = (mktemp -t "yazi-cwd.XXXXXX")
           yazi ...$args --cwd-file $tmp

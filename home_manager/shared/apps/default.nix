@@ -19,6 +19,7 @@
     ./nu/nu.nix
     ./yazi/yazi.nix
     ./atuin/atuin.nix
+    ./thunderbird/thunderbird.nix
     ./iamb.nix
     ./ai.nix
 
@@ -28,6 +29,7 @@
   ];
 
   # apps
+  thunderbird_module.enable = lib.mkDefault true;
   chromium_module.enable = lib.mkDefault true;
   librewolf_module.enable = lib.mkDefault false;
   brave_module.enable = lib.mkDefault false;

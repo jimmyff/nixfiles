@@ -32,6 +32,12 @@
           # Compose settings
           "mail.identity.default.compose_html" = false; # Plain text by default
           "mail.SpellCheckBeforeSend" = true;
+
+          # OpenPGP settings
+          "mail.identity.default.attachPgpKey" = true; # Attach public key to signed messages
+          "mail.identity.default.protectSubject" = true; # Encrypt subject line
+          "mail.e2ee.auto_enable" = true; # Auto-enable encryption when possible
+          "mail.e2ee.notify_on_auto_disable" = true; # Notify when encryption disabled
         };
 
         # Extensions can be added here
@@ -43,26 +49,7 @@
       };
     };
 
-    # Email accounts can be declared here using accounts.email.accounts
-    # Example structure (uncomment and customize):
-    #
-    # accounts.email.accounts."personal" = {
-    #   primary = true;
-    #   address = "you@example.com";
-    #   realName = "Your Name";
-    #   userName = "you@example.com";
-    #   imap = {
-    #     host = "imap.example.com";
-    #     port = 993;
-    #   };
-    #   smtp = {
-    #     host = "smtp.example.com";
-    #     port = 587;
-    #   };
-    #   thunderbird = {
-    #     enable = true;
-    #     profiles = [ "default" ];
-    #   };
-    # };
+    # Accounts configured manually in Thunderbird (not declaratively)
+    # due to "managed by organisation" lockdown preventing password entry
   };
 }
