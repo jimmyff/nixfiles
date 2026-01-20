@@ -41,4 +41,4 @@ pkgs-desktop = [
 ]
 
 # User Applications
-pkgs-apps = ["signal-desktop-bin", "google-chrome"]
+pkgs-apps = ["cinny-desktop", "thunderbird", "signal-desktop-bin", "google-chrome"]
