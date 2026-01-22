@@ -11,7 +11,7 @@
   config = lib.mkIf config.thunderbird_module.enable {
     programs.thunderbird = {
       enable = true;
-      package = pkgs-apps.thunderbird;
+      package = pkgs-apps.thunderbird-bin;
       # Set to null for darwin compatibility
       profileVersion =
         if pkgs-apps.stdenv.isDarwin
