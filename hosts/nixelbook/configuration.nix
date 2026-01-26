@@ -36,6 +36,7 @@
   rust.enable = true;
 
   # Applications
+  cinny.enable = true;
   signal.enable = true;
   google-chrome.enable = false;
   playwright.enable = false;

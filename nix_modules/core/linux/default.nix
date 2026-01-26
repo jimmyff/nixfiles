@@ -9,6 +9,7 @@
     ../shared/fonts.nix
     ../shared/stow.nix
     ../shared/playwright.nix
+    ../../apps/cinny.nix
     ../../apps/signal.nix
     ../../apps/google-chrome.nix
     ../../apps/rclone.nix

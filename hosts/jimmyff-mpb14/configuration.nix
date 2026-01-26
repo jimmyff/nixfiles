@@ -20,6 +20,7 @@
   rust.enable = true;
 
   # Applications
+  cinny.enable = true;
   signal.enable = true;
   raycast.enable = true;
   google-chrome.enable = true;
