@@ -39,11 +39,7 @@
     "diagnostics": false,
     "metrics": false
   },
-  "theme": {
-    "mode": "dark",
-    "light": "Ayu Dark",
-    "dark": "Ayu Dark"
-  },
+  "theme": "Ayu Dark",
   "ui_font_family": "JetBrainsMono Nerd Font",
   "ui_font_size": 15,
 
@@ -56,10 +52,11 @@
         "arguments": ["language-server", "--protocol=lsp"]
       }
     }
-  },
+  }
   // I like my ide to be super clear where my focus is (WIP)
   // Colors inspired by Modus Vivendi Tinted:
   // https://github.com/protesilaos/modus-themes/blob/main/modus-vivendi-tinted-theme.el
+  /*
   "experimental.theme_overrides": {
     "editor.background": "#0d0e1c",
     "scrollbar.thumb.background": "#1d2235",
@@ -96,4 +93,5 @@
     //   }
     // }
   }
+  */
 }

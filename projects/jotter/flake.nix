@@ -48,6 +48,7 @@
             pkgs-unstable.nodejs_22 # Node.js and npm for MCP servers (22.12.0+ required for chrome-devtools-mcp)
             # gcc moved to Linux-only section to avoid Xcode toolchain conflicts on macOS
             pkgs-unstable.uv
+            pkgs-unstable.zola # Static site generator for website
             # Python with packages required for git_dart native builds
             # (mbedtls code generation scripts need jsonschema and jinja2)
             # Using Python 3.12 for better compatibility with nixpkgs-stable packages
