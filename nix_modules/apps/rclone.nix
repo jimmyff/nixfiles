@@ -1,6 +1,7 @@
 {
   pkgs-apps,
   pkgs-stable,
+  pkgs-dev-tools,
   lib,
   config,
   username,
@@ -24,7 +25,7 @@
 
   # Wrapper script to run rclone-sync.nu
   rclone-sync = pkgs-apps.writeShellScriptBin "rclone-sync" ''
-    exec ${pkgs-stable.nushell}/bin/nu ${self}/scripts/rclone-sync/rclone-sync.nu "$@"
+    exec ${pkgs-dev-tools.nushell}/bin/nu ${self}/scripts/rclone-sync/rclone-sync.nu "$@"
   '';
 in {
   options.rclone = {
@@ -39,7 +40,7 @@ in {
     ];
 
     environment.systemPackages = [
-      pkgs-apps.rclone
+      pkgs-stable.rclone
       rclone-sync
     ];
 

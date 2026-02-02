@@ -2,11 +2,9 @@
   description = "Nixos config flake";
 
   inputs = {
-    # Default nixpkgs - will be removed once migration to specialized inputs is complete
-    nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
-
     # Specialized nixpkgs inputs for different update cadences
-    pkgs-stable.url = "github:nixos/nixpkgs/nixos-25.05";           # Core system, rarely changes
+    pkgs-unstable.url = "github:nixos/nixpkgs/nixos-unstable";      # Framework base (nix-darwin, home-manager)
+    pkgs-stable.url = "github:nixos/nixpkgs/nixos-25.05";           # Core system, stable packages
     pkgs-desktop.url = "github:nixos/nixpkgs/nixos-unstable";       # Desktop environments
     pkgs-apps.url = "github:nixos/nixpkgs/nixos-unstable";          # User applications
     pkgs-ai.url = "github:nixos/nixpkgs/nixpkgs-unstable";          # AI tools, bleeding edge
@@ -15,9 +13,9 @@
     pkgs-dev-rust.url = "github:nixos/nixpkgs/nixos-unstable";      # Rust development
     pkgs-dev-android.url = "github:nixos/nixpkgs/nixos-unstable";   # Android development
 
-    # macOS
+    # macOS (master requires nixpkgs-unstable)
     nix-darwin.url = "github:nix-darwin/nix-darwin/master";
-    nix-darwin.inputs.nixpkgs.follows = "nixpkgs";
+    nix-darwin.inputs.nixpkgs.follows = "pkgs-unstable";
 
 
 
@@ -25,13 +23,13 @@
     # Disabled as nvim not in use
     # nvf = {
     #   url = "github:notashelf/nvf";
-    #   inputs.nixpkgs.follows = "nixpkgs";
+    #   inputs.nixpkgs.follows = "pkgs-stable";
     # };
 
-    # home-manager
+    # home-manager (master requires nixpkgs-unstable)
     home-manager = {
       url = "github:nix-community/home-manager/master";
-      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.nixpkgs.follows = "pkgs-unstable";
     };
 
     # nix hardware
@@ -41,13 +39,13 @@
     # TODO: not using it yet
     agenix = {
       url = "github:ryantm/agenix";
-      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.nixpkgs.follows = "pkgs-stable";
     };
 
     # NUR (Nix User Repository) - for Firefox extensions
     nur = {
       url = "github:nix-community/NUR";
-      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.nixpkgs.follows = "pkgs-stable";
     };
 
     # Private vault repository for encrypted secrets
@@ -59,7 +57,7 @@
     # Android SDK packages
     android-nixpkgs = {
       url = "github:tadfisher/android-nixpkgs/stable";
-      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.nixpkgs.follows = "pkgs-stable";
     };
 
   
@@ -67,7 +65,6 @@
 
   outputs = inputs @ {
     self,
-    nixpkgs,
     pkgs-stable,
     pkgs-desktop,
     pkgs-apps,
@@ -91,7 +88,6 @@
     # Helper to create specialized packages for a system
     mkSpecialArgs = system: {
       inherit inputs username nixfiles-vault self;
-      pkgs-unstable = nixpkgs.legacyPackages.${system};
       pkgs-stable = import pkgs-stable {
         inherit system;
         config.allowUnfree = true;
@@ -108,9 +104,17 @@
         inherit system;
         config.allowUnfree = true;
       };
+      # TODO: TEMPORARY (2026-02-02) - nushell 0.110.0 has a failing test on macOS
+      # due to sandbox permissions. Skip tests until upstream fix lands.
+      # Track: https://github.com/NixOS/nixpkgs/issues/XXXXX
       pkgs-dev-tools = import pkgs-dev-tools {
         inherit system;
         config.allowUnfree = true;
+        overlays = [
+          (final: prev: {
+            nushell = prev.nushell.overrideAttrs (old: { doCheck = false; });
+          })
+        ];
       };
       pkgs-dev-flutter = import pkgs-dev-flutter {
         inherit system;
@@ -136,7 +140,7 @@
     nixosConfigurations = {
 
       # Jimmy's Pixelbook
-      nixelbook = nixpkgs.lib.nixosSystem {
+      nixelbook = pkgs-stable.lib.nixosSystem {
         specialArgs = linuxArgs;
 
         modules = [

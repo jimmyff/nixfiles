@@ -1,4 +1,4 @@
-{ pkgs-stable, inputs, ... }:
+{ pkgs-stable, pkgs-dev-tools, inputs, ... }:
 {
 
   nix.enable = true;
@@ -18,6 +18,6 @@
     pkgs-stable.vim                      # Vi/Vim text editor
   ];
 
-  environment.shells = with pkgs-stable; [ bash zsh nushell ];
+  environment.shells = [ pkgs-stable.bash pkgs-stable.zsh pkgs-dev-tools.nushell ];
 
 }

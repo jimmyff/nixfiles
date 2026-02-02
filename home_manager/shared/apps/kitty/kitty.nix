@@ -1,5 +1,6 @@
 {
   pkgs-apps,
+  pkgs-dev-tools,
   lib,
   config,
   ...
@@ -63,7 +64,7 @@
         cursor_trail_decay = "0.1 0.4";
         adjust_line_height = "125%";
         # Launch nushell through login shell to inherit system environment variables
-        shell = "${pkgs-apps.bash}/bin/bash -l -c '${pkgs-apps.nushell}/bin/nu'";
+        shell = "${pkgs-apps.bash}/bin/bash -l -c '${pkgs-dev-tools.nushell}/bin/nu'";
         # Modus Vivendi Tinted theme by Protesilaos Stavrou
         foreground = "#ffffff";
         background = "#0d0e1c";

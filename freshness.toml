@@ -8,11 +8,15 @@
 
 [packages]
 
+# Core stable packages (CLI utilities)
+pkgs-stable = ["rclone"]
+
+# Development Tools (editors, LSPs, formatters, shell)
+pkgs-dev-tools = ["helix", "zed-editor", "vscode", "nushell"]
+
 # AI Tools (bleeding edge)
 pkgs-ai = ["claude-code", "gemini-cli"]
 
-# Development Tools (editors, LSPs, formatters)
-pkgs-dev-tools = ["helix", "zed-editor", "vscode"]
 
 # Flutter/Dart Development
 pkgs-dev-flutter = ["flutter", "dart"]

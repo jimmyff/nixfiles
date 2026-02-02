@@ -1,5 +1,6 @@
 {
   pkgs-apps,
+  pkgs-dev-tools,
   username,
   config,
   lib,
@@ -15,6 +16,7 @@ in {
     # Docs: https://www.nushell.sh/book/configuration.html
     nushell = {
       enable = true;
+      package = pkgs-dev-tools.nushell;
 
       environmentVariables =
         config.home.sessionVariables

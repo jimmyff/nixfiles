@@ -1,5 +1,5 @@
 
-{ pkgs, hostname, username, ... }:
+{ pkgs-dev-tools, hostname, username, ... }:
 
 #############################################################
 #
@@ -18,14 +18,14 @@
   users.users."${username}"= {
     home = "/Users/${username}";
     description = username;
-    shell = pkgs.nushell;
+    shell = pkgs-dev-tools.nushell;
   };
 
   # NOTE: nix-darwin only supports hardcoded activation script names. Custom names are silently ignored.
   # Supported names: preActivation, postActivation, extraActivation, and ~20 system-specific ones.
   # See: https://github.com/nix-darwin/nix-darwin/blob/master/modules/system/activation-scripts.nix
   system.activationScripts.extraActivation.text = ''
-    target="${pkgs.nushell}/bin/nu"
+    target="${pkgs-dev-tools.nushell}/bin/nu"
     current="$(dscl . -read /Users/${username} UserShell | awk '{print $2}')"
     if [ "$current" != "$target" ]; then
       echo "Setting login shell for ${username} to $target"

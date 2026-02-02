@@ -65,6 +65,7 @@
   # btop
   programs.btop = {
     enable = true;
+    package = pkgs-stable.btop;
     settings = {
       #color_theme = "HotPurpleTrafficLight";
       vim_keys = true;
@@ -72,5 +73,8 @@
   };
 
   # ripgrep - required for nvim telescope
-  programs.ripgrep.enable = true;
+  programs.ripgrep = {
+    enable = true;
+    package = pkgs-stable.ripgrep;
+  };
 }
