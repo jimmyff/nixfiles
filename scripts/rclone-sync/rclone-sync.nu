@@ -11,7 +11,15 @@ const COLORS = {
     success: (ansi green),
     warning: (ansi yellow),
     error: (ansi red),
+    cmd: (ansi yellow_dimmed),
     reset: (ansi reset)
+}
+
+# Build displayable rclone command string
+def build-cmd [src: string, dst: string, exclude_flags: list<string>, extra_flags: list<string>] {
+    let excludes = ($exclude_flags | chunks 2 | each {|pair| $"($pair.0) \"($pair.1)\""} | str join " ")
+    let extras = ($extra_flags | str join " ")
+    $"rclone sync ($src) ($dst) ($excludes) ($extras)"
 }
 
 def main [
@@ -51,7 +59,7 @@ def main [
         exit 1
     }
 
-    let exclude_flags = ["--exclude" ".DS_Store" "--exclude" "._*" "--exclude" ".Spotlight-V100" "--exclude" ".Trashes" "--exclude" "*~lock~*"]
+    let exclude_flags = ["--exclude" ".DS_Store" "--exclude" "._*"]
 
     let local_path = $cwd
     let remote_path = $"($remote):($rel_path)"
@@ -64,17 +72,18 @@ def main [
 
     # Handle --skip-dry-run flag
     if $skip_dry_run {
-        print ""
+        let cmd = (build-cmd $src $dst $exclude_flags ["--progress"])
+        print $"\n($COLORS.cmd)$ ($cmd)($COLORS.reset)\n"
         rclone sync $src $dst ...$exclude_flags --progress
-        print ""
-        print $"($COLORS.success)Sync complete($COLORS.reset)"
+        print $"\n($COLORS.success)Sync complete($COLORS.reset)"
         return
     }
 
-    print ""
-    print $"($COLORS.info)=== Dry Run ===($COLORS.reset)"
+    # Dry run first
+    print $"\n($COLORS.info)=== Dry Run ===($COLORS.reset)"
+    let dry_cmd = (build-cmd $src $dst $exclude_flags ["--dry-run"])
+    print $"($COLORS.cmd)$ ($dry_cmd)($COLORS.reset)\n"
 
-    # Run dry-run
     let result = (do -i { rclone sync $src $dst ...$exclude_flags --dry-run } | complete)
     let output = $"($result.stdout)($result.stderr)"
     print $output
@@ -89,17 +98,19 @@ def main [
         ($line | str contains "Transferred:") and (($line | str contains "0 / 0") or ($line | str contains "0 B / 0 B"))
     })
     if $no_changes {
-        print ""
-        print $"($COLORS.success)No changes to sync($COLORS.reset)"
+        print $"\n($COLORS.success)No changes to sync($COLORS.reset)"
         return
     }
 
-    print ""
-    let response = (input $"($COLORS.info)Proceed with sync? [y/N] ($COLORS.reset)")
+    # Show actual command and confirm
+    let sync_cmd = (build-cmd $src $dst $exclude_flags ["--progress"])
+    print $"\n($COLORS.info)Command to execute:($COLORS.reset)"
+    print $"($COLORS.cmd)$ ($sync_cmd)($COLORS.reset)\n"
+
+    let response = (input $"($COLORS.info)Proceed? [y/N] ($COLORS.reset)")
     if ($response | str downcase) == "y" {
         print ""
         rclone sync $src $dst ...$exclude_flags --progress
-        print ""
-        print $"($COLORS.success)Sync complete($COLORS.reset)"
+        print $"\n($COLORS.success)Sync complete($COLORS.reset)"
     }
 }
