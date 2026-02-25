@@ -147,9 +147,20 @@
                   if git submodule update --init --recursive; then
                     echo "✅ Submodules initialized successfully"
 
-                    # Checkout main branch for all submodules to avoid detached HEAD state
-                    echo "🌿 Checking out main branch for submodules..."
-                    git submodule foreach git checkout main
+                    # Checkout default branch for all submodules to avoid detached HEAD state
+                    echo "🌿 Checking out default branch for submodules..."
+                    git submodule foreach '
+                      branch=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed "s@^refs/remotes/origin/@@")
+                      if [ -z "$branch" ]; then
+                        git remote set-head origin --auto >/dev/null 2>&1
+                        branch=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed "s@^refs/remotes/origin/@@")
+                      fi
+                      if [ -n "$branch" ]; then
+                        git checkout "$branch"
+                      else
+                        echo "⚠️  Could not determine default branch for $name, staying detached"
+                      fi
+                    '
                   else
                     echo "❌ Failed to initialize submodules"
                   fi

@@ -12,6 +12,7 @@
     ../../apps/cinny.nix
     ../../apps/signal.nix
     ../../apps/google-chrome.nix
+    ../../apps/brave.nix
     ../../apps/rclone.nix
   ];
 

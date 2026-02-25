@@ -10,7 +10,7 @@
   # Development environment configuration
   development = {
     enable = true;
-    projects = [ "jimmyff-website" "rocket-kit" "osdn" "jotter" ];
+    projects = [ "jimmyff-website" "rocket-kit" "osdn" "jotter" "escp" ];
   };
 
   # Platform-specific development tools
@@ -20,10 +20,10 @@
   rust.enable = true;
 
   # Applications
-  cinny.enable = true;
+  cinny.enable = false; # 2026-02-20: temporarily disabled, nixpkgs version mismatch (cinny 4.10.3 vs cinny-desktop 4.10.2)
   signal.enable = true;
   raycast.enable = true;
-  google-chrome.enable = true;
+  brave.enable = true;
   playwright.enable = true;
   rclone.enable = true;
 }

@@ -54,8 +54,14 @@
 - Read URLs when shared
 - My systems are entirely managed by Nix, system configuration is in `~/nixfiles/`. If working in `~/Project/...` you are in a project with its own devshell configured by the project flake.
 
+## Research
+
+- Prioritise official documentation and source repositories over web searches
+- For SDKs/packages, check the provider's official docs and repo first
+
 ## Dart & Flutter
 
 - Use package:mockito for mocked integration tests
 - Use timeouts: `timeout 30 flutter test ...` (60/90s for complex projects)
+- Package docs: https://pub.dev/packages/$package_id
 - [Flutter API](https://api.flutter.dev/) | [Dart API](https://api.dart.dev/)

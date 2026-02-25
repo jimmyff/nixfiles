@@ -12,7 +12,8 @@
     "disableAutoUpdate": true,
     "preferredEditor": "hx",
     "vimMode": true,
-    "previewFeatures": true
+    "previewFeatures": true,
+    "enableAutoUpdate": false
   },
   "security": {
     "auth": {

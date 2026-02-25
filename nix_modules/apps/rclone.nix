@@ -82,6 +82,7 @@ in {
         chown ${username}:${userGroup} "${homeDir}/Cloud"
         chown ${username}:${userGroup} "${rcloneConfigDir}"
       '';
+    } // lib.optionalAttrs (!pkgs-apps.stdenv.isDarwin) {
       deps = ["users" "groups"];
     };
 

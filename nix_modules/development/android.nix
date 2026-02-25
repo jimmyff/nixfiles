@@ -43,6 +43,7 @@
       # ndk-26-1-10909125
       # ndk-26-3-11579264
       ndk-27-0-12077973
+      ndk-28-2-13676358
       cmake-3-22-1
     ]);
 
@@ -201,6 +202,7 @@ in {
 
         echo "🤖 Activated Android development environment"
       '';
+    } // lib.optionalAttrs (!pkgs-dev-android.stdenv.isDarwin) {
       deps = ["users" "groups"];
     };
   };

@@ -16,6 +16,7 @@
     ../../apps/signal.nix
     ../../apps/raycast.nix
     ../../apps/google-chrome.nix
+    ../../apps/brave.nix
     ../../apps/rclone.nix
   ];
 
@@ -55,6 +56,7 @@
       "/etc/profiles/per-user/${username}/bin"
       "/run/current-system/sw/bin"
       "/nix/var/nix/profiles/default/bin"
+      "/Users/${username}/.cache/dart-pub/bin" # FlutterFire CLI for Xcode build phases
       "$PATH" # Include existing PATH
     ];
   };

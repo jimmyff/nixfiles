@@ -57,6 +57,14 @@ in {
     FLUTTER_GRADLE_PLUGIN_BUILDDIR = "${xdgCacheHome}/flutter-gradle-plugin";
   };
 
+  # Propagate dart/flutter env vars to GUI apps (Xcode) via launchd
+  launchd.user.envVariables = {
+    FLUTTER_ROOT = flutterRoot;
+    JAVA_HOME = "${pkgs-dev-flutter.zulu17}";
+    PUB_CACHE = "${xdgCacheHome}/dart-pub";
+    FLUTTER_GRADLE_PLUGIN_BUILDDIR = "${xdgCacheHome}/flutter-gradle-plugin";
+  };
+
   # Setup writable Flutter SDK and cache directories
   system.activationScripts.dartSetupDarwin = {
     text = ''
@@ -105,6 +113,5 @@ in {
       echo "🎯 Activated Dart/Flutter development environment (macOS)"
       echo "📱 Flutter SDK: ${flutterRoot} (writable, iOS-compatible)"
     '';
-    deps = ["users" "groups"];
   };
 }

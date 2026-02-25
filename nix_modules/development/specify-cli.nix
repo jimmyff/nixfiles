@@ -46,6 +46,7 @@ in {
           echo "⚠️  UV not found, skipping specify-cli installation"
         fi
       '';
+    } // lib.optionalAttrs (!pkgs-dev-tools.stdenv.isDarwin) {
       deps = ["users" "groups"];
     };
   };
