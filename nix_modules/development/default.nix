@@ -241,6 +241,21 @@
               echo "⚠️  flake.nix not found"
             fi
 
+            # Copy shared devshell-utils.nix with warning comment
+            UTILS_SOURCE="${homeDir}/nixfiles/projects/devshell-utils.nix"
+            if [ -f "$UTILS_SOURCE" ]; then
+              chmod u+w "$PROJECT_DIR/devshell-utils.nix" 2>/dev/null || true
+              {
+                echo "# NOTE: Copied version: original is in nixfiles/projects/devshell-utils.nix"
+                echo "# This file is read-only to prevent accidental edits. Edit the original in nixfiles instead."
+                echo ""
+                cat "$UTILS_SOURCE"
+              } > "$PROJECT_DIR/devshell-utils.nix"
+              echo "✅ Copied devshell-utils.nix (with read-only warning)"
+            else
+              echo "⚠️  devshell-utils.nix not found"
+            fi
+
             # Copy flake.lock to keep it in sync (Nix doesn't support symlinks for flake.lock)
             if [ -f "$PROJECT_SOURCE/flake.lock" ]; then
               if [ -f "$PROJECT_DIR/flake.lock" ]; then
@@ -300,6 +315,7 @@
             # Set permissions and ownership
             chmod u-w "$PROJECT_DIR/.envrc" 2>/dev/null || true
             chmod u-w "$PROJECT_DIR/flake.nix" 2>/dev/null || true
+            chmod u-w "$PROJECT_DIR/devshell-utils.nix" 2>/dev/null || true
             chmod +x "$PROJECT_DIR/startup.nu" 2>/dev/null || true
             if command -v chown >/dev/null 2>&1; then
               if [[ "$OSTYPE" == "darwin"* ]]; then
