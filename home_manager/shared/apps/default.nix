@@ -13,7 +13,6 @@
     ./zellij/zellij.nix
     ./chromium/chromium.nix
     ./librewolf/librewolf.nix
-    ./brave/brave.nix
     ./vscode/vscode.nix
     ./zed/zed.nix
     ./nu/nu.nix
@@ -32,7 +31,6 @@
   thunderbird_module.enable = lib.mkDefault true;
   chromium_module.enable = lib.mkDefault true;
   librewolf_module.enable = lib.mkDefault false;
-  brave_module.enable = lib.mkDefault false;
   yazi_module.enable = lib.mkDefault true;
 
   # editors

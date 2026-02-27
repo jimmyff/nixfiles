@@ -10,7 +10,7 @@ in {
     enable = lib.mkEnableOption "Signal Desktop messaging application";
   };
 
-  config = lib.mkIf cfg.enable {
+  config = lib.mkIf (cfg.enable && !pkgs-apps.stdenv.hostPlatform.isDarwin) {
     environment.systemPackages = [
       pkgs-apps.signal-desktop-bin
     ];

@@ -16,8 +16,8 @@
     ../../apps/signal.nix
     ../../apps/raycast.nix
     ../../apps/google-chrome.nix
-    ../../apps/brave.nix
     ../../apps/rclone.nix
+    ./homebrew.nix
   ];
 
   system.primaryUser = username;
