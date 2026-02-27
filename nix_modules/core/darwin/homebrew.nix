@@ -2,8 +2,7 @@
   # Fail early if Homebrew isn't installed
   system.activationScripts.preActivation.text = ''
     if ! [ -x /opt/homebrew/bin/brew ] && ! [ -x /usr/local/bin/brew ]; then
-      echo "error: Homebrew is not installed. Install it first:"
-      echo "  /bin/bash -c \"\$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)\""
+      echo "error: Homebrew is not installed. Install it from: https://brew.sh/"
       exit 1
     fi
   '';

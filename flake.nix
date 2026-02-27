@@ -42,11 +42,11 @@
       inputs.nixpkgs.follows = "pkgs-stable";
     };
 
-    # NUR (Nix User Repository) - for Firefox extensions
-    nur = {
-      url = "github:nix-community/NUR";
-      inputs.nixpkgs.follows = "pkgs-stable";
-    };
+    # NUR (Nix User Repository) - required if using librewolf
+    # nur = {
+    #   url = "github:nix-community/NUR";
+    #   inputs.nixpkgs.follows = "pkgs-stable";
+    # };
 
     # Private vault repository for encrypted secrets
     nixfiles-vault = {
@@ -77,7 +77,7 @@
     home-manager,
     nixos-hardware,
     agenix,
-    nur,
+    # nur, # required if using librewolf
     nixfiles-vault,
     android-nixpkgs,
     # nvf,

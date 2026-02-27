@@ -350,7 +350,7 @@ in {
     ./dart.nix
     ./xcode.nix
     ./rust.nix
-    ./specify-cli.nix
+
   ];
 
   options.development = {

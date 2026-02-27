@@ -23,15 +23,16 @@
         id = 0;
         isDefault = true;
 
-        extensions.packages = with inputs.nur.legacyPackages.${pkgs-apps.system}.repos.rycee.firefox-addons; [
-          bitwarden
-          bookmarkhub
-          proton-pass
-          vimium
-          darkreader
-          ublock-origin
-          # shortkeys
-        ];
+        # Requires NUR flake input (see flake.nix)
+        extensions.packages = lib.optionals (inputs ? nur)
+          (with inputs.nur.legacyPackages.${pkgs-apps.system}.repos.rycee.firefox-addons; [
+            bitwarden
+            bookmarkhub
+            proton-pass
+            vimium
+            darkreader
+            ublock-origin
+          ]);
 
         search = {
           force = true;
