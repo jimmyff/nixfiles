@@ -181,7 +181,7 @@ in {
       export PATH="${androidSdk}/share/android-sdk/build-tools/33.0.2:$PATH"
     '';
 
-    # Deploy encrypted keystore using agenix
+    # Deploy encrypted keystores using agenix
     age.secrets.android-keystore = {
       file = nixfiles-vault + "/android-release-key.jks.age";
       path = "${xdgDataHome}/android/key.jks";
@@ -189,16 +189,25 @@ in {
       owner = username;
       group = userGroup;
     };
+    age.secrets.android-debug-keystore = {
+      file = nixfiles-vault + "/android-debug-keystore.age";
+      path = "${homeDir}/.android/debug.keystore";
+      mode = "600";
+      owner = username;
+      group = userGroup;
+    };
 
-    # Setup Android keystore deployment directory
+    # Setup Android keystore deployment directories
     system.activationScripts.androidSetup = {
       text = ''
-        # Create Android keystore directory (XDG compliant)
+        # Create Android keystore directories
         mkdir -p ${xdgDataHome}/android
+        mkdir -p ${homeDir}/.android
         # Flutter cache directory now handled by dart.nix module
 
         # Set ownership
         chown -R ${username}:${userGroup} ${xdgDataHome}/android 2>/dev/null || echo "Warning: Could not set ownership of Android directories"
+        chown -R ${username}:${userGroup} ${homeDir}/.android 2>/dev/null || echo "Warning: Could not set ownership of .android directory"
 
         echo "🤖 Activated Android development environment"
       '';
