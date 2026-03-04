@@ -12,7 +12,7 @@ in {
 
   config = lib.mkIf (cfg.enable && !pkgs-apps.stdenv.hostPlatform.isDarwin) {
     environment.systemPackages = [
-      pkgs-apps.signal-desktop-bin
+      pkgs-apps.signal-desktop
     ];
   };
 }

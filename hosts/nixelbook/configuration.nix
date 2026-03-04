@@ -33,7 +33,7 @@
   # Platform-specific development tools
   android.enable = false;
   dart.enable = true;
-  rust.enable = true;
+  rust.enable = false;
 
   # Applications
   cinny.enable = false; # 2026-02-20: temporarily disabled, nixpkgs version mismatch (cinny 4.10.3 vs cinny-desktop 4.10.2)
