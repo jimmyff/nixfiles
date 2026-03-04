@@ -1,12 +1,13 @@
 # Darwin Setup
 
 1. Install Nix: https://nixos.org/download/
-2. Set hostname: `sudo scutil --set HostName jimmyff-mbp14`
-3. Install Darwin: `sudo nix run --extra-experimental-features nix-command --extra-experimental-features flakes nix-darwin/master#darwin-rebuild -- switch --flake ~/nixfiles/flake.nix`
-4. Setup SSH keys from Bitwarden
-5. Disable system shortcuts: System Settings → Keyboard → Shortcuts
-6. Launch Raycast, bind to ⌘+Space
-7. Configure browser keyboard shortcuts in System Settings → Keyboard → Shortcuts → App Shortcuts: → All Applications
+2. Install Homebrew: https://brew.sh
+3. Set hostname: `sudo scutil --set HostName jimmyff-mbp14`
+4. Install Darwin: `sudo nix run --extra-experimental-features nix-command --extra-experimental-features flakes nix-darwin/master#darwin-rebuild -- switch --flake ~/nixfiles/flake.nix`
+5. Setup SSH keys from Bitwarden
+6. Disable system shortcuts: System Settings → Keyboard → Shortcuts
+7. Launch Raycast, bind to ⌘+Space
+8. Configure browser keyboard shortcuts in System Settings → Keyboard → Shortcuts → App Shortcuts: → All Applications
 
 | Menu Title              | Keybind  |
 | ----------------------- | -------- |
@@ -36,6 +37,14 @@ map <c-m-l> nextTab
 map <c-m-j> goBack
 map <c-m-k> goForward
 ```
+
+## Homebrew Casks
+
+Some macOS GUI apps (Signal, Chromium) aren't well-served by nixpkgs on darwin. These are managed declaratively via nix-darwin's homebrew module.
+
+- **Config**: `nix_modules/core/darwin/homebrew.nix`
+- `cleanup = "zap"` removes anything not declared
+- Casks are installed/upgraded automatically on `darwin-rebuild switch`
 
 ## Manual Installs
 

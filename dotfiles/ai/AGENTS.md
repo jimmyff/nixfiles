@@ -14,24 +14,32 @@
 
 ## Coding
 
-- Always think carefully when discussing programming/technical content
-- Write clean, elegant code with concise comments
-- Always consider seperation of concerns, don't pollute the codebase.
-- Follow the DRY principle- avoid code duplication, think carefully about overall structure
-- Always go with correct solution over quick work-around. Code robustness is the top priority and I would rather take longer to achieve a technically superior solution
-- Run the language analyzer/checker on code to ensure it's free of errors and warnings
-- Follow best-practices. Don't take shortcuts, take pride in the code you create and work on
+- Think carefully on technical content
+- Clean, elegant code with concise comments
+- Separation of concerns, DRY principle
+- Correct solutions over quick workarounds - robustness is top priority. Take longer for technically superior solutions
+- Run language analyzer to ensure error/warning-free code
+- Take pride in the code; follow best-practices, no shortcuts
+- Descriptive names for semantic clarity
 - Prioritize code clarity over extensive documentation
 - Defensive programming: validate inputs, handle edge cases
-- If you spot minor issues in the codebase (lacking documentation, minor code edits) then you are free to fix them as you spot them
-- If you spot bigger issues in the codebase then please suggest that these be rectified
+- Fix minor issues as you spot them; flag bigger issues
+- No silent errors
+- Prefer required parameters, defaults can make bugs hard to find
 
 ## Testing
 
-- Add important unit tests (we don't want tests for the sake of tests)
+- Add meaningful unit tests (not tests for the sake of tests)
 - Add mocked integration tests using appropriate frameworks
-- Focus on meaningful test coverage, not metrics
-- When fixing complex problems, add a thoughtful test to validate the issue which will double up as a regression test later.
+- When fixing complex issues, add regression tests
+- Always verify tests pass before claiming completion
+
+## Documentation
+
+- Keep Readme/Agent/Claude files up-to-date; flag if not (do not update without consent)
+- Files: ideally <100 lines, max 200
+- Code should be self-documenting; Readmes provide quick orientation (purpose, structure, components) not comprehensive documentation
+- Agent files: high-level overview, key patterns; reference package READMEs for specifics
 
 ## Security
 
@@ -39,12 +47,21 @@
 
 ## Workflow
 
-- If there is ever something that you are unsure about, do not continue, stop and ask the question. I would rather we resolve questions and take a little longer than making assumptions that could be incorrect
-- When I share a URL with you, make sure you read it.
-- My sysems are entirely managed by Nix, can you find my system configuration in `~/nixfiles/` if you are working in a `~/Project/...` then you are working on a specific project that enviroment is managed by a devshell configured by the flake in the project folder.
+- Discuss solutions first; only implement after explicit request or approved plan
+- If unsure, stop and ask - I'd rather take longer than make incorrect assumptions
+- I value your input - proactively share ideas on architecture and better approaches. Let's collaborate to find the best solutions
+- Challenge my direction if you see issues or better alternatives - explain your reasoning
+- Read URLs when shared
+- My systems are entirely managed by Nix, system configuration is in `~/nixfiles/`. If working in `~/Project/...` you are in a project with its own devshell configured by the project flake.
+
+## Research
+
+- Prioritise official documentation and source repositories over web searches
+- For SDKs/packages, check the provider's official docs and repo first
 
 ## Dart & Flutter
 
 - Use package:mockito for mocked integration tests
-- [Flutter API reference](https://api.flutter.dev/)
-- [Dart API reference](https://api.dart.dev/)
+- Use timeouts: `timeout 30 flutter test ...` (60/90s for complex projects)
+- Package docs: https://pub.dev/packages/$package_id
+- [Flutter API](https://api.flutter.dev/) | [Dart API](https://api.dart.dev/)

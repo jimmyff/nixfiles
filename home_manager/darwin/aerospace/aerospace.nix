@@ -1,6 +1,6 @@
 # AeroSpace module for Darwin
 {
-  pkgs,
+  pkgs-desktop,
   lib,
   config,
   ...
@@ -10,7 +10,7 @@
   };
 
   config = lib.mkIf config.aerospace_module.enable {
-    home.packages = [pkgs.aerospace];
+    home.packages = [pkgs-desktop.aerospace];
 
     services.jankyborders = {
       enable = true;

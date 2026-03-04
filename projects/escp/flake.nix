@@ -1,5 +1,5 @@
 {
-  description = "Development environment for OSDN Platform";
+  description = "Development environment for ESCP Platform";
   # Flutter and Dart are provided by system-level Nix configuration (~/nixfiles)
   # The system config handles platform-specific setup automatically:
   # - macOS: Writable Flutter at ~/.local/share/flutter (iOS-compatible)
@@ -23,7 +23,7 @@
         shellHook = ''
           ${utils.darwinPathHook pkgs-stable}
           ${utils.mkDopplerShellHook {project = "rocketware"; config = "dev";}}
-          echo "🚀 Entering OSDN development environment"
+          echo "🚀 Entering ESCP development environment"
           echo "Flutter: $(flutter --version 2>/dev/null | head -1 || echo 'Not available')"
           echo "Dart: $(dart --version 2>/dev/null || echo 'Not available')"
           echo "Flutter root: ''${FLUTTER_ROOT:-Not set}"

@@ -55,6 +55,7 @@ in {
 
         echo "🦀 Activated Rust development environment"
       '';
+    } // lib.optionalAttrs (!pkgs-dev-rust.stdenv.isDarwin) {
       deps = ["users" "groups"];
     };
   };

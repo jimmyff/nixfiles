@@ -13,12 +13,12 @@
     ./zellij/zellij.nix
     ./chromium/chromium.nix
     ./librewolf/librewolf.nix
-    ./brave/brave.nix
     ./vscode/vscode.nix
     ./zed/zed.nix
     ./nu/nu.nix
     ./yazi/yazi.nix
     ./atuin/atuin.nix
+    ./thunderbird/thunderbird.nix
     ./iamb.nix
     ./ai.nix
 
@@ -28,9 +28,9 @@
   ];
 
   # apps
+  thunderbird_module.enable = lib.mkDefault true;
   chromium_module.enable = lib.mkDefault true;
   librewolf_module.enable = lib.mkDefault false;
-  brave_module.enable = lib.mkDefault false;
   yazi_module.enable = lib.mkDefault true;
 
   # editors
@@ -63,6 +63,7 @@
   # btop
   programs.btop = {
     enable = true;
+    package = pkgs-stable.btop;
     settings = {
       #color_theme = "HotPurpleTrafficLight";
       vim_keys = true;
@@ -70,5 +71,8 @@
   };
 
   # ripgrep - required for nvim telescope
-  programs.ripgrep.enable = true;
+  programs.ripgrep = {
+    enable = true;
+    package = pkgs-stable.ripgrep;
+  };
 }

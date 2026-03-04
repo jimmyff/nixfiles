@@ -36,9 +36,11 @@
   rust.enable = true;
 
   # Applications
+  cinny.enable = false; # 2026-02-20: temporarily disabled, nixpkgs version mismatch (cinny 4.10.3 vs cinny-desktop 4.10.2)
   signal.enable = true;
   google-chrome.enable = false;
   playwright.enable = false;
+  rclone.enable = true;
 
   # Pixelbook keyboard issue:
   # `sudo libinput debug-events` failed to show chromos key press

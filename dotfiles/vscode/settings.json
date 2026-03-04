@@ -216,5 +216,10 @@
 
   // Shell
   "terminal.integrated.shellIntegration.enabled": true,
-  "dart.openDevTools": "flutter"
+  "dart.openDevTools": "flutter",
+  "dart.devToolsLocation": {
+    
+    "default": "beside",
+    "inspector": "sidebar"
+  }
 }

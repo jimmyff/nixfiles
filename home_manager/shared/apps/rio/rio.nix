@@ -1,5 +1,6 @@
 {
   pkgs-apps,
+  pkgs-dev-tools,
   lib,
   config,
   ...
@@ -18,7 +19,7 @@
         };
 
         shell = {
-          program = "${pkgs-apps.nushell}/bin/nu";
+          program = "${pkgs-dev-tools.nushell}/bin/nu";
           args = ["--config" "${config.xdg.configHome}/nushell/config.nu"];
         };
 

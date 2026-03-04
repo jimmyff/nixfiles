@@ -8,6 +8,7 @@
 
         programs.chromium = {
             enable = true;
+            package = pkgs-apps.ungoogled-chromium;
             extensions = [
                 "nngceckbapebfimnlniiiahkandclblb" # bitwarden
                 "eljbmlghnomdjgdjmbdekegdkbabckhm" # Dart debug
@@ -19,6 +20,6 @@
         };
 
         home.sessionVariables.BROWSER = lib.mkIf (!config.librewolf_module.enable) "chromium";
-        home.sessionVariables.CHROME_EXECUTABLE = lib.getExe pkgs-apps.chromium;
+        home.sessionVariables.CHROME_EXECUTABLE = lib.getExe pkgs-apps.ungoogled-chromium;
     };
 }

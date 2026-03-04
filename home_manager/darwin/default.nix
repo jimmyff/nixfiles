@@ -8,6 +8,7 @@
   ];
 
   # Not supported on darwin - chromium package unavailable on aarch64-darwin
+  # Chromium is installed via homebrew cask (ungoogled-chromium)
   chromium_module.enable = false;
   
   # Enable AeroSpace window manager for Darwin
@@ -41,10 +42,12 @@
 
   # (Optional) ensure these session variables are exported too
   home.sessionVariables = {
-    XDG_CONFIG_HOME = "/Users/${username}/.config";
-    XDG_DATA_HOME   = "/Users/${username}/.local/share";
-    XDG_STATE_HOME  = "/Users/${username}/.local/state";
-    XDG_CACHE_HOME  = "/Users/${username}/.cache";
+    XDG_CONFIG_HOME  = "/Users/${username}/.config";
+    XDG_DATA_HOME    = "/Users/${username}/.local/share";
+    XDG_STATE_HOME   = "/Users/${username}/.local/state";
+    XDG_CACHE_HOME   = "/Users/${username}/.cache";
+    CHROME_EXECUTABLE = "/Applications/Chromium.app/Contents/MacOS/Chromium";
+    BROWSER           = "/Applications/Chromium.app/Contents/MacOS/Chromium";
   };
 
 }

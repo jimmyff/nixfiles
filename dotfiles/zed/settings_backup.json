@@ -1,44 +1,43 @@
 {
-  "format_on_save": "off",
   "icon_theme": {
     "mode": "dark",
     "light": "Zed (Default)",
-    "dark": "Zed (Default)",
+    "dark": "Zed (Default)"
   },
   "agent": {
     "default_model": {
       "provider": "zed.dev",
-      "model": "claude-sonnet-4-thinking",
+      "model": "claude-sonnet-4-thinking"
     },
     "play_sound_when_agent_done": false,
-    "use_modifier_to_send": true,
+    "use_modifier_to_send": true
   },
   "agent_servers": {},
   "auto_install_extensions": {
     "dart": true,
     "spiceflow-theme": true,
-    "nix": true,
+    "nix": true
   },
   "buffer_font_family": "JetBrainsMono Nerd Font",
   "buffer_font_size": 14,
-  "relative_line_numbers": "enabled",
+  "relative_line_numbers": true,
   "inlay_hints": {
-    "enabled": false,
+    "enabled": false
   },
   "indent_guides": {
     "enabled": true,
-    "coloring": "indent_aware",
+    "coloring": "indent_aware"
   },
   "git": {
     "git_gutter": "tracked_files",
     "inline_blame": {
       "enabled": false,
-      "delay_ms": 1500,
-    },
+      "delay_ms": 1500
+    }
   },
   "telemetry": {
     "diagnostics": false,
-    "metrics": false,
+    "metrics": false
   },
   "theme": "Ayu Dark",
   "ui_font_family": "JetBrainsMono Nerd Font",
@@ -50,10 +49,10 @@
     "dart": {
       "binary": {
         "path": "/Users/jimmyff/.local/share/flutter/bin/dart",
-        "arguments": ["language-server", "--protocol=lsp"],
-      },
-    },
-  },
+        "arguments": ["language-server", "--protocol=lsp"]
+      }
+    }
+  }
   // I like my ide to be super clear where my focus is (WIP)
   // Colors inspired by Modus Vivendi Tinted:
   // https://github.com/protesilaos/modus-themes/blob/main/modus-vivendi-tinted-theme.el

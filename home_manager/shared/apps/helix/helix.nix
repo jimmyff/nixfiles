@@ -60,8 +60,8 @@ in {
         pkgs-dev-tools.alejandra # Nix formatter
 
         # Markdown ecosystem (dev-tools)
-        pkgs-dev-tools.marksman # Markdown LSP server
-        pkgs-dev-tools.markdown-oxide # Alternative markdown LSP
+        # Note: marksman removed - it pulls in .NET → Swift (huge rebuild)
+        pkgs-dev-tools.markdown-oxide # Markdown LSP (Rust-based, lightweight)
         pkgs-dev-tools.dprint # Code formatter
         pkgs-dev-tools.dprint-plugins.dprint-plugin-markdown # Markdown plugin for dprint
 
@@ -199,11 +199,7 @@ in {
             args = ["language-server" "--protocol=lsp"];
           };
 
-          # Markdown language servers
-          marksman = {
-            command = "marksman";
-            args = ["server"];
-          };
+          # Markdown language server (Rust-based, lightweight)
           markdown-oxide = {
             command = "markdown-oxide";
           };
@@ -255,7 +251,7 @@ in {
           # Markdown language configuration with word wrapping
           {
             name = "markdown";
-            language-servers = ["marksman" "markdown-oxide"];
+            language-servers = ["markdown-oxide"];
             auto-format = true;
             # Enable word wrapping at 80 characters for markdown
             soft-wrap = {

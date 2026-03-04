@@ -10,9 +10,11 @@
   config = lib.mkIf config.git_module.enable {
     programs.git = {
       enable = true;
-      userName = "jimmyff";
-      userEmail = "code@rocketware.co.uk";
       lfs.enable = true;
+      settings.user = {
+        name = "jimmyff";
+        email = "code@rocketware.co.uk";
+      };
     };
 
     # Github cli

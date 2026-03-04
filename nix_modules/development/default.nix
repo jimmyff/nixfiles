@@ -147,9 +147,20 @@
                   if git submodule update --init --recursive; then
                     echo "✅ Submodules initialized successfully"
 
-                    # Checkout main branch for all submodules to avoid detached HEAD state
-                    echo "🌿 Checking out main branch for submodules..."
-                    git submodule foreach git checkout main
+                    # Checkout default branch for all submodules to avoid detached HEAD state
+                    echo "🌿 Checking out default branch for submodules..."
+                    git submodule foreach '
+                      branch=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed "s@^refs/remotes/origin/@@")
+                      if [ -z "$branch" ]; then
+                        git remote set-head origin --auto >/dev/null 2>&1
+                        branch=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed "s@^refs/remotes/origin/@@")
+                      fi
+                      if [ -n "$branch" ]; then
+                        git checkout "$branch"
+                      else
+                        echo "⚠️  Could not determine default branch for $name, staying detached"
+                      fi
+                    '
                   else
                     echo "❌ Failed to initialize submodules"
                   fi
@@ -230,6 +241,21 @@
               echo "⚠️  flake.nix not found"
             fi
 
+            # Copy shared devshell-utils.nix with warning comment
+            UTILS_SOURCE="${homeDir}/nixfiles/projects/devshell-utils.nix"
+            if [ -f "$UTILS_SOURCE" ]; then
+              chmod u+w "$PROJECT_DIR/devshell-utils.nix" 2>/dev/null || true
+              {
+                echo "# NOTE: Copied version: original is in nixfiles/projects/devshell-utils.nix"
+                echo "# This file is read-only to prevent accidental edits. Edit the original in nixfiles instead."
+                echo ""
+                cat "$UTILS_SOURCE"
+              } > "$PROJECT_DIR/devshell-utils.nix"
+              echo "✅ Copied devshell-utils.nix (with read-only warning)"
+            else
+              echo "⚠️  devshell-utils.nix not found"
+            fi
+
             # Copy flake.lock to keep it in sync (Nix doesn't support symlinks for flake.lock)
             if [ -f "$PROJECT_SOURCE/flake.lock" ]; then
               if [ -f "$PROJECT_DIR/flake.lock" ]; then
@@ -289,6 +315,7 @@
             # Set permissions and ownership
             chmod u-w "$PROJECT_DIR/.envrc" 2>/dev/null || true
             chmod u-w "$PROJECT_DIR/flake.nix" 2>/dev/null || true
+            chmod u-w "$PROJECT_DIR/devshell-utils.nix" 2>/dev/null || true
             chmod +x "$PROJECT_DIR/startup.nu" 2>/dev/null || true
             if command -v chown >/dev/null 2>&1; then
               if [[ "$OSTYPE" == "darwin"* ]]; then
@@ -323,6 +350,7 @@ in {
     ./dart.nix
     ./xcode.nix
     ./rust.nix
+
   ];
 
   options.development = {
