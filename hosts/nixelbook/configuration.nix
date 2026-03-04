@@ -42,6 +42,9 @@
   playwright.enable = false;
   rclone.enable = true;
 
+  # Editors (home-manager modules)
+  home-manager.users.jimmyff.zed_module.enable = false; # Disable Zed to save disk space
+
   # Pixelbook keyboard issue:
   # `sudo libinput debug-events` failed to show chromos key press
   # `sudo journalctl -f` gave the error:
