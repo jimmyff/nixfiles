@@ -2,7 +2,23 @@
   pkgs,
   username,
   ...
-}: {
+}:
+let
+  nixPaths = [
+    "/Users/${username}/.nix-profile/bin"
+    "/etc/profiles/per-user/${username}/bin"
+    "/run/current-system/sw/bin"
+    "/nix/var/nix/profiles/default/bin"
+    "/Users/${username}/.cache/dart-pub/bin" # FlutterFire CLI for Xcode build phases
+  ];
+  systemPaths = [
+    "/usr/local/bin"
+    "/usr/bin"
+    "/bin"
+    "/usr/sbin"
+    "/sbin"
+  ];
+in {
   imports = [
     ../shared/core.nix
     ../shared/apps.nix
@@ -51,13 +67,18 @@
   # This ensures GUI apps like VS Code inherit the proper PATH from Nix
   # Lists are automatically concatenated with colons (:)
   launchd.user.envVariables = {
-    PATH = [
-      "/Users/${username}/.nix-profile/bin"
-      "/etc/profiles/per-user/${username}/bin"
-      "/run/current-system/sw/bin"
-      "/nix/var/nix/profiles/default/bin"
-      "/Users/${username}/.cache/dart-pub/bin" # FlutterFire CLI for Xcode build phases
-      "$PATH" # Include existing PATH
-    ];
+    PATH = nixPaths ++ [ "$PATH" ];
+  };
+
+  # Persist PATH across reboots via login agent (envVariables only applies at switch time)
+  launchd.user.agents.nix-env-path = {
+    serviceConfig = {
+      RunAtLoad = true;
+      ProgramArguments = [
+        "/bin/sh"
+        "-c"
+        "/bin/launchctl setenv PATH '${builtins.concatStringsSep ":" (nixPaths ++ systemPaths)}'"
+      ];
+    };
   };
 }

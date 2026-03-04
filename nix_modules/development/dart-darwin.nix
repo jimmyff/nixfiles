@@ -11,6 +11,14 @@
   xdgDataHome = "${homeDir}/.local/share";
   flutterRoot = "${xdgDataHome}/flutter";
 
+  # Shared env vars for launchd.user.envVariables and login agent
+  dartEnvVars = {
+    FLUTTER_ROOT = flutterRoot;
+    JAVA_HOME = "${pkgs-dev-flutter.zulu17}";
+    PUB_CACHE = "${xdgCacheHome}/dart-pub";
+    FLUTTER_GRADLE_PLUGIN_BUILDDIR = "${xdgCacheHome}/flutter-gradle-plugin";
+  };
+
   # Create wrapper scripts that point to the writable Flutter installation
   # This ensures they're in PATH and found before any Nix store versions
   flutterWrapper = pkgs-dev-flutter.writeShellScriptBin "flutter" ''
@@ -58,11 +66,22 @@ in {
   };
 
   # Propagate dart/flutter env vars to GUI apps (Xcode) via launchd
-  launchd.user.envVariables = {
-    FLUTTER_ROOT = flutterRoot;
-    JAVA_HOME = "${pkgs-dev-flutter.zulu17}";
-    PUB_CACHE = "${xdgCacheHome}/dart-pub";
-    FLUTTER_GRADLE_PLUGIN_BUILDDIR = "${xdgCacheHome}/flutter-gradle-plugin";
+  launchd.user.envVariables = dartEnvVars;
+
+  # Persist dart env vars across reboots via login agent
+  launchd.user.agents.nix-env-dart = {
+    serviceConfig = {
+      RunAtLoad = true;
+      ProgramArguments = [
+        "/bin/sh"
+        "-c"
+        (builtins.concatStringsSep " && " (
+          lib.mapAttrsToList
+            (name: value: "/bin/launchctl setenv ${name} '${value}'")
+            dartEnvVars
+        ))
+      ];
+    };
   };
 
   # Setup writable Flutter SDK and cache directories
