@@ -34,7 +34,6 @@
             pkgs-stable.libgit2
             pkgs-stable.pkg-config
             pkgs-stable.gcc
-            pkgs-unstable.uv
             # Python with packages required for git_dart native builds
             # (mbedtls code generation scripts need jsonschema and jinja2)
             # Using Python 3.12 for better compatibility with nixpkgs-stable packages
@@ -74,6 +73,18 @@
             pkgs-unstable.sqlite
             # File picker dialog support
             pkgs-unstable.zenity
+            # Webview support (desktop_webview_window plugin)
+            pkgs-unstable.webkitgtk_4_1
+            pkgs-unstable.libsoup_3
+            # System profiling support (required by glib-2.0)
+            pkgs-unstable.libsysprof-capture
+            # SELinux support (required by gio-2.0)
+            pkgs-unstable.libselinux
+            pkgs-unstable.libsepol
+            # Secure storage support (flutter_secure_storage_linux plugin)
+            pkgs-unstable.libsecret
+            # PCRE support (required by libgit2)
+            pkgs-unstable.pcre
           ];
 
         shellHook = ''
@@ -103,9 +114,6 @@
             echo ""
             echo "🔧 To start the development environment, run: ./startup.nu"
           fi
-
-          # Install speckit
-          uv tool install specify-cli --from git+https://github.com/github/spec-kit.git
         '';
       };
   in {
