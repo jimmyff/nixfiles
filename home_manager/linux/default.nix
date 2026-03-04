@@ -16,7 +16,12 @@
   home = {
     username = username;
     stateVersion = "25.05";
-    homeDirectory = "/home/${username}"; 
+    homeDirectory = "/home/${username}";
+
+    # Fix SSH_AUTH_SOCK to point to gcr-ssh-agent
+    sessionVariables = {
+      SSH_AUTH_SOCK = "/run/user/1000/gcr/ssh";
+    };
   };
 
   # Let Home Manager install and manage itself.
