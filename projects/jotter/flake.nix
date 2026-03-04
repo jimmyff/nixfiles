@@ -88,6 +88,8 @@
             pkgs-unstable.libsecret
             # PCRE support (required by libgit2)
             pkgs-unstable.pcre
+            # Build system for native compilation
+            pkgs-stable.ninja
           ];
 
         shellHook = ''
