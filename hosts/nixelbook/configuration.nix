@@ -41,6 +41,7 @@
   google-chrome.enable = false;
   playwright.enable = false;
   rclone.enable = true;
+  minisign.enable = true;
 
   # Editors (home-manager modules)
   home-manager.users.jimmyff.zed_module.enable = false; # Disable Zed to save disk space

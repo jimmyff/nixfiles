@@ -25,4 +25,5 @@
   raycast.enable = true;
   playwright.enable = true;
   rclone.enable = true;
+  minisign.enable = true;
 }

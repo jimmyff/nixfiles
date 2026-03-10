@@ -33,6 +33,7 @@ in {
     ../../apps/raycast.nix
     ../../apps/google-chrome.nix
     ../../apps/rclone.nix
+    ../../apps/minisign.nix
     ./homebrew.nix
   ];
 

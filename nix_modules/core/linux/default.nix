@@ -13,6 +13,7 @@
     ../../apps/signal.nix
     ../../apps/google-chrome.nix
     ../../apps/rclone.nix
+    ../../apps/minisign.nix
   ];
 
  
