@@ -29,7 +29,7 @@
 
   # Android SDK from android-nixpkgs
   # https://github.com/tadfisher/android-nixpkgs/tree/main/channels/beta
-  androidSdk = inputs.android-nixpkgs.sdk.${pkgs-dev-android.system} (sdkPkgs:
+  androidSdk = inputs.android-nixpkgs.sdk.${pkgs-dev-android.stdenv.hostPlatform.system} (sdkPkgs:
     with sdkPkgs; [
       cmdline-tools-latest
       # build-tools-34-0-0

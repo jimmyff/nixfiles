@@ -3,7 +3,6 @@
 
   inputs = {
     # Specialized nixpkgs inputs for different update cadences
-    pkgs-unstable.url = "github:nixos/nixpkgs/nixos-unstable";      # Framework base (nix-darwin, home-manager)
     pkgs-stable.url = "github:nixos/nixpkgs/nixos-25.11";           # Core system, stable packages
     pkgs-desktop.url = "github:nixos/nixpkgs/nixos-unstable";       # Desktop environments
     pkgs-apps.url = "github:nixos/nixpkgs/nixos-unstable";          # User applications
@@ -13,9 +12,9 @@
     pkgs-dev-rust.url = "github:nixos/nixpkgs/nixos-unstable";      # Rust development
     pkgs-dev-android.url = "github:nixos/nixpkgs/nixos-unstable";   # Android development
 
-    # macOS (master requires nixpkgs-unstable)
-    nix-darwin.url = "github:nix-darwin/nix-darwin/master";
-    nix-darwin.inputs.nixpkgs.follows = "pkgs-unstable";
+    # macOS (nix-darwin-25.11 matches pkgs-stable/home-manager)
+    nix-darwin.url = "github:nix-darwin/nix-darwin/nix-darwin-25.11";
+    nix-darwin.inputs.nixpkgs.follows = "pkgs-stable";
 
 
 
@@ -170,8 +169,7 @@
     darwinConfigurations.jimmyff-mbp14 = nix-darwin.lib.darwinSystem {
       specialArgs = darwinArgs;
 
-      system = "aarch64-darwin";
-      modules = [ 
+      modules = [
         ./hosts/jimmyff-mpb14/configuration.nix
         ./nix_modules/core/darwin
 
