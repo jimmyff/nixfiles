@@ -39,11 +39,18 @@
             pkgs-unstable.nodejs_22
             pkgs-unstable.uv
             pkgs-unstable.zola
+            # Python with packages required for git_dart native builds
+            # (mbedtls code generation scripts need jsonschema and jinja2)
+            # Using Python 3.12 for better compatibility with nixpkgs-stable packages
             (pkgs-stable.python312.withPackages (ps:
               with ps; [
                 jsonschema
                 jinja2
               ]))
+          ]
+          ++ pkgs-stable.lib.optionals pkgs-stable.stdenv.isDarwin [
+            # Fix CocoaPods compatibility on macOS
+            pkgs-stable.darwin.base64
           ]
           ++ pkgs-stable.lib.optionals pkgs-stable.stdenv.isLinux [
             pkgs-unstable.gtk3
@@ -69,6 +76,20 @@
             pkgs-unstable.clang
             pkgs-unstable.sqlite
             pkgs-unstable.zenity
+            # Webview support (desktop_webview_window plugin)
+            pkgs-unstable.webkitgtk_4_1
+            pkgs-unstable.libsoup_3
+            # System profiling support (required by glib-2.0)
+            pkgs-unstable.libsysprof-capture
+            # SELinux support (required by gio-2.0)
+            pkgs-unstable.libselinux
+            pkgs-unstable.libsepol
+            # Secure storage support (flutter_secure_storage_linux plugin)
+            pkgs-unstable.libsecret
+            # PCRE support (required by libgit2)
+            pkgs-unstable.pcre
+            # Build system for native compilation
+            pkgs-stable.ninja
           ];
 
         shellHook = ''

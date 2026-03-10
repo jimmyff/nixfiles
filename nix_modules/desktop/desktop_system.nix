@@ -9,16 +9,13 @@
 
 
   # allows sandboxed apps to access resources
+  # Note: xdg.portal is automatically configured by COSMIC desktop environment
+  # Only add extra portals if needed beyond what COSMIC provides
   xdg.portal = {
-    enable = true;
-    xdgOpenUsePortal = true;
     extraPortals = [
-      pkgs-desktop.xdg-desktop-portal-gtk	  # Standard handler
+      # xdg-desktop-portal-gtk is already provided by COSMIC
       pkgs-desktop.gnome-keyring		      # for some apps
     ];
-
-    # TODO: do something better here
-    config.common.default = "*";
   };
 
   environment.sessionVariables.NIXOS_OZONE_WL = "1"; # Wayland support for chromium based apps

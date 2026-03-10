@@ -12,6 +12,7 @@
     # https://yazi-rs.github.io/docs/configuration/overview/
     programs.yazi = {
       enable = true;
+      shellWrapperName = "yy"; # Keep legacy behavior (stateVersion < 26.05)
       flavors = {
         flexoki-dark = pkgs-apps.fetchFromGitHub {
           owner = "gosxrgxx";

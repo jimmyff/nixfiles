@@ -4,7 +4,7 @@
   inputs = {
     # Specialized nixpkgs inputs for different update cadences
     pkgs-unstable.url = "github:nixos/nixpkgs/nixos-unstable";      # Framework base (nix-darwin, home-manager)
-    pkgs-stable.url = "github:nixos/nixpkgs/nixos-25.05";           # Core system, stable packages
+    pkgs-stable.url = "github:nixos/nixpkgs/nixos-25.11";           # Core system, stable packages
     pkgs-desktop.url = "github:nixos/nixpkgs/nixos-unstable";       # Desktop environments
     pkgs-apps.url = "github:nixos/nixpkgs/nixos-unstable";          # User applications
     pkgs-ai.url = "github:nixos/nixpkgs/nixpkgs-unstable";          # AI tools, bleeding edge
@@ -26,10 +26,10 @@
     #   inputs.nixpkgs.follows = "pkgs-stable";
     # };
 
-    # home-manager (master requires nixpkgs-unstable)
+    # home-manager (release-25.11 matches nixos-25.11)
     home-manager = {
-      url = "github:nix-community/home-manager/master";
-      inputs.nixpkgs.follows = "pkgs-unstable";
+      url = "github:nix-community/home-manager/release-25.11";
+      inputs.nixpkgs.follows = "pkgs-stable";
     };
 
     # nix hardware
@@ -107,14 +107,15 @@
       # TODO: TEMPORARY (2026-02-02) - nushell 0.110.0 has a failing test on macOS
       # due to sandbox permissions. Skip tests until upstream fix lands.
       # Track: https://github.com/NixOS/nixpkgs/issues/XXXXX
+      # COMMENTED OUT: This forces a rebuild from source. Re-enable only if needed on macOS.
       pkgs-dev-tools = import pkgs-dev-tools {
         inherit system;
         config.allowUnfree = true;
-        overlays = [
-          (final: prev: {
-            nushell = prev.nushell.overrideAttrs (old: { doCheck = false; });
-          })
-        ];
+        # overlays = lib.optionals pkgs-stable.stdenv.isDarwin [
+        #   (final: prev: {
+        #     nushell = prev.nushell.overrideAttrs (old: { doCheck = false; });
+        #   })
+        # ];
       };
       pkgs-dev-flutter = import pkgs-dev-flutter {
         inherit system;

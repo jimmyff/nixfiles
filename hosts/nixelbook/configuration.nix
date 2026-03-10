@@ -33,7 +33,7 @@
   # Platform-specific development tools
   android.enable = false;
   dart.enable = true;
-  rust.enable = true;
+  rust.enable = false;
 
   # Applications
   cinny.enable = false; # 2026-02-20: temporarily disabled, nixpkgs version mismatch (cinny 4.10.3 vs cinny-desktop 4.10.2)
@@ -41,6 +41,9 @@
   google-chrome.enable = false;
   playwright.enable = false;
   rclone.enable = true;
+
+  # Editors (home-manager modules)
+  home-manager.users.jimmyff.zed_module.enable = false; # Disable Zed to save disk space
 
   # Pixelbook keyboard issue:
   # `sudo libinput debug-events` failed to show chromos key press
