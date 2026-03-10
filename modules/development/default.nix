@@ -350,7 +350,7 @@ in {
     ./dart.nix
     ./xcode.nix
     ./rust.nix
-
+    ./charles.nix
   ];
 
   options.development = {
