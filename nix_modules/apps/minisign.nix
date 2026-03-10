@@ -22,5 +22,18 @@ in {
       owner = username;
       group = userGroup;
     };
+
+    # Deploy public key (not secret, written directly)
+    system.activationScripts.minisignPublicKey = {
+      text = ''
+        mkdir -p ${homeDir}/.minisign
+        cat > ${homeDir}/.minisign/minisign-rocketware.pub << 'EOF'
+untrusted comment: minisign public key 5CFCEFF7AD20C8AE
+RWSuyCCt9+/8XP0AK3jidFQotJmj82u3RQvmTRCHZeW460xcSsjxH8RQ
+EOF
+        chown ${username}:${userGroup} ${homeDir}/.minisign/minisign-rocketware.pub
+        chmod 644 ${homeDir}/.minisign/minisign-rocketware.pub
+      '';
+    };
   };
 }
