@@ -42,7 +42,7 @@ map <c-m-k> goForward
 
 Some macOS GUI apps (Signal, Chromium) aren't well-served by nixpkgs on darwin. These are managed declaratively via nix-darwin's homebrew module.
 
-- **Config**: `nix_modules/core/darwin/homebrew.nix`
+- **Config**: `modules/core/darwin/homebrew.nix`
 - `cleanup = "zap"` removes anything not declared
 - Casks are installed/upgraded automatically on `darwin-rebuild switch`
 

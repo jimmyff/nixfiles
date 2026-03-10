@@ -2,7 +2,7 @@
 {
   imports = [
     # development environment
-    ../../nix_modules/development
+    ../../modules/development
   ];
 
   networking.hostName = "jimmyff-mpb14";
@@ -26,4 +26,7 @@
   playwright.enable = true;
   rclone.enable = true;
   minisign.enable = true;
+
+  # AI tools (home-manager modules)
+  home-manager.users.jimmyff.gemini-cli_module.enable = true;
 }

@@ -43,7 +43,7 @@ in {
     };
 
     # Custom helix theme (symlinked for real-time editing)
-    home.file.".config/helix/themes/modus_vivendi_tinted_plus.toml".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/nixfiles/home_manager/shared/apps/helix/modus_vivendi_tinted_plus.toml";
+    home.file.".config/helix/themes/modus_vivendi_tinted_plus.toml".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/nixfiles/home/shared/apps/helix/modus_vivendi_tinted_plus.toml";
 
     # ================================================================
     # HELIX CONFIGURATION

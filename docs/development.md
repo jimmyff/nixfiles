@@ -18,7 +18,7 @@
 - **Version sync**: Both platforms use same version from `pkgs-dev-flutter` flake input
 - **Project flakes**: Platform-agnostic (system config handles platform differences)
 
-**Configuration**: `nix_modules/development/dart.nix` imports `dart-darwin.nix` or `dart-linux.nix` based on platform.
+**Configuration**: `modules/development/dart.nix` imports `dart-darwin.nix` or `dart-linux.nix` based on platform.
 
 **Flutter FFI projects on macOS**: Use `mkShellNoCC` instead of `mkShell` to avoid NIX compiler toolchain interference with Xcode builds.
 

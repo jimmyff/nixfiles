@@ -10,16 +10,16 @@
     ./hardware-configuration.nix
 
     # nixos specific configuration
-    ../../nix_modules/core/nixos/kanata.nix
+    ../../modules/core/nixos/kanata.nix
 
     # hardware specific configuration
-    ../../nix_modules/hardware/pixelbook-go
+    ./hardware
 
     # desktop audio support
-    ../../nix_modules/desktop/sound.nix
+    ../../modules/workstation/desktop/sound.nix
 
     # development environment
-    ../../nix_modules/development
+    ../../modules/development
   ];
 
   networking.hostName = "nixelbook";

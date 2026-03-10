@@ -17,9 +17,9 @@
 
  nixfiles/
   ├── dotfiles/         # configs (managed by stow)
-  ├── home_modules/     # Home Manager modules
+  ├── home/             # Home Manager modules
   ├── hosts/            # Host config
-  ├── nix_modules/      # Nix modules
+  ├── modules/          # Nix modules (core, workstation, development)
   ├── projects/         # Development project templates
   ├── scripts/          # Utility scripts
   └── secrets/          # Encrypted secrets configuration
@@ -44,7 +44,7 @@
 
 | Input | Branch | Purpose |
 |-------|--------|---------|
-| `pkgs-stable` | nixos-25.05 | Core system utilities |
+| `pkgs-stable` | nixos-25.11 | Core system utilities |
 | `pkgs-desktop` | nixos-unstable | Desktop environments |
 | `pkgs-apps` | nixos-unstable | User applications |
 | `pkgs-dev-tools` | nixos-unstable | Editors, LSPs, formatters |

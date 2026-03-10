@@ -150,8 +150,9 @@
 
           ./hosts/nixelbook/configuration.nix
 
-          ./nix_modules/core/linux
-          ./nix_modules/desktop/linux
+          ./modules/core/linux
+          ./modules/workstation
+          ./modules/workstation/desktop/linux
 
           agenix.nixosModules.default
           inputs.home-manager.nixosModules.home-manager
@@ -159,7 +160,7 @@
             home-manager.useGlobalPkgs = true;
             home-manager.useUserPackages = true;
             home-manager.extraSpecialArgs = linuxArgs;
-            home-manager.users.${username} = import ./home_manager/linux;
+            home-manager.users.${username} = import ./home/linux;
           }
         ];
       };
@@ -171,7 +172,8 @@
 
       modules = [
         ./hosts/jimmyff-mpb14/configuration.nix
-        ./nix_modules/core/darwin
+        ./modules/core/darwin
+        ./modules/workstation
 
         agenix.darwinModules.default
         home-manager.darwinModules.home-manager
@@ -179,7 +181,7 @@
           home-manager.useGlobalPkgs = true;
           home-manager.useUserPackages = true;
           home-manager.extraSpecialArgs = darwinArgs;
-          home-manager.users.${username} = import ./home_manager/darwin;
+          home-manager.users.${username} = import ./home/darwin;
         }
       ];
 
