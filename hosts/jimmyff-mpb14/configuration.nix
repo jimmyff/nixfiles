@@ -18,7 +18,7 @@
   dart.enable = true;
   xcode.enable = true;
   rust.enable = true;
-  charles.enable = true;
+  wireshark.enable = true;
 
   # Applications
   cinny.enable = false; # 2026-02-20: temporarily disabled, nixpkgs version mismatch (cinny 4.10.3 vs cinny-desktop 4.10.2)
