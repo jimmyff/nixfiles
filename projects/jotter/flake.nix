@@ -40,6 +40,7 @@
             pkgs-unstable.nodejs_22
             pkgs-unstable.uv
             pkgs-unstable.zola
+            pkgs-stable.minisign
             # Python with packages required for git_dart native builds
             # (mbedtls code generation scripts need jsonschema and jinja2)
             # Using Python 3.12 for better compatibility with nixpkgs-stable packages

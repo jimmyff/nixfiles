@@ -13,8 +13,9 @@
 
   environment.systemPackages = [
     pkgs-stable.age                                        # Encryption library
-    inputs.agenix.packages.${pkgs-stable.system}.default  # Age nix secrets tool
+    inputs.agenix.packages.${pkgs-stable.stdenv.hostPlatform.system}.default  # Age nix secrets tool
     pkgs-stable.bat                      # Cat clone with syntax highlighting
+    pkgs-stable.minisign                  # Release signing tool
     pkgs-stable.vim                      # Vi/Vim text editor
   ];
 

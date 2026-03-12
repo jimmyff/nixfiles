@@ -2,7 +2,7 @@
 {
   imports = [
     # development environment
-    ../../nix_modules/development
+    ../../modules/development
   ];
 
   networking.hostName = "jimmyff-mpb14";
@@ -18,6 +18,8 @@
   dart.enable = true;
   xcode.enable = true;
   rust.enable = true;
+  mitmproxy.enable = true;
+  wireshark.enable = false;
 
   # Applications
   cinny.enable = false; # 2026-02-20: temporarily disabled, nixpkgs version mismatch (cinny 4.10.3 vs cinny-desktop 4.10.2)
@@ -25,4 +27,8 @@
   raycast.enable = true;
   playwright.enable = true;
   rclone.enable = true;
+  minisign.enable = true;
+
+  # AI tools (home-manager modules)
+  home-manager.users.jimmyff.gemini-cli_module.enable = true;
 }

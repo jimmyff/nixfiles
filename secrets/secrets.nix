@@ -7,7 +7,7 @@ let
   users = {
     # Original yubikey key - commented out but kept for Darwin debugging if needed
     # jimmyff = "age1yubikey1qg8nf40dfw4gprmywplggtg2wuvv55fcmujzrm65z8s3j6rhwje2vm3hhs7";
-    
+
     # ed25519 SSH key derived age key
     jimmyff = "age1qzs9ac3a9j7rhf6t25hrk5jgaqhhu7mnsnuk4n8fz5hw2603v47s9fztm2";
   };
@@ -22,4 +22,6 @@ in {
   "rclone-koofr-pass.age".publicKeys = allUsers ++ allSystems;
   "rclone-crypt-pass.age".publicKeys = allUsers ++ allSystems;
   "rclone-crypt-salt.age".publicKeys = allUsers ++ allSystems;
+  # Minisign
+  "minisign-rocketware-signing-key.age".publicKeys = allUsers ++ allSystems;
 }

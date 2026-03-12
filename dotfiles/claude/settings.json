@@ -1,11 +1,12 @@
 {
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
   "env": {
     "DISABLE_AUTOUPDATER": "1",
     "DISABLE_ERROR_REPORTING": "1",
     "DISABLE_TELEMETRY": "1",
     "USE_BUILTIN_RIPGREP": "0"
   },
-  "includeCoAuthoredBy": false,
+  "attribution": {},
   "permissions": {
     "allow": [
       "WebFetch(domain:docs.cloud.google.com)",
@@ -35,8 +36,25 @@
       "Bash(dart pub get:*)",
       "Bash(flutter pub get:*)",
       "Bash(dart analyze:*)",
+      "Bash(flutter analyze:*)",
       "Bash(grep:*)",
-      "Bash(git log:*)"
+      "Bash(git log:*)",
+      "Bash(git diff:*)",
+      "Bash(git status:*)",
+      "Bash(git branch:*)",
+      "Bash(git rev-parse:*)",
+      "Bash(git rev-list:*)",
+      "Bash(git fetch:*)",
+      "Bash(git remote:*)",
+      "Bash(git submodule:*)",
+      "Bash(git add:*)",
+      "Bash(git checkout:*)",
+      "Bash(git pull:*)"
+    ],
+    "deny": [
+      "Read(./.env)",
+      "Read(./.env.*)",
+      "Read(./secrets/**)"
     ]
   },
   "enabledMcpjsonServers": [
@@ -47,5 +65,6 @@
     "command": "~/.claude/statusline.sh",
     "padding": 0
   },
-  "alwaysThinkingEnabled": true
+  "alwaysThinkingEnabled": true,
+  "effortLevel": "high"
 }

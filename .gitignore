@@ -22,3 +22,6 @@ dotfiles/zed/conversations/
 dotfiles/**/*.bak*
 dotfiles/vscode/**/*Storage/
 dotfiles/vscode/**/History/
+
+# Temporary files
+tmp/

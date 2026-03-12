@@ -10,16 +10,16 @@
     ./hardware-configuration.nix
 
     # nixos specific configuration
-    ../../nix_modules/core/nixos/kanata.nix
+    ../../modules/core/nixos/kanata.nix
 
     # hardware specific configuration
-    ../../nix_modules/hardware/pixelbook-go
+    ./hardware
 
     # desktop audio support
-    ../../nix_modules/desktop/sound.nix
+    ../../modules/workstation/desktop/sound.nix
 
     # development environment
-    ../../nix_modules/development
+    ../../modules/development
   ];
 
   networking.hostName = "nixelbook";
@@ -34,6 +34,11 @@
   android.enable = false;
   dart.enable = true;
   rust.enable = false;
+  mitmproxy.enable = true;
+  wireshark.enable = false;
+
+  # Add wireshark group for non-root packet capture
+  users.users.${username}.extraGroups = ["wireshark"];
 
   # Applications
   cinny.enable = false; # 2026-02-20: temporarily disabled, nixpkgs version mismatch (cinny 4.10.3 vs cinny-desktop 4.10.2)
@@ -41,6 +46,7 @@
   google-chrome.enable = false;
   playwright.enable = false;
   rclone.enable = true;
+  minisign.enable = true;
 
   # Editors (home-manager modules)
   home-manager.users.jimmyff.zed_module.enable = false; # Disable Zed to save disk space

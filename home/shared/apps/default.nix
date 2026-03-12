@@ -54,7 +54,7 @@
 
   home.packages = [
     pkgs-stable.wget
-    pkgs-apps.neofetch
+    pkgs-apps.fastfetch
 
     # Probably temp - maybe need a module for it
     pkgs-apps.yubikey-manager
