@@ -28,6 +28,7 @@
         if pkgs-stable.stdenv.isDarwin
         then pkgs-stable.mkShellNoCC
         else pkgs-stable.mkShell;
+
     in
       shellFunc ({
         buildInputs =
@@ -86,10 +87,15 @@
             pkgs-unstable.libsepol
             # Secure storage support (flutter_secure_storage_linux plugin)
             pkgs-unstable.libsecret
+            pkgs-unstable.libgcrypt
+            # Thai text support (required by pango)
+            pkgs-unstable.libthai
             # PCRE support (required by libgit2)
             pkgs-unstable.pcre
             # Build system for native compilation
             pkgs-stable.ninja
+            # Linux packaging tools (package_linux.nu)
+            pkgs-stable.nfpm
           ];
 
         shellHook = ''
