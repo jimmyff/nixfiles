@@ -34,7 +34,8 @@
   android.enable = false;
   dart.enable = true;
   rust.enable = false;
-  wireshark.enable = true;
+  mitmproxy.enable = true;
+  wireshark.enable = false;
 
   # Add wireshark group for non-root packet capture
   users.users.${username}.extraGroups = ["wireshark"];

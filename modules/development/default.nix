@@ -350,6 +350,7 @@ in {
     ./dart.nix
     ./xcode.nix
     ./rust.nix
+    ./mitmproxy.nix
     ./wireshark.nix
   ];
 
