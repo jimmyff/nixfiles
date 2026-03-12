@@ -6,4 +6,5 @@
     Pictures,
     Videos,
     Path("/home/jimmyff/nixfiles"),
+    Path("/home/jimmyff/Projects"),
 ]
