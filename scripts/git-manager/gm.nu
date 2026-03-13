@@ -459,6 +459,115 @@ def confirm-operation [message: string] {
     ($response | str downcase) == "y"
 }
 
+# ============================================================================
+# Subcommands (non-interactive, suitable for scripting and agent use)
+# ============================================================================
+
+# Show status of all submodules (non-interactive)
+def "main status" [
+    path: string = "."  # Path to the repository
+] {
+    let submodules = get-submodules $path
+    let status = get-status $submodules $path
+    display-status $status "Repository Status" $path
+}
+
+# Commit and push a single submodule (non-interactive)
+def "main commit-sub" [
+    submodule_path: string   # Path to the submodule
+    --message(-m): string    # Commit message (required)
+    --all(-a)                # Stage all tracked changes (default: commit staged only)
+    --path(-p): string       # Path to parent repository (default: ".")
+] {
+    let base_path = $path | default "."
+
+    if ($message | is-empty) {
+        print ($CONFIG.colors.error + "Error: --message (-m) is required" + $CONFIG.colors.reset)
+        exit 1
+    }
+
+    let full_path = if $base_path == "." { $submodule_path } else { $base_path + "/" + $submodule_path }
+
+    let commit_args = if $all {
+        ["commit" "-a" "-m" $message]
+    } else {
+        ["commit" "-m" $message]
+    }
+
+    let commit_result = git-safe $commit_args $full_path $"Commit changes in ($submodule_path)"
+    if $commit_result.success {
+        let push_result = git-safe ["push" "--set-upstream" "origin" "HEAD"] $full_path $"Push ($submodule_path)"
+        if $push_result.success {
+            print ($CONFIG.colors.success + $CONFIG.icons.success + $" Committed and pushed ($submodule_path)" + $CONFIG.colors.reset)
+        } else {
+            exit 1
+        }
+    } else {
+        exit 1
+    }
+}
+
+# Stage submodule refs, commit and push the parent repository (non-interactive)
+# Verifies each submodule's HEAD exists on its remote before staging
+def "main commit-parent" [
+    --message(-m): string    # Commit message (required)
+    --path(-p): string       # Path to parent repository (default: ".")
+    ...submodules: string    # Submodule paths to stage
+] {
+    let base_path = $path | default "."
+
+    if ($message | is-empty) {
+        print ($CONFIG.colors.error + "Error: --message (-m) is required" + $CONFIG.colors.reset)
+        exit 1
+    }
+
+    if ($submodules | is-empty) {
+        print ($CONFIG.colors.error + "Error: specify submodule paths to stage" + $CONFIG.colors.reset)
+        exit 1
+    }
+
+    # Verify each submodule's HEAD is pushed to its remote before staging
+    for sub in $submodules {
+        let full_sub_path = if $base_path == "." { $sub } else { $base_path + "/" + $sub }
+        let fetch_result = git-safe ["fetch" "origin"] $full_sub_path $"Fetch ($sub)"
+        if $fetch_result.success {
+            let head = (git -C $full_sub_path rev-parse HEAD | str trim)
+            let on_remote = try {
+                let branches = (git -C $full_sub_path branch -r --contains $head | str trim)
+                not ($branches | is-empty)
+            } catch {
+                false
+            }
+            if not $on_remote {
+                print ($CONFIG.colors.error + $"Error: ($sub) HEAD ($head) is not pushed to remote. Push it first." + $CONFIG.colors.reset)
+                exit 1
+            }
+        }
+    }
+
+    mut all_staged = true
+    for sub in $submodules {
+        let result = git-safe ["add" $sub] $base_path $"Stage ($sub)"
+        if not $result.success { $all_staged = false }
+    }
+
+    if $all_staged {
+        let commit_result = git-safe ["commit" "-m" $message] $base_path "Commit parent repository"
+        if $commit_result.success {
+            let push_result = git-safe ["push"] $base_path "Push parent repository"
+            if $push_result.success {
+                print ($CONFIG.colors.success + $CONFIG.icons.success + " Parent repository updated" + $CONFIG.colors.reset)
+            } else {
+                exit 1
+            }
+        } else {
+            exit 1
+        }
+    } else {
+        exit 1
+    }
+}
+
 # The main function with enhanced features
 def main [
     path: string = "."  # Path to the repository (defaults to current directory)

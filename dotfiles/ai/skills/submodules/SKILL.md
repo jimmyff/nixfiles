@@ -18,6 +18,19 @@ Arguments: `status`, `diff`, `commit`, `sync`, `update`, or omit to run `status`
 
 1. Confirm `.gitmodules` exists
 2. Read `.gitmodules` to identify all submodule paths
+3. Check if `../gm.nu` exists relative to the workspace root
+
+## gm.nu
+
+If `../gm.nu` is available, prefer its non-interactive subcommands over manual git. Fall back to manual git when `gm.nu` doesn't cover the operation or isn't available.
+
+**Important:** All `gm.nu` commands must be run from the workspace root (where `.gitmodules` lives). Always `cd` to the workspace root before invoking, e.g. `cd /path/to/workspace && nu ../gm.nu ...`.
+
+Available subcommands:
+- `nu ../gm.nu status` — show status of all submodules
+- `nu ../gm.nu commit-sub <path> -m "message"` — commit staged files and push a submodule (add `--all` to stage all tracked changes)
+- `nu ../gm.nu commit-parent -m "message" sub1 sub2...` — verify refs are pushed, stage refs, commit and push parent
+- `nu ../gm.nu -u` — pull latest in main repo and all submodules
 
 ## Commit Messages
 
@@ -29,6 +42,8 @@ Arguments: `status`, `diff`, `commit`, `sync`, `update`, or omit to run `status`
 ## Commands
 
 ### `status` — Overview of all submodules
+
+**gm.nu**: `nu ../gm.nu status`
 
 For each submodule, check: uncommitted changes, current branch, latest commit, tracking info.
 
@@ -42,6 +57,8 @@ Present a summary table with columns: path, branch, dirty/clean, ahead/behind re
 For each submodule with uncommitted changes, show the diff summary and any untracked files. Useful for reviewing work-in-progress across the project without committing.
 
 ### `commit` — Commit and push dirty submodules, then update parent
+
+**gm.nu**: Use `commit-sub` for each dirty submodule, then `commit-parent` to update the parent refs.
 
 **1. Audit**
 
@@ -67,9 +84,12 @@ Do NOT stage flagged files without explicit user approval.
 
 **4. Update parent repository**
 
-1. Stage the updated submodule references
-2. Propose a commit message, ask user to confirm
-3. Commit and push
+1. Stage **only** the submodule references that were committed and pushed in step 3
+2. Check if any **other** submodules have HEADs ahead of the parent's recorded ref. For each:
+   - Verify the commit exists on the remote (`git fetch` then check). If not pushed, warn the user and do NOT stage it
+   - If pushed, ask the user whether to include it in the parent update
+3. Propose a commit message, ask user to confirm
+4. Commit and push
 
 ### `sync` — Pull and sync everything
 
@@ -87,6 +107,8 @@ If a submodule has merge conflicts, stop and ask the user how to proceed.
 
 ### `update` — Pull latest in each submodule from its remote
 
+**gm.nu**: `nu ../gm.nu -u`
+
 1. Pull latest from each submodule's tracked remote branch
 2. Show which submodules received new commits
 3. Ask if user wants to commit updated references in the parent (same as step 4 of `commit`)
@@ -95,6 +117,7 @@ If a pull results in merge conflicts, stop and ask the user how to proceed.
 
 ## Rules
 
+- **No attribution**: Do not add `Co-Authored-By` or any author metadata to commit messages
 - Always confirm before committing or pushing
 - If a push fails (e.g. diverged branch), stop and ask the user
 - No repo (parent or submodule) should ever be left in detached HEAD state. After any operation that detaches HEAD (e.g. `submodule update`), reattach to the tracking branch. If the tracking branch can't be determined, ask the user
