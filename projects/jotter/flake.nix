@@ -53,6 +53,7 @@
           ++ pkgs-stable.lib.optionals pkgs-stable.stdenv.isDarwin [
             # Fix CocoaPods compatibility on macOS
             pkgs-stable.darwin.base64
+            pkgs-stable.sqlite
           ]
           ++ pkgs-stable.lib.optionals pkgs-stable.stdenv.isLinux [
             pkgs-unstable.gtk3
@@ -109,11 +110,13 @@
           echo "🟢 Node.js: $(node --version 2>/dev/null || echo 'Not available')"
           echo "📦 npm: $(npm --version 2>/dev/null || echo 'Not available')"
           ${pkgs-stable.lib.optionalString pkgs-stable.stdenv.isDarwin ''
+            export DYLD_LIBRARY_PATH="${pkgs-stable.sqlite.out}/lib''${DYLD_LIBRARY_PATH:+:$DYLD_LIBRARY_PATH}"
             echo "🔧 Toolchain: Xcode (mkShellNoCC - no NIX compiler)"
             echo "   CC: $(which clang 2>/dev/null || echo 'not in PATH')"
             echo "   LD: $(which ld 2>/dev/null || echo 'not in PATH')"
           ''}
           ${pkgs-stable.lib.optionalString pkgs-stable.stdenv.isLinux ''
+            export LD_LIBRARY_PATH="${pkgs-unstable.sqlite.out}/lib''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
             echo "🔧 Toolchain: NIX (mkShell)"
             echo "   CC: $(which gcc 2>/dev/null || echo 'not in PATH')"
           ''}
