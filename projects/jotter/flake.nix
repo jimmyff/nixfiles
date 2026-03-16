@@ -33,7 +33,6 @@
       shellFunc ({
         buildInputs =
           [
-            pkgs-stable.jdk
             pkgs-stable.cmake
             pkgs-stable.libgit2
             pkgs-stable.pkg-config
@@ -99,12 +98,16 @@
           ];
 
         shellHook = ''
+          # Sync Flutter's cached jdk-dir with system JAVA_HOME (prevents stale Nix store paths after GC)
+          if [ -n "$JAVA_HOME" ]; then
+            flutter config --jdk-dir="$JAVA_HOME" >/dev/null 2>&1 || true
+          fi
           ${utils.darwinPathHook pkgs-stable}
           echo "📝 Entering Blink development environment"
           echo "Flutter: $(flutter --version 2>/dev/null | head -1 || echo 'Not available')"
           echo "Dart: $(dart --version 2>/dev/null || echo 'Not available')"
           echo "Flutter root: ''${FLUTTER_ROOT:-Not set}"
-          echo "☕ JDK: ${pkgs-stable.jdk}"
+          echo "☕ JDK: ''${JAVA_HOME:-Not set}"
           echo "🟢 Node.js: $(node --version 2>/dev/null || echo 'Not available')"
           echo "📦 npm: $(npm --version 2>/dev/null || echo 'Not available')"
           ${pkgs-stable.lib.optionalString pkgs-stable.stdenv.isDarwin ''
