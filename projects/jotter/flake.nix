@@ -51,8 +51,6 @@
               ]))
           ]
           ++ pkgs-stable.lib.optionals pkgs-stable.stdenv.isDarwin [
-            # Fix CocoaPods compatibility on macOS
-            pkgs-stable.darwin.base64
             pkgs-stable.sqlite
           ]
           ++ pkgs-stable.lib.optionals pkgs-stable.stdenv.isLinux [
