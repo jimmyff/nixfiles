@@ -72,6 +72,24 @@ def is-git-clean [path: string = "."] {
     $status | is-empty
 }
 
+# Check if main project has non-submodule changes (ignores submodule ref updates)
+def has-own-changes [submodules: list, path: string = "."] {
+    let status_lines = try {
+        if $path == "." {
+            git status --porcelain | lines
+        } else {
+            git -C $path status --porcelain | lines
+        }
+    } catch {
+        return false
+    }
+    let own_changes = $status_lines | where { |line|
+        let file_part = ($line | str substring 3..)
+        not ($submodules | any { |sub| $file_part | str starts-with $sub })
+    }
+    not ($own_changes | is-empty)
+}
+
 # Get filtered git status (excluding submodules with modified content)
 def get-main-project-files [path: string = "."] {
     # Get git status and filter out submodule entries (they contain "(modified content)")
@@ -124,6 +142,45 @@ def get-submodules [path: string = "."] {
     }
 }
 
+# Get ahead/behind counts relative to origin's default branch
+def get-ahead-behind [path: string = "."] {
+    try {
+        let remote_ref = $"origin/($CONFIG.default_branch)"
+        let counts = (if $path == "." {
+            git rev-list --left-right --count $"HEAD...($remote_ref)"
+        } else {
+            git -C $path rev-list --left-right --count $"HEAD...($remote_ref)"
+        } | str trim | split row "\t")
+        {
+            ahead: ($counts | get 0 | into int),
+            behind: ($counts | get 1 | into int)
+        }
+    } catch {
+        { ahead: null, behind: null }
+    }
+}
+
+# Format ahead/behind counts for display
+def format-ahead-behind [ab: record] {
+    if $ab.ahead == null {
+        "—"
+    } else {
+        mut parts = ""
+        if $ab.ahead > 0 {
+            $parts = ($parts + $CONFIG.colors.warning + $"↑($ab.ahead)" + $CONFIG.colors.reset)
+        } else {
+            $parts = ($parts + $"↑($ab.ahead)")
+        }
+        $parts = ($parts + " ")
+        if $ab.behind > 0 {
+            $parts = ($parts + $CONFIG.colors.error + $"↓($ab.behind)" + $CONFIG.colors.reset)
+        } else {
+            $parts = ($parts + $"↓($ab.behind)")
+        }
+        $parts
+    }
+}
+
 # ============================================================================
 # Core Operations
 # ============================================================================
@@ -166,6 +223,30 @@ def submodule-update [submodules: list, path: string = ".", --dry-run] {
         if $result.success {
             print ($CONFIG.colors.success + "    ✓ Successfully updated" + $CONFIG.colors.reset)
         }
+    }
+}
+
+# Pull superproject and sync submodules to recorded refs
+def submodule-pull [submodules: list, path: string = "."] {
+    print-header "Pulling repository and syncing submodules" $CONFIG.icons.processing
+
+    # Pull superproject
+    print ($CONFIG.colors.accent + "  Pulling main repository..." + $CONFIG.colors.reset)
+    let pull_result = git-safe ["pull" "origin" $CONFIG.default_branch] $path "Pull main repository"
+    if $pull_result.success {
+        print ($CONFIG.colors.success + "    ✓ Main repository pulled" + $CONFIG.colors.reset)
+    } else {
+        print ($CONFIG.colors.error + "    ✗ Failed to pull main repository" + $CONFIG.colors.reset)
+        return
+    }
+
+    # Sync submodules to the commits recorded in the superproject
+    print ($CONFIG.colors.accent + "  Syncing submodules to recorded refs..." + $CONFIG.colors.reset)
+    let update_result = git-safe ["submodule" "update" "--init"] $path "Sync submodules"
+    if $update_result.success {
+        print ($CONFIG.colors.success + "    ✓ Submodules synced" + $CONFIG.colors.reset)
+    } else {
+        print ($CONFIG.colors.error + "    ✗ Failed to sync submodules" + $CONFIG.colors.reset)
     }
 }
 
@@ -368,9 +449,14 @@ def get-status [submodules: list, path: string = "."] {
                 "clean"
             }
 
+            # Get ahead/behind relative to origin's default branch
+            let ab = get-ahead-behind $full_submodule_path
+
             {
                 path: $submodule_path,
                 status: $status,
+                ahead: $ab.ahead,
+                behind: $ab.behind,
                 error: false
             }
         } catch {
@@ -378,6 +464,8 @@ def get-status [submodules: list, path: string = "."] {
             {
                 path: $submodule_path,
                 status: "clean",
+                ahead: null,
+                behind: null,
                 error: true
             }
         }
@@ -396,10 +484,15 @@ def display-status [status: table, title: string = "Repository Status", path: st
         $CONFIG.colors.error + $CONFIG.icons.dirty + " DIRTY" + $CONFIG.colors.reset
     }
 
+    # Get main project ahead/behind
+    let main_ab = get-ahead-behind $path
+    let main_remote = format-ahead-behind $main_ab
+
     # Create main project row
     let main_row = {
         "Repository": ($CONFIG.colors.accent + "📁 Main Project" + $CONFIG.colors.reset),
-        "Status": $main_status_info
+        "Status": $main_status_info,
+        "Origin": $main_remote
     }
 
     # Calculate summary stats for three-state system
@@ -438,9 +531,12 @@ def display-status [status: table, title: string = "Repository Status", path: st
             $CONFIG.colors.success + $CONFIG.icons.clean + " CLEAN" + $CONFIG.colors.reset
         }
 
+        let remote_info = format-ahead-behind { ahead: $row.ahead, behind: $row.behind }
+
         {
             "Repository": ($CONFIG.colors.primary + "📦 " + $row.path + $CONFIG.colors.reset),
-            "Status": $status_info
+            "Status": $status_info,
+            "Origin": $remote_info
         }
     }
 
@@ -573,6 +669,7 @@ def main [
     path: string = "."  # Path to the repository (defaults to current directory)
     --status-only(-s)  # Just show the status and exit
     --update(-u)       # Automatically update all submodules
+    --pull(-p)         # Pull superproject and sync submodules to recorded refs
     --dry-run(-d)      # Show what would be done without executing
     --force(-f)        # Skip confirmation prompts
 ] {
@@ -584,23 +681,39 @@ def main [
         print ($CONFIG.colors.info + "Repository has no submodules - operating on main repository only" + $CONFIG.colors.reset)
     }
 
+    # Handle pull mode
+    if $pull {
+        if $dry_run {
+            print-header "Would pull:" $CONFIG.icons.processing
+            print ($CONFIG.colors.accent + "  → git pull origin main (superproject)" + $CONFIG.colors.reset)
+            print ($CONFIG.colors.accent + "  → git submodule update --init (sync to recorded refs)" + $CONFIG.colors.reset)
+            print ($CONFIG.colors.info + "Dry run completed. Use --pull without --dry-run to execute." + $CONFIG.colors.reset)
+            return
+        }
+
+        submodule-pull $submodules $path
+
+        # Show final status
+        let status = get-status $submodules $path
+        display-status $status "Status after pull" $path
+        return
+    }
+
     # Handle auto-update mode
     if $update {
         let status = get-status $submodules $path
         display-status $status "Current Status" $path
 
-        # Check if main project is dirty
-        let main_clean = is-git-clean $path
-
-        # Check if any submodules have uncommitted changes
+        # Check for actual dirty state (excluding submodule ref mismatches)
+        let main_has_own_changes = has-own-changes $submodules $path
         let dirty_submodules = $status | where status == "dirty"
 
-        if (not $main_clean) or (not ($dirty_submodules | is-empty)) {
-            if not $main_clean {
-                print ($CONFIG.colors.error + $CONFIG.icons.warning + " Main project has untracked changes. Please commit or stash them before updating." + $CONFIG.colors.reset)
+        if $main_has_own_changes or (not ($dirty_submodules | is-empty)) {
+            if $main_has_own_changes {
+                print ($CONFIG.colors.error + $CONFIG.icons.warning + " Main project has uncommitted changes. Please commit or stash them before updating." + $CONFIG.colors.reset)
             }
             if (not ($dirty_submodules | is-empty)) {
-                print ($CONFIG.colors.error + $CONFIG.icons.warning + " Some submodules have untracked changes. Please commit or stash them before updating." + $CONFIG.colors.reset)
+                print ($CONFIG.colors.error + $CONFIG.icons.warning + " Some submodules have uncommitted changes. Please commit or stash them before updating." + $CONFIG.colors.reset)
             }
             return
         }
@@ -646,10 +759,14 @@ def main [
 
     # Interactive mode
     print ""
-    print ($CONFIG.colors.info + "What do you want to do? " + $CONFIG.colors.primary + "(u)" + $CONFIG.colors.reset + "pdate, " + $CONFIG.colors.primary + "(c)" + $CONFIG.colors.reset + "ommit dirty")
+    print ($CONFIG.colors.info + "What do you want to do? " + $CONFIG.colors.primary + "(p)" + $CONFIG.colors.reset + "ull, " + $CONFIG.colors.primary + "(u)" + $CONFIG.colors.reset + "pdate, " + $CONFIG.colors.primary + "(c)" + $CONFIG.colors.reset + "ommit dirty")
     let choice = input ": "
 
     match $choice {
+        "p" => {
+            submodule-pull $submodules $path
+            display-status (get-status $submodules $path) "Status after pull" $path
+        },
         "u" => {
             if $dry_run {
                 submodule-update $submodules $path --dry-run
