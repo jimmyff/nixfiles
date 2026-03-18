@@ -381,6 +381,7 @@ in {
         pkgs-dev-tools.doppler
         pkgs-dev-tools.entr
         pkgs-dev-tools.lnav
+        pkgs-dev-tools.go
 
         # Basic CLI utilities (stable)
         pkgs-stable.curl

@@ -190,7 +190,7 @@ def get_package_version [flake_ref: string, input: string, package: string, use_
     if $use_cache {
         let cached = (read_cache $cache_key)
         if $cached != null {
-            return $cached
+            return ($cached | into string)
         }
     }
 
