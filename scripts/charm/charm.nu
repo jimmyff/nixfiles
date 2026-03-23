@@ -123,7 +123,6 @@ def "main git diff" [--path: string = "." --staged] {
 }
 
 def "main overview" [--path: string = "." --fetch] {
-  let fetched = $fetch
   let status = (charm status --path $path | from json)
 
   # Git: cached by default, live --skip-fetch as fallback, live fetch with --fetch
@@ -138,6 +137,8 @@ def "main overview" [--path: string = "." --fetch] {
       $cached
     }
   }
+  # Show behind counts if we fetched live or have cached data from a fetched run
+  let fetched = $fetch or ($git.timestamp? != null)
 
   # Test + analyze: always from cache
   let test_data = (charm test --cached --path $path | from json)
@@ -160,15 +161,23 @@ def "main overview" [--path: string = "." --fetch] {
   let subs = $git.submodules
   if ($subs | is-empty) { return }
 
-  let has_parent = ($subs | where { |s| $s.ahead_parent > 0 or $s.behind_parent > 0 } | is-not-empty)
+  let has_parent = ($subs | where { |s| $s.ahead_parent != $s.ahead_remote or $s.behind_parent != $s.behind_remote } | is-not-empty)
   let formatted = ($subs | each { |r|
     let name = ($r.path | path basename)
     let dirty = if $r.dirty { $" (ansi red)\u{25cf}(ansi reset)" } else { "" }
-    let branch = if $r.detached { $"(ansi yellow)detached(ansi reset)" } else { $r.branch }
+    let branch = if $r.detached { $"(ansi red_bold)DETACHED(ansi reset)" } else { $r.branch }
     let tracking = (format-tracking $r.ahead_remote $r.behind_remote $fetched)
+    let head_on = ($r.head_on_remote? | default true)
+    let upstream = ($r.upstream? | default "")
+    let stash = ($r.stash_count? | default 0)
+    mut warnings = []
+    if (not $head_on) { $warnings = ($warnings | append $"(ansi red_bold)NOT PUSHED(ansi reset)") }
+    if $upstream == "" and (not $r.detached) and $r.branch != "" { $warnings = ($warnings | append $"(ansi yellow)no upstream(ansi reset)") }
+    if $stash > 0 { $warnings = ($warnings | append $"(ansi yellow)($stash) stash(ansi reset)") }
+    let warn_str = ($warnings | str join " ")
     mut row = {
       package: $"($name)($dirty)"
-      git: $"($branch) ($tracking)"
+      git: ($"($branch) ($tracking) ($warn_str)" | str trim)
     }
     if $has_parent {
       $row = ($row | insert parent (format-tracking $r.ahead_parent $r.behind_parent true))
@@ -256,20 +265,37 @@ Common flags: --path <dir> --filter <name>"
 def print-repo-line [repo: record, fetched: bool] {
   let dirty = if $repo.dirty { $" (ansi red)\u{25cf}(ansi reset)" } else { "" }
   let tracking = (format-tracking $repo.ahead $repo.behind $fetched)
-  print $"(ansi cyan_bold)Repo:(ansi reset) ($repo.branch)($dirty) ($tracking)"
+  let head_on = ($repo.head_on_remote? | default true)
+  let upstream = ($repo.upstream? | default "")
+  let stash = ($repo.stash_count? | default 0)
+  mut warnings = []
+  if (not $head_on) { $warnings = ($warnings | append $"(ansi red_bold)NOT PUSHED(ansi reset)") }
+  if $upstream == "" and $repo.branch != "" { $warnings = ($warnings | append $"(ansi yellow)no upstream(ansi reset)") }
+  if $stash > 0 { $warnings = ($warnings | append $"(ansi yellow)($stash) stash(ansi reset)") }
+  let warn_str = ($warnings | str join " ")
+  let line = $"(ansi cyan_bold)Repo:(ansi reset) ($repo.branch)($dirty) ($tracking) ($warn_str)" | str trim
+  print $line
 }
 
 # Print styled submodule table
 def print-sub-table [subs: list<record>, fetched: bool] {
-  let has_parent = ($subs | where { |s| $s.ahead_parent > 0 or $s.behind_parent > 0 } | is-not-empty)
+  let has_parent = ($subs | where { |s| $s.ahead_parent != $s.ahead_remote or $s.behind_parent != $s.behind_remote } | is-not-empty)
   let formatted = ($subs | each { |r|
     let name = ($r.path | path basename)
     let dirty = if $r.dirty { $" (ansi red)\u{25cf}(ansi reset)" } else { "" }
-    let branch = if $r.detached { $"(ansi yellow)detached(ansi reset)" } else { $r.branch }
+    let branch = if $r.detached { $"(ansi red_bold)DETACHED(ansi reset)" } else { $r.branch }
     let tracking = (format-tracking $r.ahead_remote $r.behind_remote $fetched)
+    let head_on = ($r.head_on_remote? | default true)
+    let upstream = ($r.upstream? | default "")
+    let stash = ($r.stash_count? | default 0)
+    mut warnings = []
+    if (not $head_on) { $warnings = ($warnings | append $"(ansi red_bold)NOT PUSHED(ansi reset)") }
+    if $upstream == "" and (not $r.detached) and $r.branch != "" { $warnings = ($warnings | append $"(ansi yellow)no upstream(ansi reset)") }
+    if $stash > 0 { $warnings = ($warnings | append $"(ansi yellow)($stash) stash(ansi reset)") }
+    let warn_str = ($warnings | str join " ")
     mut row = {
       package: $"($name)($dirty)"
-      git: $"($branch) ($tracking)"
+      git: ($"($branch) ($tracking) ($warn_str)" | str trim)
     }
     if $has_parent {
       $row = ($row | insert parent (format-tracking $r.ahead_parent $r.behind_parent true))
@@ -281,16 +307,12 @@ def print-sub-table [subs: list<record>, fetched: bool] {
   $formatted | select ...$cols | print
 }
 
-# Format ↑N ↓N tracking indicators
+# Format ↑N ↓N tracking indicators (quiet when synced)
 def format-tracking [ahead: int, behind: int, show_behind: bool]: nothing -> string {
-  let dim = (ansi dark_gray)
-  let reset = (ansi reset)
-  let a = if $ahead > 0 { $"(ansi yellow)\u{2191}($ahead)(ansi reset)" } else { $"($dim)\u{2191}\u{00b7}($reset)" }
-  if (not $show_behind) {
-    return $a
-  }
-  let b = if $behind > 0 { $"(ansi red)\u{2193}($behind)(ansi reset)" } else { $"($dim)\u{2193}\u{00b7}($reset)" }
-  $"($a) ($b)"
+  mut parts = []
+  if $ahead > 0 { $parts = ($parts | append $"(ansi yellow)\u{2191}($ahead)(ansi reset)") }
+  if $show_behind and $behind > 0 { $parts = ($parts | append $"(ansi red)\u{2193}($behind)(ansi reset)") }
+  $parts | str join " "
 }
 
 # Aggregate test results for a submodule path

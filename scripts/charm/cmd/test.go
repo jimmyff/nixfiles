@@ -9,7 +9,9 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"sort"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -20,6 +22,7 @@ func Test(args []string) int {
 	filter := fs.String("filter", "", "comma-separated package name filters")
 	timeout := fs.Int("timeout", 120, "per-package timeout in seconds")
 	cached := fs.Bool("cached", false, "read from cache instead of running live")
+	jobs := fs.Int("jobs", 4, "number of parallel test jobs")
 	fs.Parse(args)
 
 	root, err := resolveRoot(*path)
@@ -28,18 +31,53 @@ func Test(args []string) int {
 		return ExitUsage
 	}
 
-	// Cached mode: return cache file or empty output
+	// Cached mode: assemble from per-package cache files
 	if *cached {
-		data, err := readCache(root, "test.json")
+		entries, err := readCacheTree(root, "test.json")
 		if err != nil {
 			logf("error: %v\n", err)
 			return ExitFailure
 		}
-		if data != nil {
-			os.Stdout.Write(data)
-			return ExitOK
+		var results []TestPackageResult
+		var oldestTimestamp *string
+		for relPath, data := range entries {
+			var result TestPackageResult
+			if err := json.Unmarshal(data, &result); err != nil {
+				continue
+			}
+			result.Path = relPath
+			if result.Timestamp != nil && (oldestTimestamp == nil || *result.Timestamp < *oldestTimestamp) {
+				oldestTimestamp = result.Timestamp
+			}
+			results = append(results, result)
 		}
-		out := TestOutput{Path: root, Packages: []TestPackageResult{}}
+		sort.Slice(results, func(i, j int) bool {
+			return results[i].Path < results[j].Path
+		})
+		summary := TestSummary{TotalPackages: len(results)}
+		for _, r := range results {
+			switch r.Status {
+			case "pass":
+				summary.PassedPackages++
+			case "fail":
+				summary.FailedPackages++
+			case "error":
+				summary.ErrorPackages++
+			}
+			summary.TotalTests += r.Total
+			summary.TotalPassed += r.Passed
+			summary.TotalFailed += r.Failed
+			summary.TotalSkipped += r.Skipped
+		}
+		out := TestOutput{
+			Path:      root,
+			Timestamp: oldestTimestamp,
+			Packages:  results,
+			Summary:   summary,
+		}
+		if out.Packages == nil {
+			out.Packages = []TestPackageResult{}
+		}
 		if err := outputJSON(out); err != nil {
 			logf("error: %v\n", err)
 			return ExitFailure
@@ -73,11 +111,42 @@ func Test(args []string) int {
 		return ExitFailure
 	}
 
-	var results []TestPackageResult
-	for _, pkg := range testable {
+	numJobs := *jobs
+	if numJobs < 1 {
+		numJobs = 1
+	}
+
+	type indexedResult struct {
+		index  int
+		result TestPackageResult
+	}
+	resultsCh := make(chan indexedResult, len(testable))
+	sem := make(chan struct{}, numJobs)
+	var mu sync.Mutex
+
+	for i, pkg := range testable {
 		runner := detectRunner(root, pkg.Path)
-		result := runTestPackage(root, session, pkg.Path, runner, *timeout)
-		results = append(results, result)
+		sem <- struct{}{} // acquire slot before printing
+		mu.Lock()
+		logf("  testing %s (%s)...\n", pkg.Path, runner)
+		mu.Unlock()
+		go func(i int, pkg PackageInfo, runner string) {
+			result, logs := runTestPackage(root, session, pkg.Path, runner, *timeout)
+			result.Path = filepath.Join(root, pkg.Path)
+			result.Timestamp = nowTimestamp()
+			writeCache(filepath.Join(root, pkg.Path), "test.json", result)
+			mu.Lock()
+			fmt.Fprint(os.Stderr, logs)
+			mu.Unlock()
+			resultsCh <- indexedResult{index: i, result: result}
+			<-sem // release slot
+		}(i, pkg, runner)
+	}
+
+	results := make([]TestPackageResult, len(testable))
+	for range testable {
+		ir := <-resultsCh
+		results[ir.index] = ir.result
 	}
 
 	// Build summary
@@ -111,7 +180,6 @@ func Test(args []string) int {
 		logf("error: %v\n", err)
 		return ExitFailure
 	}
-	writeCache(root, "test.json", out)
 
 	if summary.FailedPackages > 0 || summary.ErrorPackages > 0 {
 		return ExitFailure
@@ -119,7 +187,8 @@ func Test(args []string) int {
 	return ExitOK
 }
 
-func runTestPackage(root, session, pkgPath, runner string, timeout int) TestPackageResult {
+func runTestPackage(root, session, pkgPath, runner string, timeout int) (TestPackageResult, string) {
+	var buf strings.Builder
 	result := TestPackageResult{
 		Path:   pkgPath,
 		Runner: runner,
@@ -132,7 +201,8 @@ func runTestPackage(root, session, pkgPath, runner string, timeout int) TestPack
 	if err != nil {
 		result.Status = "error"
 		result.Error = fmt.Sprintf("failed to create temp file: %v", err)
-		return result
+		fmt.Fprintf(&buf, "  %s: error\n", pkgPath)
+		return result, buf.String()
 	}
 	jsonPath := tmpFile.Name()
 	tmpFile.Close()
@@ -159,7 +229,6 @@ func runTestPackage(root, session, pkgPath, runner string, timeout int) TestPack
 		cmdArgs = []string{"test", "--file-reporter", "json:" + jsonPath}
 	}
 
-	logf("  testing %s (%s)...", pkgPath, runner)
 	start := time.Now()
 
 	cmd := exec.Command(cmdName, cmdArgs...)
@@ -201,8 +270,8 @@ func runTestPackage(root, session, pkgPath, runner string, timeout int) TestPack
 			result.Status = "error"
 			result.Error = "no test output produced"
 		}
-		logf(" error (%s)\n", elapsed)
-		return result
+		fmt.Fprintf(&buf, "  %s: error (%s)\n", pkgPath, elapsed)
+		return result, buf.String()
 	}
 
 	parsed := parseNDJSON(jsonData)
@@ -213,10 +282,10 @@ func runTestPackage(root, session, pkgPath, runner string, timeout int) TestPack
 
 	if parsed.success && result.Failed == 0 {
 		result.Status = "pass"
-		logf(" %d passed (%s)\n", result.Passed, elapsed)
+		fmt.Fprintf(&buf, "  %s: %d passed (%s)\n", pkgPath, result.Passed, elapsed)
 	} else {
 		result.Status = "fail"
-		logf(" %d failed (%s)\n", result.Failed, elapsed)
+		fmt.Fprintf(&buf, "  %s: %d failed (%s)\n", pkgPath, result.Failed, elapsed)
 	}
 
 	// Write detail file if there are failures
@@ -233,13 +302,13 @@ func runTestPackage(root, session, pkgPath, runner string, timeout int) TestPack
 		detailName := safePath(pkgPath) + ".json"
 		detailPath := filepath.Join(session, "test", detailName)
 		if err := writeJSONFile(detailPath, detail); err != nil {
-			logf("  warning: failed to write detail file: %v\n", err)
+			fmt.Fprintf(&buf, "  %s: warning: failed to write detail file: %v\n", pkgPath, err)
 		} else {
 			result.DetailsFile = detailPath
 		}
 	}
 
-	return result
+	return result, buf.String()
 }
 
 type parseOutput struct {

@@ -175,9 +175,12 @@ func getRepoStatus(root string) (GitRepoStatus, error) {
 		}
 	}
 
-	ahead, behind := getAheadBehind(root, status.Branch)
-	status.Ahead = ahead
-	status.Behind = behind
+	us := getUpstreamStatus(root, status.Branch)
+	status.Upstream = us.Upstream
+	status.Ahead = us.Ahead
+	status.Behind = us.Behind
+	status.HeadOnRemote = isHeadOnRemote(root)
+	status.StashCount = getStashCount(root)
 
 	return status, nil
 }
@@ -233,16 +236,22 @@ func getSubmoduleStatus(root, subPath string) GitSubmoduleStatus {
 		}
 	}
 
-	// Check dirty
+	// Check dirty + count untracked
 	porcelain, err := runGit(subDir, "status", "--porcelain")
 	if err == nil {
 		sub.Dirty = porcelain != ""
+		sub.UntrackedCount = countUntracked(porcelain)
 	}
 
-	// Ahead/behind remote
-	if sub.Branch != "" {
-		sub.AheadRemote, sub.BehindRemote = getAheadBehind(subDir, sub.Branch)
-	}
+	// Ahead/behind remote (uses real upstream, not hardcoded origin/<branch>)
+	us := getUpstreamStatus(subDir, sub.Branch)
+	sub.Upstream = us.Upstream
+	sub.AheadRemote = us.Ahead
+	sub.BehindRemote = us.Behind
+
+	// Check if HEAD is on any remote branch (works for detached HEAD too)
+	sub.HeadOnRemote = isHeadOnRemote(subDir)
+	sub.StashCount = getStashCount(subDir)
 
 	// Ahead/behind parent ref
 	if sub.Ref != "" && sub.ParentRef != "" && sub.Ref != sub.ParentRef {
@@ -258,16 +267,66 @@ func getSubmoduleStatus(root, subPath string) GitSubmoduleStatus {
 	return sub
 }
 
-func getAheadBehind(dir, branch string) (int, int) {
+type upstreamInfo struct {
+	Upstream string
+	Ahead    int
+	Behind   int
+}
+
+// getUpstreamStatus resolves the actual upstream tracking branch and computes ahead/behind.
+// Falls back to origin/<branch> if no upstream is configured. Returns empty Upstream
+// when no remote ref can be found (signals "no tracking").
+func getUpstreamStatus(dir, branch string) upstreamInfo {
 	if branch == "" {
-		return 0, 0
+		return upstreamInfo{}
 	}
-	remoteRef := fmt.Sprintf("origin/%s", branch)
-	output, err := runGit(dir, "rev-list", "--left-right", "--count", fmt.Sprintf("HEAD...%s", remoteRef))
+
+	// Try real upstream: git rev-parse --abbrev-ref <branch>@{upstream}
+	upstream, err := runGit(dir, "rev-parse", "--abbrev-ref", branch+"@{upstream}")
 	if err != nil {
-		return 0, 0
+		// Fall back to origin/<branch> if it exists
+		fallback := fmt.Sprintf("origin/%s", branch)
+		if _, verifyErr := runGit(dir, "rev-parse", "--verify", fallback); verifyErr != nil {
+			return upstreamInfo{} // no tracking ref at all
+		}
+		upstream = fallback
 	}
-	return parseLeftRight(output)
+
+	output, err := runGit(dir, "rev-list", "--left-right", "--count", fmt.Sprintf("HEAD...%s", upstream))
+	if err != nil {
+		return upstreamInfo{Upstream: upstream}
+	}
+	ahead, behind := parseLeftRight(output)
+	return upstreamInfo{Upstream: upstream, Ahead: ahead, Behind: behind}
+}
+
+// isHeadOnRemote returns true if HEAD exists on any remote branch.
+func isHeadOnRemote(dir string) bool {
+	branches, err := runGit(dir, "branch", "-r", "--contains", "HEAD")
+	return err == nil && strings.TrimSpace(branches) != ""
+}
+
+// getStashCount returns the number of stash entries.
+func getStashCount(dir string) int {
+	output, err := runGit(dir, "stash", "list")
+	if err != nil || output == "" {
+		return 0
+	}
+	return len(strings.Split(output, "\n"))
+}
+
+// countUntracked counts lines starting with "??" in porcelain output.
+func countUntracked(porcelain string) int {
+	if porcelain == "" {
+		return 0
+	}
+	count := 0
+	for _, line := range strings.Split(porcelain, "\n") {
+		if strings.HasPrefix(line, "??") {
+			count++
+		}
+	}
+	return count
 }
 
 func getRevListCount(dir, base, head string) (int, int) {

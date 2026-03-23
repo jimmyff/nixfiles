@@ -47,15 +47,16 @@ type TestFailure struct {
 }
 
 type TestPackageResult struct {
-	Path        string `json:"path"`
-	Runner      string `json:"runner"`
-	Total       int    `json:"total"`
-	Passed      int    `json:"passed"`
-	Failed      int    `json:"failed"`
-	Skipped     int    `json:"skipped"`
-	Status      string `json:"status"` // "pass", "fail", "error"
-	Error       string `json:"error,omitempty"`
-	DetailsFile string `json:"details_file,omitempty"`
+	Path        string  `json:"path"`
+	Runner      string  `json:"runner"`
+	Total       int     `json:"total"`
+	Passed      int     `json:"passed"`
+	Failed      int     `json:"failed"`
+	Skipped     int     `json:"skipped"`
+	Status      string  `json:"status"` // "pass", "fail", "error"
+	Error       string  `json:"error,omitempty"`
+	DetailsFile string  `json:"details_file,omitempty"`
+	Timestamp   *string `json:"timestamp,omitempty"`
 }
 
 type TestDetailFile struct {
@@ -99,13 +100,14 @@ type AnalyzeIssue struct {
 }
 
 type AnalyzePackageResult struct {
-	Path        string `json:"path"`
-	Status      string `json:"status"` // "pass", "fail", "error"
-	Errors      int    `json:"errors"`
-	Warnings    int    `json:"warnings"`
-	Infos       int    `json:"infos"`
-	Error       string `json:"error,omitempty"`
-	DetailsFile string `json:"details_file,omitempty"`
+	Path        string  `json:"path"`
+	Status      string  `json:"status"` // "pass", "fail", "error"
+	Errors      int     `json:"errors"`
+	Warnings    int     `json:"warnings"`
+	Infos       int     `json:"infos"`
+	Error       string  `json:"error,omitempty"`
+	DetailsFile string  `json:"details_file,omitempty"`
+	Timestamp   *string `json:"timestamp,omitempty"`
 }
 
 type AnalyzeDetailFile struct {
@@ -154,21 +156,28 @@ type GitRepoStatus struct {
 	Dirty          bool     `json:"dirty"`
 	Ahead          int      `json:"ahead"`
 	Behind         int      `json:"behind"`
+	Upstream       string   `json:"upstream"`
+	HeadOnRemote   bool     `json:"head_on_remote"`
+	StashCount     int      `json:"stash_count"`
 	UntrackedFiles []string `json:"untracked_files,omitempty"`
 }
 
 type GitSubmoduleStatus struct {
-	Path         string `json:"path"`
-	Branch       string `json:"branch"`
-	Ref          string `json:"ref"`
-	ParentRef    string `json:"parent_ref"`
-	Dirty        bool   `json:"dirty"`
-	Detached     bool   `json:"detached"`
-	AheadRemote  int    `json:"ahead_remote"`
-	BehindRemote int    `json:"behind_remote"`
-	AheadParent  int    `json:"ahead_parent"`
-	BehindParent int    `json:"behind_parent"`
-	LatestCommit string `json:"latest_commit"`
+	Path           string `json:"path"`
+	Branch         string `json:"branch"`
+	Ref            string `json:"ref"`
+	ParentRef      string `json:"parent_ref"`
+	Dirty          bool   `json:"dirty"`
+	Detached       bool   `json:"detached"`
+	AheadRemote    int    `json:"ahead_remote"`
+	BehindRemote   int    `json:"behind_remote"`
+	AheadParent    int    `json:"ahead_parent"`
+	BehindParent   int    `json:"behind_parent"`
+	Upstream       string `json:"upstream"`
+	HeadOnRemote   bool   `json:"head_on_remote"`
+	StashCount     int    `json:"stash_count"`
+	UntrackedCount int    `json:"untracked_count"`
+	LatestCommit   string `json:"latest_commit"`
 }
 
 type GitOutput struct {

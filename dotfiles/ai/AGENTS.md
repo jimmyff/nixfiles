@@ -62,9 +62,7 @@
 
 ## Dart & Flutter
 
-- `charm`: Dart/Flutter super-project orchestrator — test, analyze, and git ops across parent repo and submodules. Outputs JSON (`charm.nu` for tables). Use `-help` for commands. Source: ~/nixfiles/scripts/charm/
-
+- Use `charm` for all test/analyze/git operations in super-projects: `charm test --path <root>`, `charm analyze --path <root>`, `charm git diff`, `charm git commit-sub`, `charm git commit-parent`. Use `-help` for details. Source: ~/nixfiles/scripts/charm/
 - Use package:mockito for mocked integration tests
-- Use timeouts: `timeout 30 flutter test ...` (60/90s for complex projects)
 - Package docs: https://pub.dev/packages/$package_id
 - [Flutter API](https://api.flutter.dev/) | [Dart API](https://api.dart.dev/)

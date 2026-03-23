@@ -1,12 +1,16 @@
 package cmd
 
 import (
+	"encoding/json"
 	"flag"
+	"fmt"
 	"os"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -19,6 +23,7 @@ func Analyze(args []string) int {
 	path := fs.String("path", ".", "workspace root path")
 	filter := fs.String("filter", "", "comma-separated package name filters")
 	cached := fs.Bool("cached", false, "read from cache instead of running live")
+	jobs := fs.Int("jobs", 4, "number of parallel analyze jobs")
 	fs.Parse(args)
 
 	root, err := resolveRoot(*path)
@@ -27,18 +32,52 @@ func Analyze(args []string) int {
 		return ExitUsage
 	}
 
-	// Cached mode: return cache file or empty output
+	// Cached mode: assemble from per-package cache files
 	if *cached {
-		data, err := readCache(root, "analyze.json")
+		entries, err := readCacheTree(root, "analyze.json")
 		if err != nil {
 			logf("error: %v\n", err)
 			return ExitFailure
 		}
-		if data != nil {
-			os.Stdout.Write(data)
-			return ExitOK
+		var results []AnalyzePackageResult
+		var oldestTimestamp *string
+		for relPath, data := range entries {
+			var result AnalyzePackageResult
+			if err := json.Unmarshal(data, &result); err != nil {
+				continue
+			}
+			result.Path = relPath
+			if result.Timestamp != nil && (oldestTimestamp == nil || *result.Timestamp < *oldestTimestamp) {
+				oldestTimestamp = result.Timestamp
+			}
+			results = append(results, result)
 		}
-		out := AnalyzeOutput{Path: root, Packages: []AnalyzePackageResult{}}
+		sort.Slice(results, func(i, j int) bool {
+			return results[i].Path < results[j].Path
+		})
+		summary := AnalyzeSummary{TotalPackages: len(results)}
+		for _, r := range results {
+			switch r.Status {
+			case "pass":
+				summary.PassedPackages++
+			case "fail":
+				summary.FailedPackages++
+			case "error":
+				summary.ErrorPackages++
+			}
+			summary.TotalErrors += r.Errors
+			summary.TotalWarnings += r.Warnings
+			summary.TotalInfos += r.Infos
+		}
+		out := AnalyzeOutput{
+			Path:      root,
+			Timestamp: oldestTimestamp,
+			Packages:  results,
+			Summary:   summary,
+		}
+		if out.Packages == nil {
+			out.Packages = []AnalyzePackageResult{}
+		}
 		if err := outputJSON(out); err != nil {
 			logf("error: %v\n", err)
 			return ExitFailure
@@ -65,10 +104,41 @@ func Analyze(args []string) int {
 		return ExitFailure
 	}
 
-	var results []AnalyzePackageResult
-	for _, pkg := range packages {
-		result := runAnalyzePackage(root, session, pkg.Path)
-		results = append(results, result)
+	numJobs := *jobs
+	if numJobs < 1 {
+		numJobs = 1
+	}
+
+	type indexedResult struct {
+		index  int
+		result AnalyzePackageResult
+	}
+	resultsCh := make(chan indexedResult, len(packages))
+	sem := make(chan struct{}, numJobs)
+	var mu sync.Mutex
+
+	for i, pkg := range packages {
+		sem <- struct{}{}
+		mu.Lock()
+		logf("  analyzing %s...\n", pkg.Path)
+		mu.Unlock()
+		go func(i int, pkg PackageInfo) {
+			result, logs := runAnalyzePackage(root, session, pkg.Path)
+			result.Path = filepath.Join(root, pkg.Path)
+			result.Timestamp = nowTimestamp()
+			writeCache(filepath.Join(root, pkg.Path), "analyze.json", result)
+			mu.Lock()
+			fmt.Fprint(os.Stderr, logs)
+			mu.Unlock()
+			resultsCh <- indexedResult{index: i, result: result}
+			<-sem
+		}(i, pkg)
+	}
+
+	results := make([]AnalyzePackageResult, len(packages))
+	for range packages {
+		ir := <-resultsCh
+		results[ir.index] = ir.result
 	}
 
 	summary := AnalyzeSummary{TotalPackages: len(results)}
@@ -100,7 +170,6 @@ func Analyze(args []string) int {
 		logf("error: %v\n", err)
 		return ExitFailure
 	}
-	writeCache(root, "analyze.json", out)
 
 	if summary.FailedPackages > 0 || summary.ErrorPackages > 0 {
 		return ExitFailure
@@ -108,11 +177,10 @@ func Analyze(args []string) int {
 	return ExitOK
 }
 
-func runAnalyzePackage(root, session, pkgPath string) AnalyzePackageResult {
+func runAnalyzePackage(root, session, pkgPath string) (AnalyzePackageResult, string) {
+	var buf strings.Builder
 	result := AnalyzePackageResult{Path: pkgPath}
 	pkgDir := filepath.Join(root, pkgPath)
-
-	logf("  analyzing %s...", pkgPath)
 
 	stdout, stderr, err := runCommand(pkgDir, 120*time.Second, "dart", "analyze")
 	combined := stdout + "\n" + stderr
@@ -150,16 +218,16 @@ func runAnalyzePackage(root, session, pkgPath string) AnalyzePackageResult {
 	if err != nil && result.Errors == 0 && len(issues) == 0 {
 		result.Status = "error"
 		result.Error = strings.TrimSpace(stderr)
-		logf(" error\n")
-		return result
+		fmt.Fprintf(&buf, "  %s: error\n", pkgPath)
+		return result, buf.String()
 	}
 
 	if result.Errors > 0 || result.Warnings > 0 {
 		result.Status = "fail"
-		logf(" %d errors, %d warnings\n", result.Errors, result.Warnings)
+		fmt.Fprintf(&buf, "  %s: %d errors, %d warnings\n", pkgPath, result.Errors, result.Warnings)
 	} else {
 		result.Status = "pass"
-		logf(" clean\n")
+		fmt.Fprintf(&buf, "  %s: clean\n", pkgPath)
 	}
 
 	// Write detail file if there are issues
@@ -171,11 +239,11 @@ func runAnalyzePackage(root, session, pkgPath string) AnalyzePackageResult {
 		detailName := safePath(pkgPath) + ".json"
 		detailPath := filepath.Join(session, "analyze", detailName)
 		if err := writeJSONFile(detailPath, detail); err != nil {
-			logf("  warning: failed to write detail file: %v\n", err)
+			fmt.Fprintf(&buf, "  %s: warning: failed to write detail file: %v\n", pkgPath, err)
 		} else {
 			result.DetailsFile = detailPath
 		}
 	}
 
-	return result
+	return result, buf.String()
 }
