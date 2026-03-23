@@ -13,7 +13,7 @@
 
   # Development scripts to include
   scripts = {
-    global = ["git-manager/gm.nu" "dartboard/dartboard.nu" "flitter/flitter.rs"];
+    global = ["flitter/flitter.rs"];
     local = [];
   };
 

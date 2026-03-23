@@ -14,23 +14,19 @@ Manage repositories containing git submodules.
 
 Arguments: `status`, `diff`, `commit`, `sync`, `update`, or omit to run `status` then ask the user what they'd like to do.
 
-## Pre-flight
+## charm
 
-1. Confirm `.gitmodules` exists
-2. Read `.gitmodules` to identify all submodule paths
-3. Check if `../gm.nu` exists relative to the workspace root
+Prefer charm commands over manual git. Fall back to manual git when charm doesn't cover the operation.
 
-## gm.nu
+**Important:** charm's `--path` flag sets the working directory. Always pass the workspace root path.
 
-If `../gm.nu` is available, prefer its non-interactive subcommands over manual git. Fall back to manual git when `gm.nu` doesn't cover the operation or isn't available.
-
-**Important:** All `gm.nu` commands must be run from the workspace root (where `.gitmodules` lives). Always `cd` to the workspace root before invoking, e.g. `cd /path/to/workspace && nu ../gm.nu ...`.
-
-Available subcommands:
-- `nu ../gm.nu status` — show status of all submodules
-- `nu ../gm.nu commit-sub <path> -m "message"` — commit staged files and push a submodule (add `--all` to stage all tracked changes)
-- `nu ../gm.nu commit-parent -m "message" sub1 sub2...` — verify refs are pushed, stage refs, commit and push parent
-- `nu ../gm.nu -u` — pull latest in main repo and all submodules
+Available commands:
+- `charm git --path <workspace>` — JSON status of repo + all submodules
+- `charm git diff --path <workspace>` — structured diff summary for parent + all submodules (JSON on stdout, `.patch` files for full diffs). Use `--staged` for staged changes only
+- `charm git commit-sub <path> -m "message" --path <workspace>` — commit staged files and push a submodule (add `--all` to stage all tracked changes)
+- `charm git commit-parent -m "message" --path <workspace> sub1 sub2...` — verify refs are pushed, stage refs, commit and push parent
+- `charm git pull --path <workspace>` — pull parent + sync submodules
+- `charm git update --path <workspace>` — pull latest in each submodule
 
 ## Commit Messages
 
@@ -43,9 +39,9 @@ Available subcommands:
 
 ### `status` — Overview of all submodules
 
-**gm.nu**: `nu ../gm.nu status`
+**charm**: `charm git --path <workspace>`
 
-For each submodule, check: uncommitted changes, current branch, latest commit, tracking info.
+Parse the JSON output. For each submodule, check: uncommitted changes, current branch, latest commit, tracking info.
 
 Present a summary table with columns: path, branch, dirty/clean, ahead/behind remote, ahead/behind parent ref, latest commit message.
 
@@ -54,11 +50,15 @@ Present a summary table with columns: path, branch, dirty/clean, ahead/behind re
 
 ### `diff` — Show changes across all submodules
 
-For each submodule with uncommitted changes, show the diff summary and any untracked files. Useful for reviewing work-in-progress across the project without committing.
+**charm**: `charm git diff --path <workspace>` (add `--staged` for staged only)
+
+Returns JSON with per-repo entries containing: staged/unstaged changed files (path, status M/A/D/R, insertions, deletions), untracked files, aggregate stats, and a `details_file` path to a `.patch` file with the full unified diff. Clean repos are omitted.
+
+Read `.patch` detail files selectively to inspect full diffs for specific repos. Useful for reviewing work-in-progress across the project without committing.
 
 ### `commit` — Commit and push dirty submodules, then update parent
 
-**gm.nu**: Use `commit-sub` for each dirty submodule, then `commit-parent` to update the parent refs.
+**charm**: Use `git commit-sub` for each dirty submodule, then `git commit-parent` to update the parent refs.
 
 **1. Audit**
 
@@ -76,13 +76,17 @@ Before staging, flag and ask the user about:
 
 Do NOT stage flagged files without explicit user approval.
 
-**3. Commit dirty submodules**
+**3. Quality check**
 
-1. Stage appropriate files in each dirty submodule (prefer specific files over `git add -A`)
+Run `charm analyze --path <workspace>` on the packages being committed. If there are errors, warn the user before proceeding.
+
+**4. Commit dirty submodules**
+
+1. Stage appropriate files in each dirty submodule (prefer specific files over `git add -A`). If a submodule has a mix of unrelated changes, group them into separate commits by staging selectively
 2. Present all proposed commit messages together in a single summary for the user to review, confirm, or adjust (avoid per-submodule back-and-forth when multiple are dirty)
 3. Commit and push each submodule to its remote tracking branch
 
-**4. Update parent repository**
+**5. Update parent repository**
 
 1. Stage **only** the submodule references that were committed and pushed in step 3
 2. Check if any **other** submodules have HEADs ahead of the parent's recorded ref. For each:
@@ -93,21 +97,22 @@ Do NOT stage flagged files without explicit user approval.
 
 ### `sync` — Pull and sync everything
 
-1. Pull parent repository
-2. Init and update all submodules recursively
-3. For each submodule, reattach to its tracking branch **only if safe**:
+**charm**: `charm git pull --path <workspace>` (handles steps 1-2)
+
+1. Pull parent and sync submodules via charm
+2. For each submodule, reattach to its tracking branch **only if safe**:
    - Determine the tracking branch from `.gitmodules` (the `branch` field) or ask the user
    - Compare the submodule's current detached HEAD against the tracking branch tip
    - If they point to the same commit: safe to reattach
    - If the tracking branch is ahead: the parent ref is behind — warn the user and ask whether to reattach (which advances past the parent's recorded ref) or stay detached
    - If the tracking branch is behind: the parent expects a commit not on the branch — warn and ask the user
-4. Report submodule status after sync
+3. Report submodule status after sync
 
 If a submodule has merge conflicts, stop and ask the user how to proceed.
 
 ### `update` — Pull latest in each submodule from its remote
 
-**gm.nu**: `nu ../gm.nu -u`
+**charm**: `charm git update --path <workspace>`
 
 1. Pull latest from each submodule's tracked remote branch
 2. Show which submodules received new commits
@@ -121,3 +126,4 @@ If a pull results in merge conflicts, stop and ask the user how to proceed.
 - Always confirm before committing or pushing
 - If a push fails (e.g. diverged branch), stop and ask the user
 - No repo (parent or submodule) should ever be left in detached HEAD state. After any operation that detaches HEAD (e.g. `submodule update`), reattach to the tracking branch. If the tracking branch can't be determined, ask the user
+- Use `/charmfix` if tests or analysis need fixing before committing

@@ -108,7 +108,22 @@
       echo "   ⚠️  Dart not found, skipping Dart tooling setup"
     fi
     nu -c 'print $"(ansi dark_gray_dimmed)────────────────────────────────────────(ansi reset)"'
-    echo ""
+
+    # Build global tools to ~/.local/bin
+    mkdir -p "${homeDir}/.local/bin"
+    GLOBAL_TOOLS_SOURCE="${homeDir}/nixfiles/scripts"
+
+    # Build Go tools
+    if [ -d "$GLOBAL_TOOLS_SOURCE/charm" ]; then
+      echo "🔨 Building charm..."
+      (cd "$GLOBAL_TOOLS_SOURCE/charm" && go build -o "${homeDir}/.local/bin/charm" .) && echo "✅ Built charm" || echo "❌ Failed to build charm"
+    fi
+
+    # Link nu wrappers
+    if [ -f "$GLOBAL_TOOLS_SOURCE/charm/charm.nu" ]; then
+      ln -sf "$GLOBAL_TOOLS_SOURCE/charm/charm.nu" "${homeDir}/.local/bin/charm.nu" && echo "🔗 Linked charm.nu" || echo "❌ Failed to link charm.nu"
+    fi
+    nu -c 'print $"(ansi dark_gray_dimmed)────────────────────────────────────────(ansi reset)"'
 
     cd ${homeDir}/Projects || { echo "Error: ~/Projects directory not found"; exit 1; }
 
@@ -278,7 +293,7 @@
                 projectName: projectConfig:
                   if projectName == name
                   then
-                    # Global scripts
+                    # Global scripts (symlinked to project dir)
                     (lib.concatStringsSep "\n" (map (
                       scriptPath: let
                         scriptName = lib.last (lib.splitString "/" scriptPath);
@@ -292,7 +307,7 @@
                           echo "⚠️  Global script not found: ${scriptPath}"
                         fi
                       ''
-                    ) (projectConfig.scripts.global or ["git-manager/gm.nu"])))
+                    ) (projectConfig.scripts.global or [])))
                     +
                     # Local scripts
                     (lib.concatStringsSep "\n" (map (

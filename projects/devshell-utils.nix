@@ -56,20 +56,8 @@ rec {
     set +a
   '';
 
-  # Common shellHook tail: README display + startup.nu
+  # Common shellHook tail: run startup.nu
   commonShellHook = ''
-    # Show README if it exists in workspace
-    if [ -f workspace/README.md ]; then
-      echo "📖 Project README:"
-      echo "=================="
-      if command -v bat >/dev/null 2>&1; then
-        bat -pp workspace/README.md
-      else
-        cat workspace/README.md
-      fi
-      echo ""
-    fi
-
     # Run startup script if it exists and nushell is available
     if [ -f startup.nu ] && command -v nu >/dev/null 2>&1 && nu -c "version" >/dev/null 2>&1; then
       nu startup.nu

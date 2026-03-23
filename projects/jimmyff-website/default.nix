@@ -12,7 +12,7 @@
   
   # Development scripts to include
   scripts = {
-    global = ["git-manager/gm.nu"];
+    global = [];
     local = [];
   };
   

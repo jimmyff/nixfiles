@@ -23,5 +23,8 @@ dotfiles/**/*.bak*
 dotfiles/vscode/**/*Storage/
 dotfiles/vscode/**/History/
 
+# Built binaries
+scripts/charm/charm
+
 # Temporary files
 tmp/

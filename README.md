@@ -33,8 +33,7 @@
 - **Project environments:** Declarative dev setup with direnv + Doppler secrets
 - **Encrypted secrets:** agenix + private flake input for sensitive files
 - **IDE integration:** Wrapped IDEs with Doppler secret injection
-- **Git management:** [`gm.nu`](scripts/git-manager/) - mono repo git manager
-- **Flutter/Dart management:** [`dartboard.nu`](scripts/dartboard/) - batch pub operations
+- **Workspace management:** [`charm`](scripts/charm/) - Dart/Flutter workspace + git submodule manager
 - **Flutter hot reload:** [`flitter.rs`](scripts/flitter/) - hot reloading with debug info capture
 - **Package freshness:** [`flake-freshness.nu`](scripts/flake-freshness/) - monitor nix package versions across inputs
 

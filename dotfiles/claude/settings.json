@@ -62,7 +62,16 @@
       "Bash(git submodule:*)",
       "Bash(git add:*)",
       "Bash(git checkout:*)",
-      "Bash(git pull:*)"
+      "Bash(git pull:*)",
+      "Read(~/.cache/charm/**)",
+      "Bash(charm git:*)",
+      "Bash(charm git diff:*)",
+      "Bash(charm status:*)",
+      "Bash(charm test:*)",
+      "Bash(charm analyze:*)",
+      "Bash(charm get:*)",
+      "Bash(charm upgrade:*)",
+      "Bash(charm clean:*)"
     ],
     "deny": [
       "Read(./.env)",
