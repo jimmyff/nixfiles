@@ -69,6 +69,15 @@ func writeCache(absDir, filename string, data interface{}) {
 	}
 }
 
+// deleteCache removes a cached file. Fire-and-forget like writeCache.
+func deleteCache(absDir, filename string) {
+	path, err := cachePath(absDir, filename)
+	if err != nil {
+		return
+	}
+	os.Remove(path)
+}
+
 // readCache reads a cached JSON file. Returns nil, nil if the file doesn't exist.
 func readCache(absDir, filename string) ([]byte, error) {
 	path, err := cachePath(absDir, filename)

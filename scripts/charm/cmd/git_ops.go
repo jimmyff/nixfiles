@@ -68,6 +68,8 @@ func GitCommitSub(args []string) int {
 		result.Error = fmt.Sprintf("push failed: %v", pushErr)
 	}
 
+	deleteCache(root, "git.json")
+
 	outputJSON(result)
 	if !pushed {
 		return ExitFailure
@@ -162,6 +164,8 @@ func GitCommitParent(args []string) int {
 		result.Error = fmt.Sprintf("push failed: %v", pushErr)
 	}
 
+	deleteCache(root, "git.json")
+
 	outputJSON(result)
 	if !pushed {
 		return ExitFailure
@@ -169,7 +173,7 @@ func GitCommitParent(args []string) int {
 	return ExitOK
 }
 
-// GitPull pulls the parent repo and syncs submodules.
+// GitPull pulls the parent repo, syncs submodule refs, then checks out and pulls each submodule.
 func GitPull(args []string) int {
 	fs := flag.NewFlagSet("git pull", flag.ExitOnError)
 	path := fs.String("path", ".", "repository root path")
@@ -181,108 +185,136 @@ func GitPull(args []string) int {
 		return ExitUsage
 	}
 
-	logf("charm: pulling %s\n", root)
+	var warnings []string
 
-	// Detect current branch, fall back to "main"
+	// Pre-flight: check parent dirty/stash
+	parentPorcelain, _ := runGit(root, "status", "--porcelain")
+	if parentPorcelain != "" {
+		warnings = append(warnings, "parent repo has uncommitted changes")
+	}
+	parentStash := getStashCount(root)
+	if parentStash > 0 {
+		warnings = append(warnings, fmt.Sprintf("parent repo has %d stash entries", parentStash))
+	}
+
+	// Detect parent branch
 	branch, _ := runGit(root, "branch", "--show-current")
 	if branch == "" {
 		branch = "main"
 	}
 
 	// Pull parent
+	logf("charm: pulling parent (%s)...\n", branch)
 	_, pullErr := runGit(root, "pull", "origin", branch)
 	if pullErr != nil {
-		result := GitPullResult{Path: root, Error: fmt.Sprintf("pull failed: %v", pullErr)}
+		result := GitPullResult{Path: root, Branch: branch, Warnings: warnings, Error: fmt.Sprintf("pull failed: %v", pullErr)}
 		outputJSON(result)
 		return ExitFailure
 	}
 
-	// Sync submodules
-	_, subErr := runGit(root, "submodule", "update", "--init")
-	synced := subErr == nil
-
-	result := GitPullResult{
-		Path:             root,
-		Success:          true,
-		SubmodulesSynced: synced,
-	}
-	if !synced {
-		result.Error = fmt.Sprintf("submodule sync failed: %v", subErr)
-	}
-
-	outputJSON(result)
-	if !synced {
-		return ExitFailure
-	}
-	return ExitOK
-}
-
-// GitUpdate pulls latest in each submodule from its remote.
-func GitUpdate(args []string) int {
-	fs := flag.NewFlagSet("git update", flag.ExitOnError)
-	path := fs.String("path", ".", "repository root path")
-	fs.Parse(args)
-
-	root, err := resolveRoot(*path)
-	if err != nil {
-		logf("error: %v\n", err)
-		return ExitUsage
+	// Init+clone any new submodules without resetting existing ones.
+	// git submodule update --init resets ALL submodules to parent's recorded ref,
+	// which is counterproductive when we're about to checkout+pull each one.
+	// Instead, detect uninitialised submodules and only update those.
+	uninit := getUninitialisedSubmodules(root)
+	if len(uninit) > 0 {
+		logf("charm: initialising %d new submodules...\n", len(uninit))
+		args := append([]string{"submodule", "update", "--init", "--"}, uninit...)
+		if _, initErr := runGit(root, args...); initErr != nil {
+			warnings = append(warnings, fmt.Sprintf("submodule init failed: %v", initErr))
+		}
 	}
 
+	// Get submodule paths
 	submodulePaths, err := getSubmodulePaths(root)
 	if err != nil {
-		logf("error: %v\n", err)
-		return ExitFailure
+		result := GitPullResult{Path: root, Branch: branch, Success: true, Warnings: warnings, Submodules: []GitPullSubmodule{}}
+		outputJSON(result)
+		return ExitOK
 	}
 
-	logf("charm: updating %d submodules\n", len(submodulePaths))
+	// Pre-flight: check each submodule for dirty state
+	dirtySet := make(map[string]bool)
+	for _, subPath := range submodulePaths {
+		subDir := filepath.Join(root, subPath)
+		porcelain, _ := runGit(subDir, "status", "--porcelain")
+		if porcelain != "" {
+			dirtySet[subPath] = true
+			warnings = append(warnings, fmt.Sprintf("%s has uncommitted changes (skipping pull)", subPath))
+		}
+	}
 
-	var subResults []GitUpdateSubmodule
+	// Pull each submodule
+	var subResults []GitPullSubmodule
 	hasError := false
 	for _, subPath := range submodulePaths {
 		subDir := filepath.Join(root, subPath)
-		sub := GitUpdateSubmodule{Path: subPath}
+		sub := GitPullSubmodule{Path: subPath}
 
-		// Get current ref before pull
+		// Skip dirty submodules
+		if dirtySet[subPath] {
+			sub.WasDirty = true
+			sub.Branch = getSubmoduleBranch(root, subPath)
+			logf("  %s: skipped (dirty)\n", subPath)
+			subResults = append(subResults, sub)
+			continue
+		}
+
+		// Determine branch
+		subBranch := getSubmoduleBranch(root, subPath)
+		sub.Branch = subBranch
+
+		// Checkout branch (get off detached HEAD)
+		logf("  %s: checkout %s, pulling...\n", subPath, subBranch)
+		if _, err := runGit(subDir, "checkout", subBranch); err != nil {
+			sub.Error = fmt.Sprintf("checkout %s failed: %v", subBranch, err)
+			hasError = true
+			subResults = append(subResults, sub)
+			continue
+		}
+
+		// Get before-ref (after checkout, so we only count commits from pull)
 		beforeRef, _ := runGit(subDir, "rev-parse", "HEAD")
 
-		// Detect current branch, fall back to "main"
-		subBranch, _ := runGit(subDir, "branch", "--show-current")
-		if subBranch == "" {
-			subBranch = "main"
-		}
-
 		// Pull
-		_, pullErr := runGit(subDir, "pull", "origin", subBranch)
-		if pullErr != nil {
-			sub.Error = fmt.Sprintf("pull failed: %v", pullErr)
+		if _, err := runGit(subDir, "pull", "origin", subBranch); err != nil {
+			sub.Error = fmt.Sprintf("pull failed: %v", err)
 			hasError = true
-			logf("  %s: error\n", subPath)
-		} else {
-			// Count new commits
-			afterRef, _ := runGit(subDir, "rev-parse", "HEAD")
-			if beforeRef != "" && afterRef != "" && beforeRef != afterRef {
-				countStr, err := runGit(subDir, "rev-list", "--count", fmt.Sprintf("%s..%s", beforeRef, afterRef))
-				if err == nil {
-					count := 0
-					fmt.Sscanf(countStr, "%d", &count)
-					sub.NewCommits = count
-				}
-			}
-			logf("  %s: %d new commits\n", subPath, sub.NewCommits)
+			subResults = append(subResults, sub)
+			continue
 		}
 
+		// Count new commits
+		afterRef, _ := runGit(subDir, "rev-parse", "HEAD")
+		if beforeRef != "" && afterRef != "" && beforeRef != afterRef {
+			countStr, err := runGit(subDir, "rev-list", "--count", fmt.Sprintf("%s..%s", beforeRef, afterRef))
+			if err == nil {
+				count := 0
+				fmt.Sscanf(countStr, "%d", &count)
+				sub.NewCommits = count
+			}
+		}
+
+		logf("  %s: %d new commits\n", subPath, sub.NewCommits)
 		subResults = append(subResults, sub)
 	}
 
-	result := GitUpdateResult{
+	result := GitPullResult{
 		Path:       root,
 		Success:    !hasError,
+		Branch:     branch,
 		Submodules: subResults,
+		Warnings:   warnings,
 	}
 	if result.Submodules == nil {
-		result.Submodules = []GitUpdateSubmodule{}
+		result.Submodules = []GitPullSubmodule{}
 	}
+	if result.Warnings == nil {
+		result.Warnings = []string{}
+	}
+
+	// Invalidate git cache since repo state has changed
+	deleteCache(root, "git.json")
 
 	outputJSON(result)
 	if hasError {

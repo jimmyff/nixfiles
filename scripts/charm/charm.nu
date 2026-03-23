@@ -78,12 +78,27 @@ def "main git commit-parent" [--path: string = "." -m: string ...sub_paths: stri
 }
 
 def "main git pull" [--path: string = "."] {
-  charm git pull --path $path | from json
-}
-
-def "main git update" [--path: string = "."] {
-  let result = (charm git update --path $path | from json)
-  $result.submodules | select path new_commits
+  let result = (charm git pull --path $path | from json)
+  let warns = ($result.warnings? | default [])
+  if (not ($warns | is-empty)) {
+    for w in $warns { print $"(ansi yellow)warning:(ansi reset) ($w)" }
+    print ""
+  }
+  print $"(ansi cyan_bold)Pulled:(ansi reset) ($result.branch)"
+  let subs = ($result.submodules? | default [])
+  if ($subs | is-empty) { return }
+  $subs | each { |s|
+    let status = if ($s.was_dirty? | default false) {
+      $"(ansi yellow)skipped \(dirty\)(ansi reset)"
+    } else if ($s.error? | default "") != "" {
+      $"(ansi red)($s.error)(ansi reset)"
+    } else if $s.new_commits > 0 {
+      $"(ansi green)+($s.new_commits) commits(ansi reset)"
+    } else {
+      "up-to-date"
+    }
+    { path: $s.path, branch: $s.branch, status: $status }
+  } | print
 }
 
 def "main git diff" [--path: string = "." --staged] {
@@ -250,8 +265,7 @@ Commands:
   git diff       Structured diff summary (staged/unstaged/untracked)
   git commit-sub Commit and push a single submodule
   git commit-parent  Stage submodule refs, commit and push parent
-  git pull       Pull parent repo and sync submodules
-  git update     Pull latest in each submodule
+  git pull       Pull parent, checkout branches, pull all submodules
   overview       Combined dashboard: git + cached test/analyze (table)
   recache        Refresh git/test/analyze caches
   clean          Remove old session directories

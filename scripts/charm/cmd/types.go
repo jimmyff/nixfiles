@@ -198,23 +198,21 @@ type GitCommitResult struct {
 	Error   string   `json:"error,omitempty"`
 }
 
-type GitPullResult struct {
-	Path             string `json:"path"`
-	Success          bool   `json:"success"`
-	SubmodulesSynced bool   `json:"submodules_synced"`
-	Error            string `json:"error,omitempty"`
-}
-
-type GitUpdateSubmodule struct {
+type GitPullSubmodule struct {
 	Path       string `json:"path"`
+	Branch     string `json:"branch"`
 	NewCommits int    `json:"new_commits"`
+	WasDirty   bool   `json:"was_dirty,omitempty"`
 	Error      string `json:"error,omitempty"`
 }
 
-type GitUpdateResult struct {
-	Path       string               `json:"path"`
-	Success    bool                 `json:"success"`
-	Submodules []GitUpdateSubmodule `json:"submodules"`
+type GitPullResult struct {
+	Path       string             `json:"path"`
+	Success    bool               `json:"success"`
+	Branch     string             `json:"branch"`
+	Submodules []GitPullSubmodule `json:"submodules"`
+	Warnings   []string           `json:"warnings,omitempty"`
+	Error      string             `json:"error,omitempty"`
 }
 
 // --- Git diff command ---

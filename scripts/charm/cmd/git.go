@@ -15,8 +15,7 @@ Subcommands:
   (default)      Fetch remotes and show status (branch, dirty, ahead/behind)
   commit-sub     Commit and push a single submodule
   commit-parent  Stage submodule refs, commit and push parent repo
-  pull           Pull parent repo and sync submodules
-  update         Pull latest in each submodule from its remote
+  pull           Pull parent, checkout branches, pull all submodules
   diff           Structured diff summary across all repos
 
 Status flags:
@@ -42,8 +41,6 @@ func Git(args []string) int {
 		return GitCommitParent(args[1:])
 	case "pull":
 		return GitPull(args[1:])
-	case "update":
-		return GitUpdate(args[1:])
 	case "diff":
 		return GitDiff(args[1:])
 	default:
@@ -265,6 +262,45 @@ func getSubmoduleStatus(root, subPath string) GitSubmoduleStatus {
 	}
 
 	return sub
+}
+
+// getUninitialisedSubmodules returns submodule paths that have a leading '-' in
+// git submodule status output, indicating they haven't been cloned yet.
+func getUninitialisedSubmodules(root string) []string {
+	output, err := runGit(root, "submodule", "status")
+	if err != nil || output == "" {
+		return nil
+	}
+	var paths []string
+	for _, line := range strings.Split(output, "\n") {
+		line = strings.TrimSpace(line)
+		if len(line) > 0 && line[0] == '-' {
+			parts := strings.Fields(line[1:])
+			if len(parts) >= 2 {
+				paths = append(paths, parts[1])
+			}
+		}
+	}
+	return paths
+}
+
+// getSubmoduleBranch determines the correct branch for a submodule.
+// Priority: .gitmodules config > current branch > "main" fallback.
+func getSubmoduleBranch(root, subPath string) string {
+	// 1. Check .gitmodules for configured tracking branch
+	configKey := fmt.Sprintf("submodule.%s.branch", subPath)
+	if branch, err := runGit(root, "config", "-f", ".gitmodules", configKey); err == nil && branch != "" {
+		return branch
+	}
+
+	// 2. Check current branch in submodule
+	subDir := filepath.Join(root, subPath)
+	if branch, err := runGit(subDir, "branch", "--show-current"); err == nil && branch != "" {
+		return branch
+	}
+
+	// 3. Fall back to "main"
+	return "main"
 }
 
 type upstreamInfo struct {
