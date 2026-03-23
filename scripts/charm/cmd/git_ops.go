@@ -38,7 +38,7 @@ func GitCommitSub(args []string) int {
 	// Stage if --all
 	if *all {
 		if _, err := runGit(subDir, "add", "-A"); err != nil {
-			result := GitCommitResult{Error: fmt.Sprintf("stage failed: %v", err)}
+			result := GitCommitResult{Path: root, Error: fmt.Sprintf("stage failed: %v", err)}
 			outputJSON(result)
 			return ExitFailure
 		}
@@ -46,7 +46,7 @@ func GitCommitSub(args []string) int {
 
 	// Commit
 	if _, err := runGit(subDir, "commit", "-m", *message); err != nil {
-		result := GitCommitResult{Error: fmt.Sprintf("commit failed: %v", err)}
+		result := GitCommitResult{Path: root, Error: fmt.Sprintf("commit failed: %v", err)}
 		outputJSON(result)
 		return ExitFailure
 	}
@@ -59,6 +59,7 @@ func GitCommitSub(args []string) int {
 	pushed := pushErr == nil
 
 	result := GitCommitResult{
+		Path:    root,
 		Success: true,
 		Ref:     ref,
 		Pushed:  pushed,
@@ -104,7 +105,7 @@ func GitCommitParent(args []string) int {
 
 		// Fetch latest from remote
 		if _, err := runGit(subDir, "fetch", "origin"); err != nil {
-			result := GitCommitResult{Error: fmt.Sprintf("fetch failed for %s: %v", sub, err)}
+			result := GitCommitResult{Path: root, Error: fmt.Sprintf("fetch failed for %s: %v", sub, err)}
 			outputJSON(result)
 			return ExitFailure
 		}
@@ -112,7 +113,7 @@ func GitCommitParent(args []string) int {
 		// Get HEAD
 		head, err := runGit(subDir, "rev-parse", "HEAD")
 		if err != nil {
-			result := GitCommitResult{Error: fmt.Sprintf("cannot get HEAD for %s: %v", sub, err)}
+			result := GitCommitResult{Path: root, Error: fmt.Sprintf("cannot get HEAD for %s: %v", sub, err)}
 			outputJSON(result)
 			return ExitFailure
 		}
@@ -120,7 +121,7 @@ func GitCommitParent(args []string) int {
 		// Check if HEAD is on any remote branch
 		branches, err := runGit(subDir, "branch", "-r", "--contains", head)
 		if err != nil || strings.TrimSpace(branches) == "" {
-			result := GitCommitResult{Error: fmt.Sprintf("%s HEAD %s is not pushed to remote", sub, head[:12])}
+			result := GitCommitResult{Path: root, Error: fmt.Sprintf("%s HEAD %s is not pushed to remote", sub, head[:12])}
 			outputJSON(result)
 			return ExitFailure
 		}
@@ -130,7 +131,7 @@ func GitCommitParent(args []string) int {
 	var staged []string
 	for _, sub := range submodules {
 		if _, err := runGit(root, "add", sub); err != nil {
-			result := GitCommitResult{Error: fmt.Sprintf("stage failed for %s: %v", sub, err)}
+			result := GitCommitResult{Path: root, Error: fmt.Sprintf("stage failed for %s: %v", sub, err)}
 			outputJSON(result)
 			return ExitFailure
 		}
@@ -139,7 +140,7 @@ func GitCommitParent(args []string) int {
 
 	// Commit
 	if _, err := runGit(root, "commit", "-m", *message); err != nil {
-		result := GitCommitResult{Error: fmt.Sprintf("commit failed: %v", err)}
+		result := GitCommitResult{Path: root, Error: fmt.Sprintf("commit failed: %v", err)}
 		outputJSON(result)
 		return ExitFailure
 	}
@@ -151,6 +152,7 @@ func GitCommitParent(args []string) int {
 	pushed := pushErr == nil
 
 	result := GitCommitResult{
+		Path:    root,
 		Success: true,
 		Ref:     ref,
 		Staged:  staged,
@@ -190,7 +192,7 @@ func GitPull(args []string) int {
 	// Pull parent
 	_, pullErr := runGit(root, "pull", "origin", branch)
 	if pullErr != nil {
-		result := GitPullResult{Error: fmt.Sprintf("pull failed: %v", pullErr)}
+		result := GitPullResult{Path: root, Error: fmt.Sprintf("pull failed: %v", pullErr)}
 		outputJSON(result)
 		return ExitFailure
 	}
@@ -200,6 +202,7 @@ func GitPull(args []string) int {
 	synced := subErr == nil
 
 	result := GitPullResult{
+		Path:             root,
 		Success:          true,
 		SubmodulesSynced: synced,
 	}
@@ -273,6 +276,7 @@ func GitUpdate(args []string) int {
 	}
 
 	result := GitUpdateResult{
+		Path:       root,
 		Success:    !hasError,
 		Submodules: subResults,
 	}

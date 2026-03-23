@@ -32,6 +32,7 @@ type PackageInfo struct {
 }
 
 type StatusOutput struct {
+	Path     string        `json:"path"`
 	Packages []PackageInfo `json:"packages"`
 }
 
@@ -79,6 +80,7 @@ type TestSummary struct {
 }
 
 type TestOutput struct {
+	Path      string              `json:"path"`
 	Timestamp *string             `json:"timestamp"`
 	Session   string              `json:"session"`
 	Packages  []TestPackageResult `json:"packages"`
@@ -122,6 +124,7 @@ type AnalyzeSummary struct {
 }
 
 type AnalyzeOutput struct {
+	Path      string                 `json:"path"`
 	Timestamp *string                `json:"timestamp"`
 	Session   string                 `json:"session"`
 	Packages  []AnalyzePackageResult `json:"packages"`
@@ -138,6 +141,7 @@ type PubPackageResult struct {
 }
 
 type PubOutput struct {
+	Path     string             `json:"path"`
 	Packages []PubPackageResult `json:"packages"`
 }
 
@@ -168,6 +172,7 @@ type GitSubmoduleStatus struct {
 }
 
 type GitOutput struct {
+	Path       string               `json:"path"`
 	Timestamp  *string              `json:"timestamp"`
 	Repo       GitRepoStatus        `json:"repo"`
 	Submodules []GitSubmoduleStatus `json:"submodules"`
@@ -176,6 +181,7 @@ type GitOutput struct {
 // --- Git mutation outputs ---
 
 type GitCommitResult struct {
+	Path    string   `json:"path"`
 	Success bool     `json:"success"`
 	Ref     string   `json:"ref,omitempty"`
 	Pushed  bool     `json:"pushed"`
@@ -184,8 +190,9 @@ type GitCommitResult struct {
 }
 
 type GitPullResult struct {
-	Success          bool `json:"success"`
-	SubmodulesSynced bool `json:"submodules_synced"`
+	Path             string `json:"path"`
+	Success          bool   `json:"success"`
+	SubmodulesSynced bool   `json:"submodules_synced"`
 	Error            string `json:"error,omitempty"`
 }
 
@@ -196,6 +203,7 @@ type GitUpdateSubmodule struct {
 }
 
 type GitUpdateResult struct {
+	Path       string               `json:"path"`
 	Success    bool                 `json:"success"`
 	Submodules []GitUpdateSubmodule `json:"submodules"`
 }
@@ -230,6 +238,7 @@ type DiffSummary struct {
 }
 
 type DiffOutput struct {
+	Path    string           `json:"path"`
 	Session string           `json:"session"`
 	Repos   []DiffRepoResult `json:"repos"`
 	Summary DiffSummary      `json:"summary"`

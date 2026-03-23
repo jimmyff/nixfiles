@@ -68,6 +68,7 @@ func GitDiff(args []string) int {
 	}
 
 	out := DiffOutput{
+		Path:    root,
 		Session: session,
 		Repos:   repos,
 		Summary: summary,

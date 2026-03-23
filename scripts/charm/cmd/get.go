@@ -48,7 +48,7 @@ func pubCommand(args []string, operation string) int {
 		}
 	}
 
-	out := PubOutput{Packages: results}
+	out := PubOutput{Path: root, Packages: results}
 	if out.Packages == nil {
 		out.Packages = []PubPackageResult{}
 	}

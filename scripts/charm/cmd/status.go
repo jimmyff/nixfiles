@@ -24,7 +24,7 @@ func Status(args []string) int {
 
 	logf("charm: found %d packages\n", len(packages))
 
-	out := StatusOutput{Packages: packages}
+	out := StatusOutput{Path: root, Packages: packages}
 	if out.Packages == nil {
 		out.Packages = []PackageInfo{}
 	}

@@ -81,7 +81,7 @@ func gitStatus(args []string) int {
 			os.Stdout.Write(data)
 			return ExitOK
 		}
-		out := GitOutput{Submodules: []GitSubmoduleStatus{}}
+		out := GitOutput{Path: root, Submodules: []GitSubmoduleStatus{}}
 		if err := outputJSON(out); err != nil {
 			logf("error: %v\n", err)
 			return ExitFailure
@@ -133,6 +133,7 @@ func gitStatus(args []string) int {
 	}
 
 	out := GitOutput{
+		Path:       root,
 		Timestamp:  nowTimestamp(),
 		Repo:       repo,
 		Submodules: submodules,

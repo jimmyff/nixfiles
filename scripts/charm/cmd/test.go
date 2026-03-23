@@ -39,7 +39,7 @@ func Test(args []string) int {
 			os.Stdout.Write(data)
 			return ExitOK
 		}
-		out := TestOutput{Packages: []TestPackageResult{}}
+		out := TestOutput{Path: root, Packages: []TestPackageResult{}}
 		if err := outputJSON(out); err != nil {
 			logf("error: %v\n", err)
 			return ExitFailure
@@ -98,6 +98,7 @@ func Test(args []string) int {
 	}
 
 	out := TestOutput{
+		Path:      root,
 		Timestamp: nowTimestamp(),
 		Session:   session,
 		Packages:  results,

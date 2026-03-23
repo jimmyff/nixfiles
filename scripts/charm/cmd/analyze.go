@@ -38,7 +38,7 @@ func Analyze(args []string) int {
 			os.Stdout.Write(data)
 			return ExitOK
 		}
-		out := AnalyzeOutput{Packages: []AnalyzePackageResult{}}
+		out := AnalyzeOutput{Path: root, Packages: []AnalyzePackageResult{}}
 		if err := outputJSON(out); err != nil {
 			logf("error: %v\n", err)
 			return ExitFailure
@@ -87,6 +87,7 @@ func Analyze(args []string) int {
 	}
 
 	out := AnalyzeOutput{
+		Path:      root,
 		Timestamp: nowTimestamp(),
 		Session:   session,
 		Packages:  results,
