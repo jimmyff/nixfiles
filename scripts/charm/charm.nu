@@ -58,11 +58,20 @@ def "main git" [--path: string = "." --skip-fetch --cached] {
     []
   }
   let result = (charm git --path $path ...$extra_args | from json)
-  let repo = $result.repo
-  print-repo-line $repo $fetched
+  let repo = ($result.repo | update path $result.path)
   let subs = $result.submodules
-  if ($subs | is-empty) { return }
-  print-sub-table $subs $fetched
+
+  let has_parent = if ($subs | is-empty) { false } else {
+    ($subs | where { |s| $s.ahead_parent != $s.ahead_remote or $s.behind_parent != $s.behind_remote } | is-not-empty)
+  }
+
+  let repo_row = (format-git-row $repo $fetched true $has_parent)
+  let sub_rows = ($subs | each { |r| format-git-row $r $fetched false $has_parent })
+  let rows = ([$repo_row] | append $sub_rows)
+
+  mut cols = ["package" "git"]
+  if $has_parent { $cols = ($cols | append "parent") }
+  $rows | select ...$cols | print
 }
 
 def "main git commit-sub" [--path: string = "." --all -m: string sub_path: string] {
@@ -169,34 +178,28 @@ def "main overview" [--path: string = "." --fetch] {
   let testable = ($status.packages | where has_tests == true | length)
   print $"Packages: ($total) \(($flutter) flutter, ($dart) dart, ($testable) testable\)"
 
-  # Repo line
-  print-repo-line $git.repo $fetched
-
-  # Submodule table with optional test/analyze columns
+  # Build unified table
   let subs = $git.submodules
-  if ($subs | is-empty) { return }
+  let sub_paths = ($subs | get path)
 
-  let has_parent = ($subs | where { |s| $s.ahead_parent != $s.ahead_remote or $s.behind_parent != $s.behind_remote } | is-not-empty)
-  let formatted = ($subs | each { |r|
-    let name = ($r.path | path basename)
-    let dirty = if $r.dirty { $" (ansi red)\u{25cf}(ansi reset)" } else { "" }
-    let branch = if $r.detached { $"(ansi red_bold)DETACHED(ansi reset)" } else { $r.branch }
-    let tracking = (format-tracking $r.ahead_remote $r.behind_remote $fetched)
-    let head_on = ($r.head_on_remote? | default true)
-    let upstream = ($r.upstream? | default "")
-    let stash = ($r.stash_count? | default 0)
-    mut warnings = []
-    if (not $head_on) { $warnings = ($warnings | append $"(ansi red_bold)NOT PUSHED(ansi reset)") }
-    if $upstream == "" and (not $r.detached) and $r.branch != "" { $warnings = ($warnings | append $"(ansi yellow)no upstream(ansi reset)") }
-    if $stash > 0 { $warnings = ($warnings | append $"(ansi yellow)($stash) stash(ansi reset)") }
-    let warn_str = ($warnings | str join " ")
-    mut row = {
-      package: $"($name)($dirty)"
-      git: ($"($branch) ($tracking) ($warn_str)" | str trim)
-    }
-    if $has_parent {
-      $row = ($row | insert parent (format-tracking $r.ahead_parent $r.behind_parent true))
-    }
+  let has_parent = if ($subs | is-empty) { false } else {
+    ($subs | where { |s| $s.ahead_parent != $s.ahead_remote or $s.behind_parent != $s.behind_remote } | is-not-empty)
+  }
+
+  # Repo row
+  let repo = ($git.repo | update path $git.path)
+  let repo_base = (format-git-row $repo $fetched true $has_parent)
+  mut repo_row = $repo_base
+  if $has_tests {
+    $repo_row = ($repo_row | insert tests (aggregate-tests-repo $sub_paths $test_data.packages))
+  }
+  if $has_analyze {
+    $repo_row = ($repo_row | insert analyze (aggregate-analyze-repo $sub_paths $analyze_data.packages))
+  }
+
+  # Submodule rows
+  let sub_rows = ($subs | each { |r|
+    mut row = (format-git-row $r $fetched false $has_parent)
     if $has_tests {
       $row = ($row | insert tests (aggregate-tests $r.path $test_data.packages))
     }
@@ -206,11 +209,13 @@ def "main overview" [--path: string = "." --fetch] {
     $row
   })
 
+  let rows = ([$repo_row] | append $sub_rows)
+
   mut cols = ["package" "git"]
   if $has_parent { $cols = ($cols | append "parent") }
   if $has_tests { $cols = ($cols | append "tests") }
   if $has_analyze { $cols = ($cols | append "analyze") }
-  $formatted | select ...$cols | print
+  $rows | select ...$cols | print
 
   # Staleness indicators
   print-staleness $git $test_data $analyze_data $path
@@ -275,50 +280,34 @@ Common flags: --path <dir> --filter <name>"
 
 # --- Helpers ---
 
-# Print styled repo summary line
-def print-repo-line [repo: record, fetched: bool] {
-  let dirty = if $repo.dirty { $" (ansi red)\u{25cf}(ansi reset)" } else { "" }
-  let tracking = (format-tracking $repo.ahead $repo.behind $fetched)
-  let head_on = ($repo.head_on_remote? | default true)
-  let upstream = ($repo.upstream? | default "")
-  let stash = ($repo.stash_count? | default 0)
+# Format a git status row for either repo or submodule (fields are now aligned)
+def format-git-row [r: record, fetched: bool, is_repo: bool, has_parent: bool]: nothing -> record {
+  let name = if $is_repo { $"(ansi cyan_bold)($r.path | path basename)(ansi reset)" } else { ($r.path | path basename) }
+  let dirty = if $r.dirty { $" (ansi red)\u{25cf}(ansi reset)" } else { "" }
+  let detached = ($r.detached? | default false)
+  let branch = if $detached { $"(ansi red_bold)DETACHED(ansi reset)" } else { $r.branch }
+  let ahead = ($r.ahead_remote? | default 0)
+  let behind = ($r.behind_remote? | default 0)
+  let tracking = (format-tracking $ahead $behind $fetched)
+  let head_on = ($r.head_on_remote? | default true)
+  let upstream = ($r.upstream? | default "")
+  let stash = ($r.stash_count? | default 0)
   mut warnings = []
   if (not $head_on) { $warnings = ($warnings | append $"(ansi red_bold)NOT PUSHED(ansi reset)") }
-  if $upstream == "" and $repo.branch != "" { $warnings = ($warnings | append $"(ansi yellow)no upstream(ansi reset)") }
+  if $upstream == "" and (not $detached) and $r.branch != "" { $warnings = ($warnings | append $"(ansi yellow)no upstream(ansi reset)") }
   if $stash > 0 { $warnings = ($warnings | append $"(ansi yellow)($stash) stash(ansi reset)") }
   let warn_str = ($warnings | str join " ")
-  let line = $"(ansi cyan_bold)Repo:(ansi reset) ($repo.branch)($dirty) ($tracking) ($warn_str)" | str trim
-  print $line
-}
-
-# Print styled submodule table
-def print-sub-table [subs: list<record>, fetched: bool] {
-  let has_parent = ($subs | where { |s| $s.ahead_parent != $s.ahead_remote or $s.behind_parent != $s.behind_remote } | is-not-empty)
-  let formatted = ($subs | each { |r|
-    let name = ($r.path | path basename)
-    let dirty = if $r.dirty { $" (ansi red)\u{25cf}(ansi reset)" } else { "" }
-    let branch = if $r.detached { $"(ansi red_bold)DETACHED(ansi reset)" } else { $r.branch }
-    let tracking = (format-tracking $r.ahead_remote $r.behind_remote $fetched)
-    let head_on = ($r.head_on_remote? | default true)
-    let upstream = ($r.upstream? | default "")
-    let stash = ($r.stash_count? | default 0)
-    mut warnings = []
-    if (not $head_on) { $warnings = ($warnings | append $"(ansi red_bold)NOT PUSHED(ansi reset)") }
-    if $upstream == "" and (not $r.detached) and $r.branch != "" { $warnings = ($warnings | append $"(ansi yellow)no upstream(ansi reset)") }
-    if $stash > 0 { $warnings = ($warnings | append $"(ansi yellow)($stash) stash(ansi reset)") }
-    let warn_str = ($warnings | str join " ")
-    mut row = {
-      package: $"($name)($dirty)"
-      git: ($"($branch) ($tracking) ($warn_str)" | str trim)
+  mut row = {
+    package: $"($name)($dirty)"
+    git: ($"($branch) ($tracking) ($warn_str)" | str trim)
+  }
+  if $has_parent {
+    let parent_val = if $is_repo { "" } else {
+      (format-tracking ($r.ahead_parent? | default 0) ($r.behind_parent? | default 0) true)
     }
-    if $has_parent {
-      $row = ($row | insert parent (format-tracking $r.ahead_parent $r.behind_parent true))
-    }
-    $row
-  })
-  mut cols = ["package" "git"]
-  if $has_parent { $cols = ($cols | append "parent") }
-  $formatted | select ...$cols | print
+    $row = ($row | insert parent $parent_val)
+  }
+  $row
 }
 
 # Format ↑N ↓N tracking indicators (quiet when synced)
@@ -346,9 +335,48 @@ def aggregate-tests [sub_path: string, packages: list<record>]: nothing -> strin
   }
 }
 
+# Aggregate test results for packages NOT under any submodule
+def aggregate-tests-repo [sub_paths: list<string>, packages: list<record>]: nothing -> string {
+  let matched = ($packages | where { |p| not ($sub_paths | any { |sp| ($p.path | str starts-with $sp) }) })
+  if ($matched | is-empty) { return "" }
+  let cmd_errors = ($matched | where status == "error" | length)
+  if $cmd_errors > 0 {
+    return $"(ansi red)err(ansi reset)"
+  }
+  let total = ($matched | get total | math sum)
+  let failed = ($matched | get failed | math sum)
+  if $failed > 0 {
+    $"(ansi red)\u{2717} ($failed)(ansi reset)"
+  } else {
+    $"(ansi green)\u{2713} ($total)(ansi reset)"
+  }
+}
+
 # Aggregate analyze results for a submodule path
 def aggregate-analyze [sub_path: string, packages: list<record>]: nothing -> string {
   let matched = ($packages | where { |p| ($p.path | str starts-with $sub_path) })
+  if ($matched | is-empty) { return "" }
+  let cmd_errors = ($matched | where status == "error" | length)
+  let errors = ($matched | get errors | math sum)
+  let warnings = ($matched | get warnings | math sum)
+  let infos = ($matched | get infos | math sum)
+  if $cmd_errors > 0 {
+    $"(ansi red)err(ansi reset)"
+  } else if $errors > 0 or $warnings > 0 {
+    mut parts = []
+    if $errors > 0 { $parts = ($parts | append $"(ansi red)($errors)e(ansi reset)") }
+    if $warnings > 0 { $parts = ($parts | append $"(ansi yellow)($warnings)w(ansi reset)") }
+    $parts | str join " "
+  } else if $infos > 0 {
+    $"(ansi dark_gray)($infos)i(ansi reset)"
+  } else {
+    $"(ansi green)\u{2713}(ansi reset)"
+  }
+}
+
+# Aggregate analyze results for packages NOT under any submodule
+def aggregate-analyze-repo [sub_paths: list<string>, packages: list<record>]: nothing -> string {
+  let matched = ($packages | where { |p| not ($sub_paths | any { |sp| ($p.path | str starts-with $sp) }) })
   if ($matched | is-empty) { return "" }
   let cmd_errors = ($matched | where status == "error" | length)
   let errors = ($matched | get errors | math sum)

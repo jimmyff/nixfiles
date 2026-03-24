@@ -172,12 +172,19 @@ func getRepoStatus(root string) (GitRepoStatus, error) {
 		}
 	}
 
+	status.Detached = status.Branch == ""
+
 	us := getUpstreamStatus(root, status.Branch)
 	status.Upstream = us.Upstream
-	status.Ahead = us.Ahead
-	status.Behind = us.Behind
+	status.AheadRemote = us.Ahead
+	status.BehindRemote = us.Behind
 	status.HeadOnRemote = isHeadOnRemote(root)
 	status.StashCount = getStashCount(root)
+	status.UntrackedCount = len(status.UntrackedFiles)
+
+	if msg, err := runGit(root, "log", "--oneline", "-1"); err == nil {
+		status.LatestCommit = msg
+	}
 
 	return status, nil
 }

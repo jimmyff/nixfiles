@@ -1,6 +1,6 @@
 ---
 name: submodules
-description: Manage git submodule workflows — status, commit, sync, and update across repos with submodules
+description: Manage git submodule workflows — status, commit, sync across repos with submodules
 disable-model-invocation: true
 ---
 
@@ -12,7 +12,7 @@ Manage repositories containing git submodules.
 
 `/submodules $ARGUMENTS`
 
-Arguments: `status`, `diff`, `commit`, `sync`, `update`, or omit to run `status` then ask the user what they'd like to do.
+Arguments: `status`, `diff`, `commit`, `sync`, or omit to run `status` then ask the user what they'd like to do.
 
 ## charm
 
@@ -25,8 +25,7 @@ Available commands:
 - `charm git diff --path <workspace>` — structured diff summary for parent + all submodules (JSON on stdout, `.patch` files for full diffs). Use `--staged` for staged changes only
 - `charm git commit-sub <path> -m "message" --path <workspace>` — commit staged files and push a submodule (add `--all` to stage all tracked changes)
 - `charm git commit-parent -m "message" --path <workspace> sub1 sub2...` — verify refs are pushed, stage refs, commit and push parent
-- `charm git pull --path <workspace>` — pull parent + sync submodules
-- `charm git update --path <workspace>` — pull latest in each submodule
+- `charm git pull --path <workspace>` — pull parent, checkout tracking branches, pull all submodules
 
 ## Commit Messages
 
@@ -97,26 +96,16 @@ Run `charm analyze --path <workspace>` on the packages being committed. If there
 
 ### `sync` — Pull and sync everything
 
-**charm**: `charm git pull --path <workspace>` (handles steps 1-2)
+**charm**: `charm git pull --path <workspace>`
 
-1. Pull parent and sync submodules via charm
-2. For each submodule, reattach to its tracking branch **only if safe**:
-   - Determine the tracking branch from `.gitmodules` (the `branch` field) or ask the user
-   - Compare the submodule's current detached HEAD against the tracking branch tip
-   - If they point to the same commit: safe to reattach
-   - If the tracking branch is ahead: the parent ref is behind — warn the user and ask whether to reattach (which advances past the parent's recorded ref) or stay detached
-   - If the tracking branch is behind: the parent expects a commit not on the branch — warn and ask the user
-3. Report submodule status after sync
+`charm git pull` handles the full sync workflow:
+1. Pull parent repo
+2. Init any new submodules (without resetting existing ones)
+3. Checkout each submodule's tracking branch and pull latest
 
-If a submodule has merge conflicts, stop and ask the user how to proceed.
+Submodules with uncommitted changes are skipped with a warning.
 
-### `update` — Pull latest in each submodule from its remote
-
-**charm**: `charm git update --path <workspace>`
-
-1. Pull latest from each submodule's tracked remote branch
-2. Show which submodules received new commits
-3. Ask if user wants to commit updated references in the parent (same as step 4 of `commit`)
+After sync, run `charm git --path <workspace>` to verify state. If any submodules show ahead of parent ref, the remote had commits the parent hasn't recorded yet — use `commit` to update parent refs if needed.
 
 If a pull results in merge conflicts, stop and ask the user how to proceed.
 

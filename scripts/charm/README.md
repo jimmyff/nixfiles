@@ -42,14 +42,14 @@ charm clean                                 # Tidy old sessions
 
 ```
 Packages: 26 (17 flutter, 9 dart, 26 testable)
-Repo: main ● ↑·
 
 ╭────┬─────────────────────┬────────────┬──────────┬─────────╮
 │  # │       package       │    git     │  tests   │ analyze │
 ├────┼─────────────────────┼────────────┼──────────┼─────────┤
-│  0 │ editor ●            │ main ↑· ↓· │ ✓ 42     │ ✓       │
-│  1 │ blink_filesystem    │ main ↑1 ↓· │ ✗ 3      │ 2e 1w   │
-│  2 │ notes               │ main ↑· ↓· │ ✓ 18     │ 3i      │
+│  0 │ workspace           │ main       │ ✓ 4      │ ✓       │
+│  1 │ editor ●            │ main ↑· ↓· │ ✓ 42     │ ✓       │
+│  2 │ blink_filesystem    │ main ↑1 ↓· │ ✗ 3      │ 2e 1w   │
+│  3 │ notes               │ main ↑· ↓· │ ✓ 18     │ 3i      │
 ╰────┴─────────────────────┴────────────┴──────────┴─────────╯
 Git 7min ago · Tests 2hr ago · Analysis 2hr ago
 ```

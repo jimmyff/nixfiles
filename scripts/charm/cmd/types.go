@@ -154,12 +154,15 @@ type GitRepoStatus struct {
 	Branch         string   `json:"branch"`
 	Ref            string   `json:"ref"`
 	Dirty          bool     `json:"dirty"`
-	Ahead          int      `json:"ahead"`
-	Behind         int      `json:"behind"`
+	Detached       bool     `json:"detached"`
+	AheadRemote    int      `json:"ahead_remote"`
+	BehindRemote   int      `json:"behind_remote"`
 	Upstream       string   `json:"upstream"`
 	HeadOnRemote   bool     `json:"head_on_remote"`
 	StashCount     int      `json:"stash_count"`
+	UntrackedCount int      `json:"untracked_count"`
 	UntrackedFiles []string `json:"untracked_files,omitempty"`
+	LatestCommit   string   `json:"latest_commit"`
 }
 
 type GitSubmoduleStatus struct {
