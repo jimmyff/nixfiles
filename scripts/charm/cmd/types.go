@@ -190,6 +190,46 @@ type GitOutput struct {
 	Submodules []GitSubmoduleStatus `json:"submodules"`
 }
 
+// --- Git check/push outputs ---
+
+type CheckIssue struct {
+	Repo     string `json:"repo"`     // "." for parent, submodule path otherwise
+	Severity string `json:"severity"` // "error", "warn", "info"
+	Type     string `json:"type"`     // "dirty", "detached", "unpushed", "stash", "no_upstream", "ahead_parent", "behind_parent"
+	Message  string `json:"message"`
+	Fix      string `json:"fix"` // charm command to resolve
+}
+
+type CheckSummary struct {
+	Errors int `json:"errors"`
+	Warns  int `json:"warns"`
+	Infos  int `json:"infos"`
+}
+
+type CheckOutput struct {
+	Path      string       `json:"path"`
+	Timestamp *string      `json:"timestamp"`
+	Clean     bool         `json:"clean"` // true when 0 errors + 0 warns
+	Issues    []CheckIssue `json:"issues"`
+	Summary   CheckSummary `json:"summary"`
+}
+
+type PushRepoResult struct {
+	Path   string `json:"path"`            // "." for parent
+	Status string `json:"status"`          // "pushed", "skipped", "failed"
+	Ref    string `json:"ref,omitempty"`
+	Error  string `json:"error,omitempty"`
+}
+
+type PushOutput struct {
+	Path    string           `json:"path"`
+	Success bool             `json:"success"`
+	Pushed  []PushRepoResult `json:"pushed"`
+	Skipped []PushRepoResult `json:"skipped"`
+	Failed  []PushRepoResult `json:"failed"`
+	Error   string           `json:"error,omitempty"`
+}
+
 // --- Git mutation outputs ---
 
 type GitCommitResult struct {

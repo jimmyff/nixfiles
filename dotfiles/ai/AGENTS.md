@@ -62,7 +62,7 @@
 
 ## Dart & Flutter
 
-- Use `charm` for all test/analyze/git operations in super-projects: `charm test --path <root>`, `charm analyze --path <root>`, `charm git diff`, `charm git commit-sub`, `charm git commit-parent`. Use `-help` for details. Source: ~/nixfiles/scripts/charm/
+- Use `charm` (skill & cli tool) for multi-package project operations (test, analyze, git). Source: ~/nixfiles/scripts/charm/
 - Use package:mockito for mocked integration tests
 - Package docs: https://pub.dev/packages/$package_id
 - [Flutter API](https://api.flutter.dev/) | [Dart API](https://api.dart.dev/)

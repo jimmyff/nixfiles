@@ -14,7 +14,7 @@ Commands:
   analyze      Run dart analyze across all packages (parallel, cached)
   get          Run pub get across all packages
   upgrade      Run pub upgrade across all packages
-  git          Git status, commits, diffs across parent + submodules
+  git          Git status, check, push, commits, diffs across parent + submodules
   clean        Remove old session directories
 
 Common flags:

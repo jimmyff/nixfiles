@@ -16,16 +16,9 @@ Arguments: `status`, `diff`, `commit`, `sync`, or omit to run `status` then ask 
 
 ## charm
 
-Prefer charm commands over manual git. Fall back to manual git when charm doesn't cover the operation.
+Prefer charm commands over manual git. Run `/charm` for full command reference.
 
-**Important:** charm's `--path` flag sets the working directory. Always pass the workspace root path.
-
-Available commands:
-- `charm git --path <workspace>` — JSON status of repo + all submodules
-- `charm git diff --path <workspace>` — structured diff summary for parent + all submodules (JSON on stdout, `.patch` files for full diffs). Use `--staged` for staged changes only
-- `charm git commit-sub <path> -m "message" --path <workspace>` — commit staged files and push a submodule (add `--all` to stage all tracked changes)
-- `charm git commit-parent -m "message" --path <workspace> sub1 sub2...` — verify refs are pushed, stage refs, commit and push parent
-- `charm git pull --path <workspace>` — pull parent, checkout tracking branches, pull all submodules
+**Important:** Always use `commit-sub`/`commit-parent` (which push automatically) rather than raw `git commit`/`git push`. Raw git leaves work unpushed and parent refs out of sync.
 
 ## Commit Messages
 
@@ -108,6 +101,12 @@ Submodules with uncommitted changes are skipped with a warning.
 After sync, run `charm git --path <workspace>` to verify state. If any submodules show ahead of parent ref, the remote had commits the parent hasn't recorded yet — use `commit` to update parent refs if needed.
 
 If a pull results in merge conflicts, stop and ask the user how to proceed.
+
+### `verify` — Check everything is committed and pushed
+
+**charm**: `charm git check --path <workspace>`
+
+Run after committing to verify the workspace is fully committed, pushed, and parent refs are up-to-date. Clean output means safe to switch machines. Use `--cached` for an instant check against the last fetched data.
 
 ## Rules
 

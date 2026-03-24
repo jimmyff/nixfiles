@@ -72,6 +72,7 @@ def "main git" [--path: string = "." --skip-fetch --cached] {
   mut cols = ["package" "git"]
   if $has_parent { $cols = ($cols | append "parent") }
   $rows | select ...$cols | print
+  print (format-readiness $result)
 }
 
 def "main git commit-sub" [--path: string = "." --all -m: string sub_path: string] {
@@ -108,6 +109,69 @@ def "main git pull" [--path: string = "."] {
     }
     { path: $s.path, branch: $s.branch, status: $status }
   } | print
+}
+
+def "main git check" [--path: string = "." --skip-fetch --cached] {
+  let extra_args = if $cached {
+    [--cached]
+  } else if $skip_fetch {
+    [--skip-fetch]
+  } else {
+    []
+  }
+  let result = (charm git check --path $path ...$extra_args | from json)
+  if $result.clean and ($result.issues | is-empty) {
+    print $"(ansi green_bold)\u{2713} Ready(ansi reset) — fully committed and pushed"
+    return
+  }
+  # Header with counts
+  let s = $result.summary
+  mut header_parts = []
+  if $s.errors > 0 { $header_parts = ($header_parts | append $"(ansi red)($s.errors) error\(s\)(ansi reset)") }
+  if $s.warns > 0 { $header_parts = ($header_parts | append $"(ansi yellow)($s.warns) warning\(s\)(ansi reset)") }
+  if $s.infos > 0 { $header_parts = ($header_parts | append $"(ansi dark_gray)($s.infos) info\(s\)(ansi reset)") }
+  print $"Git check: ($header_parts | str join ', ')"
+  print ""
+  # Per-issue lines
+  for issue in $result.issues {
+    let sev = if $issue.severity == "error" {
+      $"(ansi red)\u{2717}(ansi reset)"
+    } else if $issue.severity == "warn" {
+      $"(ansi yellow)\u{26a0}(ansi reset)"
+    } else {
+      $"(ansi dark_gray)\u{2139}(ansi reset)"
+    }
+    let repo = if $issue.repo == "." { "(parent)" } else { $issue.repo }
+    let fix = if ($issue.fix? | default "") != "" { $" (ansi dark_gray)fix: ($issue.fix)(ansi reset)" } else { "" }
+    print $"  ($sev) ($repo): ($issue.message)($fix)"
+  }
+}
+
+def "main git push" [--path: string = "."] {
+  let result = (charm git push --path $path | from json)
+  if ($result.error? | default "") != "" {
+    print $"(ansi red_bold)Push aborted:(ansi reset) ($result.error)"
+    return
+  }
+  let pushed = ($result.pushed? | default [])
+  let failed = ($result.failed? | default [])
+  let skipped = ($result.skipped? | default [])
+  if ($pushed | is-empty) and ($failed | is-empty) {
+    print "Nothing to push — all repos are up-to-date."
+    return
+  }
+  if (not ($pushed | is-empty)) {
+    for r in $pushed {
+      let name = if $r.path == "." { "(parent)" } else { $r.path }
+      print $"  (ansi green)\u{2713}(ansi reset) ($name) pushed"
+    }
+  }
+  if (not ($failed | is-empty)) {
+    for r in $failed {
+      let name = if $r.path == "." { "(parent)" } else { $r.path }
+      print $"  (ansi red)\u{2717}(ansi reset) ($name) failed: ($r.error)"
+    }
+  }
 }
 
 def "main git diff" [--path: string = "." --staged] {
@@ -217,8 +281,8 @@ def "main overview" [--path: string = "." --fetch] {
   if $has_analyze { $cols = ($cols | append "analyze") }
   $rows | select ...$cols | print
 
-  # Staleness indicators
-  print-staleness $git $test_data $analyze_data $path
+  # Footer: readiness + staleness
+  print-footer $git $test_data $analyze_data $path
 
   if (not $fetched) and ($git.timestamp? == null) {
     print $"(ansi dark_gray)Run with --fetch for up-to-date remote tracking(ansi reset)"
@@ -267,6 +331,8 @@ Commands:
   get            Run pub get across all packages (table)
   upgrade        Run pub upgrade across all packages (table)
   git            Git status with styled indicators
+  git check      Verify everything is committed, pushed, and refs in sync
+  git push       Push all repos with unpushed commits
   git diff       Structured diff summary (staged/unstaged/untracked)
   git commit-sub Commit and push a single submodule
   git commit-parent  Stage submodule refs, commit and push parent
@@ -414,8 +480,67 @@ def format-age [timestamp: string]: nothing -> string {
   }
 }
 
-# Print staleness info below the overview table
-def print-staleness [git_data: record, test_data: record, analyze_data: record, path: string] {
+# Compute readiness verdict from git data (same rules as Go analyzeGitIssues)
+# Returns a multi-line string with per-severity breakdown by type
+def format-readiness [git_data: record]: nothing -> string {
+  let repo = $git_data.repo
+  let subs = ($git_data.submodules? | default [])
+
+  # Count by type: { dirty: N, detached: N, ... }
+  mut dirty = 0; mut detached = 0; mut unpushed = 0
+  mut stash = 0; mut no_upstream = 0; mut ahead_parent = 0; mut behind_parent = 0
+
+  # Parent checks
+  if $repo.dirty { $dirty = $dirty + 1 }
+  if ($repo.detached? | default false) { $detached = $detached + 1 }
+  if ($repo.ahead_remote? | default 0) > 0 and (not ($repo.head_on_remote? | default true)) { $unpushed = $unpushed + 1 }
+  if ($repo.stash_count? | default 0) > 0 { $stash = $stash + 1 }
+  if ($repo.upstream? | default "") == "" and (not ($repo.detached? | default false)) and ($repo.branch? | default "") != "" { $no_upstream = $no_upstream + 1 }
+
+  # Submodule checks
+  for sub in $subs {
+    if $sub.dirty { $dirty = $dirty + 1 }
+    if ($sub.detached? | default false) { $detached = $detached + 1 }
+    if ($sub.ahead_remote? | default 0) > 0 and (not ($sub.head_on_remote? | default true)) { $unpushed = $unpushed + 1 }
+    if ($sub.stash_count? | default 0) > 0 { $stash = $stash + 1 }
+    if ($sub.upstream? | default "") == "" and (not ($sub.detached? | default false)) and ($sub.branch? | default "") != "" { $no_upstream = $no_upstream + 1 }
+    if ($sub.ahead_parent? | default 0) > 0 { $ahead_parent = $ahead_parent + 1 }
+    if ($sub.behind_parent? | default 0) > 0 { $behind_parent = $behind_parent + 1 }
+  }
+
+  # Build error line (severity: error)
+  mut error_parts = []
+  if $dirty > 0 { $error_parts = ($error_parts | append $"($dirty) dirty") }
+  if $detached > 0 { $error_parts = ($error_parts | append $"($detached) detached") }
+  if $unpushed > 0 { $error_parts = ($error_parts | append $"($unpushed) unpushed") }
+
+  # Build warn line (severity: warn)
+  mut warn_parts = []
+  if $stash > 0 { $warn_parts = ($warn_parts | append $"($stash) stash") }
+  if $no_upstream > 0 { $warn_parts = ($warn_parts | append $"($no_upstream) no upstream") }
+  if $ahead_parent > 0 { $warn_parts = ($warn_parts | append $"($ahead_parent) ahead of parent") }
+
+  # Build info line (severity: info)
+  mut info_parts = []
+  if $behind_parent > 0 { $info_parts = ($info_parts | append $"($behind_parent) behind parent") }
+
+  if ($error_parts | is-empty) and ($warn_parts | is-empty) and ($info_parts | is-empty) {
+    return $"(ansi green)\u{2713} Ready(ansi reset)"
+  }
+
+  mut lines = []
+  if (not ($error_parts | is-empty)) { $lines = ($lines | append $"(ansi red)\u{2717} ($error_parts | str join ', ')(ansi reset)") }
+  if (not ($warn_parts | is-empty)) { $lines = ($lines | append $"(ansi yellow)\u{26a0} ($warn_parts | str join ', ')(ansi reset)") }
+  if (not ($info_parts | is-empty)) { $lines = ($lines | append $"(ansi dark_gray)\u{2139} ($info_parts | str join ', ')(ansi reset)") }
+  $lines | str join "\n"
+}
+
+# Print footer with readiness verdict + staleness info
+def print-footer [git_data: record, test_data: record, analyze_data: record, path: string] {
+  # Readiness verdict
+  if ($git_data.timestamp? != null) or (not ($git_data.submodules? | default [] | is-empty)) {
+    print (format-readiness $git_data)
+  }
   mut parts = []
   mut warnings = []
   mut missing = []

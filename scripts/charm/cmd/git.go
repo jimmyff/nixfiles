@@ -7,12 +7,15 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 )
 
 const gitHelpText = `charm git — Git operations across parent repo and submodules
 
 Subcommands:
   (default)      Fetch remotes and show status (branch, dirty, ahead/behind)
+  check          Verify everything is committed, pushed, and refs are in sync
+  push           Push all repos with unpushed commits
   commit-sub     Commit and push a single submodule
   commit-parent  Stage submodule refs, commit and push parent repo
   pull           Pull parent, checkout branches, pull all submodules
@@ -43,10 +46,99 @@ func Git(args []string) int {
 		return GitPull(args[1:])
 	case "diff":
 		return GitDiff(args[1:])
+	case "check":
+		return GitCheck(args[1:])
+	case "push":
+		return GitPush(args[1:])
 	default:
 		// No recognized subcommand — treat all args as flags for git status
 		return gitStatus(args)
 	}
+}
+
+// collectGitData fetches remotes (if requested) and collects status for parent + submodules.
+// Fetches and status checks run concurrently across submodules with bounded parallelism.
+func collectGitData(root string, fetch bool) (GitOutput, error) {
+	if fetch {
+		logf("charm: fetching remotes in %s\n", root)
+	} else {
+		logf("charm: checking git status in %s\n", root)
+	}
+
+	repo, err := getRepoStatus(root)
+	if err != nil {
+		return GitOutput{}, err
+	}
+
+	submodulePaths, err := getSubmodulePaths(root)
+	if err != nil {
+		return GitOutput{}, err
+	}
+
+	const maxJobs = 8
+
+	// Phase 1: Parallel fetch
+	if fetch {
+		if _, err := runGit(root, "fetch", "origin"); err != nil {
+			logf("  warning: fetch failed for parent: %v\n", err)
+		}
+		sem := make(chan struct{}, maxJobs)
+		var wg sync.WaitGroup
+		var mu sync.Mutex
+		for _, subPath := range submodulePaths {
+			wg.Add(1)
+			sem <- struct{}{}
+			go func(sp string) {
+				defer wg.Done()
+				defer func() { <-sem }()
+				subDir := filepath.Join(root, sp)
+				if _, err := runGit(subDir, "fetch", "origin"); err != nil {
+					mu.Lock()
+					logf("  warning: fetch failed for %s: %v\n", sp, err)
+					mu.Unlock()
+				}
+			}(subPath)
+		}
+		wg.Wait()
+	}
+
+	// Phase 2: Parallel status collection (indexed results preserve ordering)
+	type indexedResult struct {
+		index  int
+		result GitSubmoduleStatus
+	}
+	resultsCh := make(chan indexedResult, len(submodulePaths))
+	sem := make(chan struct{}, maxJobs)
+
+	var mu sync.Mutex
+	for i, subPath := range submodulePaths {
+		sem <- struct{}{}
+		mu.Lock()
+		logf("  checking %s...\n", subPath)
+		mu.Unlock()
+		go func(i int, sp string) {
+			result := getSubmoduleStatus(root, sp)
+			resultsCh <- indexedResult{index: i, result: result}
+			<-sem
+		}(i, subPath)
+	}
+
+	submodules := make([]GitSubmoduleStatus, len(submodulePaths))
+	for range submodulePaths {
+		ir := <-resultsCh
+		submodules[ir.index] = ir.result
+	}
+
+	out := GitOutput{
+		Path:       root,
+		Timestamp:  nowTimestamp(),
+		Repo:       repo,
+		Submodules: submodules,
+	}
+	if len(out.Submodules) == 0 {
+		out.Submodules = []GitSubmoduleStatus{}
+	}
+	return out, nil
 }
 
 func gitStatus(args []string) int {
@@ -86,57 +178,10 @@ func gitStatus(args []string) int {
 		return ExitOK
 	}
 
-	fetch := !*skipFetch
-
-	if fetch {
-		logf("charm: fetching remotes in %s\n", root)
-	} else {
-		logf("charm: checking git status in %s\n", root)
-	}
-
-	// Fetch parent repo
-	if fetch {
-		if _, err := runGit(root, "fetch", "origin"); err != nil {
-			logf("  warning: fetch failed for parent: %v\n", err)
-		}
-	}
-
-	repo, err := getRepoStatus(root)
+	out, err := collectGitData(root, !*skipFetch)
 	if err != nil {
 		logf("error: %v\n", err)
 		return ExitFailure
-	}
-
-	submodulePaths, err := getSubmodulePaths(root)
-	if err != nil {
-		logf("error: %v\n", err)
-		return ExitFailure
-	}
-
-	// Fetch all submodules
-	if fetch {
-		for _, subPath := range submodulePaths {
-			subDir := filepath.Join(root, subPath)
-			if _, err := runGit(subDir, "fetch", "origin"); err != nil {
-				logf("  warning: fetch failed for %s: %v\n", subPath, err)
-			}
-		}
-	}
-
-	var submodules []GitSubmoduleStatus
-	for _, subPath := range submodulePaths {
-		sub := getSubmoduleStatus(root, subPath)
-		submodules = append(submodules, sub)
-	}
-
-	out := GitOutput{
-		Path:       root,
-		Timestamp:  nowTimestamp(),
-		Repo:       repo,
-		Submodules: submodules,
-	}
-	if out.Submodules == nil {
-		out.Submodules = []GitSubmoduleStatus{}
 	}
 	if err := outputJSON(out); err != nil {
 		logf("error: %v\n", err)

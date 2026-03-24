@@ -22,6 +22,9 @@ charm.nu test --filter blink_highlight      # Run tests
 charm.nu analyze                            # Run dart analyze
 charm.nu git                                # Git status (fetches by default)
 charm.nu git --cached                       # Git status from cache (instant)
+charm.nu git check                          # Verify committed, pushed, refs in sync
+charm.nu git check --cached                 # Check from cached data (instant)
+charm.nu git push                           # Push all repos with unpushed commits
 charm.nu git diff                           # Diff summary for dirty repos
 charm.nu git diff --staged                  # Staged changes only
 
@@ -30,6 +33,8 @@ charm status --path workspace
 charm test --path workspace --timeout 120
 charm analyze --cached --path workspace
 charm git --path workspace
+charm git check --path workspace            # verify state (JSON)
+charm git push --path workspace             # push all unpushed repos (JSON)
 charm get --path workspace                  # pub get all packages
 charm upgrade --path workspace              # pub upgrade all packages
 charm git commit-sub <path> -m "msg" --path workspace
