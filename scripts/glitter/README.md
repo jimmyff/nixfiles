@@ -1,40 +1,34 @@
 # ✨glitter
 
-Orchestrate Dart/Flutter super-projects — the repos with a flock of packages inside.
+> *glittering* (n.) — a flock of hummingbirds. See also: [Dash](https://docs.flutter.dev/dash).
 
-Named after a *glittering* of hummingbirds (Dash, the Dart mascot).
-
-## What it does
-
-Discovers all packages in your workspace, then runs git, test, and analyze operations across the lot — in parallel, with caching, and pretty tables.
+Multi-package orchestrator for Dart/Flutter workspaces — git, test, and analyze across parent repos and submodules, in parallel, with caching.
 
 ## Usage
 
 ```bash
-# The full picture
-glitter overview --path workspace          # Cached git/test/analyze + live status
+glitter overview --path workspace          # Combined dashboard (git + cached test/analyze)
 glitter overview --path workspace --fetch  # Fetch remotes first
 glitter recache --path workspace           # Refresh all caches
-glitter recache --path workspace --force   # Force refresh even if recent
 
-# Individual operations
 glitter test --filter blink_highlight      # Run tests
 glitter analyze                            # Run dart analyze
 glitter git                                # Git status (fetches by default)
 glitter git --cached                       # Git status from cache (instant)
 glitter git check                          # Verify committed, pushed, refs in sync
-glitter git check --cached                 # Check from cached data (instant)
 glitter git push                           # Push all repos with unpushed commits
 glitter git diff                           # Diff summary for dirty repos
-glitter git diff --staged                  # Staged changes only
+```
 
-# Raw JSON (the Go binary directly)
+### JSON output (`glittering`)
+
+```bash
 glittering status --path workspace
 glittering test --path workspace --timeout 120
 glittering analyze --cached --path workspace
 glittering git --path workspace
-glittering git check --path workspace            # verify state (JSON)
-glittering git push --path workspace             # push all unpushed repos (JSON)
+glittering git check --path workspace
+glittering git push --path workspace
 glittering get --path workspace                  # pub get all packages
 glittering upgrade --path workspace              # pub upgrade all packages
 glittering git commit-sub <path> -m "msg" --path workspace
@@ -59,7 +53,7 @@ Packages: 26 (17 flutter, 9 dart, 26 testable)
 Git 7min ago · Tests 2hr ago · Analysis 2hr ago
 ```
 
-**Indicators:** `●` dirty · `↑N` ahead · `↓N` behind · `·` zero · test/analyze failures in red
+**Indicators:** `●` dirty · `↑N` ahead · `↓N` behind · `·` zero · failures in red
 
 ## Architecture
 
