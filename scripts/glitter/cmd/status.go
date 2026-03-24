@@ -22,7 +22,7 @@ func Status(args []string) int {
 		return ExitFailure
 	}
 
-	logf("charm: found %d packages\n", len(packages))
+	logf("glittering: found %d packages\n", len(packages))
 
 	out := StatusOutput{Path: root, Packages: packages}
 	if out.Packages == nil {

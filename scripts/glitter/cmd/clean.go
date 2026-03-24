@@ -21,7 +21,7 @@ func Clean(args []string) int {
 	entries, err := os.ReadDir(sessionBase)
 	if err != nil {
 		if os.IsNotExist(err) {
-			logf("charm: no sessions to clean\n")
+			logf("glittering: no sessions to clean\n")
 			return ExitOK
 		}
 		logf("error: %v\n", err)
@@ -51,9 +51,9 @@ func Clean(args []string) int {
 		}
 	}
 
-	logf("charm: removed %d old sessions\n", removed)
+	logf("glittering: removed %d old sessions\n", removed)
 
-	// Remove charm cache dir if empty
+	// Remove glitter cache dir if empty
 	remaining, _ := os.ReadDir(sessionBase)
 	if len(remaining) == 0 {
 		os.Remove(sessionBase)

@@ -62,7 +62,7 @@
 
 ## Dart & Flutter
 
-- Use `charm` (skill & cli tool) for multi-package project operations (test, analyze, git). Source: ~/nixfiles/scripts/charm/
+- Use `glitter` / `glittering` (skill & cli tools) for multi-package project operations (test, analyze, git). Source: ~/nixfiles/scripts/glitter/
 - Use package:mockito for mocked integration tests
 - Package docs: https://pub.dev/packages/$package_id
 - [Flutter API](https://api.flutter.dev/) | [Dart API](https://api.dart.dev/)

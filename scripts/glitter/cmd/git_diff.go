@@ -31,7 +31,7 @@ func GitDiff(args []string) int {
 		return ExitFailure
 	}
 
-	logf("charm: collecting diffs in %s\n", root)
+	logf("glittering: collecting diffs in %s\n", root)
 
 	var repos []DiffRepoResult
 	summary := DiffSummary{}

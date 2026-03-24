@@ -36,7 +36,7 @@ func pubCommand(args []string, operation string) int {
 		return ExitFailure
 	}
 
-	logf("charm: running pub %s on %d packages\n", operation, len(packages))
+	logf("glittering: running pub %s on %d packages\n", operation, len(packages))
 
 	var results []PubPackageResult
 	hasFailure := false

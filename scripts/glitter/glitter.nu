@@ -1,16 +1,16 @@
 #!/usr/bin/env nu
 
-# charm.nu — Nushell wrapper for charm with formatted table output
+# glitter — Nushell wrapper for glittering with formatted table output
 
 def "main status" [--path: string = "." --filter: string = ""] {
   let args = (build-args $path $filter)
-  let result = (charm status ...$args | from json)
+  let result = (glittering status ...$args | from json)
   $result.packages | select path name type has_tests dependencies dev_dependencies
 }
 
 def "main test" [--path: string = "." --filter: string = "" --timeout: int = 60] {
   let args = (build-args $path $filter)
-  let result = (charm test ...$args --timeout $timeout | from json)
+  let result = (glittering test ...$args --timeout $timeout | from json)
   $result.packages | select path runner status total passed failed skipped
   let failures = ($result.packages | where status != "pass" | where details_file? != null)
   if (not ($failures | is-empty)) {
@@ -22,7 +22,7 @@ def "main test" [--path: string = "." --filter: string = "" --timeout: int = 60]
 
 def "main analyze" [--path: string = "." --filter: string = ""] {
   let args = (build-args $path $filter)
-  let result = (charm analyze ...$args | from json)
+  let result = (glittering analyze ...$args | from json)
   $result.packages | select path status errors warnings infos
   let issues = ($result.packages | where status != "pass" | where details_file? != null)
   if (not ($issues | is-empty)) {
@@ -34,13 +34,13 @@ def "main analyze" [--path: string = "." --filter: string = ""] {
 
 def "main get" [--path: string = "." --filter: string = ""] {
   let args = (build-args $path $filter)
-  let result = (charm get ...$args | from json)
+  let result = (glittering get ...$args | from json)
   $result.packages | select path runner status
 }
 
 def "main upgrade" [--path: string = "." --filter: string = ""] {
   let args = (build-args $path $filter)
-  let result = (charm upgrade ...$args | from json)
+  let result = (glittering upgrade ...$args | from json)
   $result.packages | select path runner status
 }
 
@@ -57,7 +57,7 @@ def "main git" [--path: string = "." --skip-fetch --cached] {
   } else {
     []
   }
-  let result = (charm git --path $path ...$extra_args | from json)
+  let result = (glittering git --path $path ...$extra_args | from json)
   let repo = ($result.repo | update path $result.path)
   let subs = $result.submodules
 
@@ -79,16 +79,16 @@ def "main git commit-sub" [--path: string = "." --all -m: string sub_path: strin
   mut args = [--path $path -m $m]
   if $all { $args = ($args | append [--all]) }
   $args = ($args | append [$sub_path])
-  charm git commit-sub ...$args | from json
+  glittering git commit-sub ...$args | from json
 }
 
 def "main git commit-parent" [--path: string = "." -m: string ...sub_paths: string] {
   let args = [--path $path -m $m ...$sub_paths]
-  charm git commit-parent ...$args | from json
+  glittering git commit-parent ...$args | from json
 }
 
 def "main git pull" [--path: string = "."] {
-  let result = (charm git pull --path $path | from json)
+  let result = (glittering git pull --path $path | from json)
   let warns = ($result.warnings? | default [])
   if (not ($warns | is-empty)) {
     for w in $warns { print $"(ansi yellow)warning:(ansi reset) ($w)" }
@@ -119,7 +119,7 @@ def "main git check" [--path: string = "." --skip-fetch --cached] {
   } else {
     []
   }
-  let result = (charm git check --path $path ...$extra_args | from json)
+  let result = (glittering git check --path $path ...$extra_args | from json)
   if $result.clean and ($result.issues | is-empty) {
     print $"(ansi green_bold)\u{2713} Ready(ansi reset) — fully committed and pushed"
     return
@@ -148,7 +148,7 @@ def "main git check" [--path: string = "." --skip-fetch --cached] {
 }
 
 def "main git push" [--path: string = "."] {
-  let result = (charm git push --path $path | from json)
+  let result = (glittering git push --path $path | from json)
   if ($result.error? | default "") != "" {
     print $"(ansi red_bold)Push aborted:(ansi reset) ($result.error)"
     return
@@ -176,7 +176,7 @@ def "main git push" [--path: string = "."] {
 
 def "main git diff" [--path: string = "." --staged] {
   let extra_args = if $staged { [--staged] } else { [] }
-  let result = (charm git diff --path $path ...$extra_args | from json)
+  let result = (glittering git diff --path $path ...$extra_args | from json)
   let repos = $result.repos
   if ($repos | is-empty) {
     print "No changes detected."
@@ -211,16 +211,16 @@ def "main git diff" [--path: string = "." --staged] {
 }
 
 def "main overview" [--path: string = "." --fetch] {
-  let status = (charm status --path $path | from json)
+  let status = (glittering status --path $path | from json)
 
   # Git: cached by default, live --skip-fetch as fallback, live fetch with --fetch
   let git = if $fetch {
-    (charm git --path $path | from json)
+    (glittering git --path $path | from json)
   } else {
-    let cached = (charm git --cached --path $path | from json)
+    let cached = (glittering git --cached --path $path | from json)
     if ($cached.submodules | is-empty) and ($cached.timestamp? == null) {
       # No cache exists, fall back to live without fetch (clear timestamp so staleness doesn't show)
-      charm git --skip-fetch --path $path | from json | update timestamp null
+      glittering git --skip-fetch --path $path | from json | update timestamp null
     } else {
       $cached
     }
@@ -229,8 +229,8 @@ def "main overview" [--path: string = "." --fetch] {
   let fetched = $fetch or ($git.timestamp? != null)
 
   # Test + analyze: always from cache
-  let test_data = (charm test --cached --path $path | from json)
-  let analyze_data = (charm analyze --cached --path $path | from json)
+  let test_data = (glittering test --cached --path $path | from json)
+  let analyze_data = (glittering analyze --cached --path $path | from json)
 
   let has_tests = ($test_data.packages | length) > 0
   let has_analyze = ($analyze_data.packages | length) > 0
@@ -293,7 +293,7 @@ def "main recache" [--path: string = "." --force] {
   # Git (with fetch)
   if $force or (not (cache-fresh "git" $path 60)) {
     print "Refreshing git cache..."
-    try { charm git --path $path out> /dev/null }
+    try { glittering git --path $path out> /dev/null }
   } else {
     print $"(ansi dark_gray)Git cache is recent, skipping \(use --force to override\)(ansi reset)"
   }
@@ -301,7 +301,7 @@ def "main recache" [--path: string = "." --force] {
   # Test
   if $force or (not (cache-fresh "test" $path 60)) {
     print "Refreshing test cache..."
-    try { charm test --path $path out> /dev/null }
+    try { glittering test --path $path out> /dev/null }
   } else {
     print $"(ansi dark_gray)Test cache is recent, skipping \(use --force to override\)(ansi reset)"
   }
@@ -309,7 +309,7 @@ def "main recache" [--path: string = "." --force] {
   # Analyze
   if $force or (not (cache-fresh "analyze" $path 60)) {
     print "Refreshing analyze cache..."
-    try { charm analyze --path $path out> /dev/null }
+    try { glittering analyze --path $path out> /dev/null }
   } else {
     print $"(ansi dark_gray)Analyze cache is recent, skipping \(use --force to override\)(ansi reset)"
   }
@@ -318,11 +318,11 @@ def "main recache" [--path: string = "." --force] {
 }
 
 def "main clean" [] {
-  charm clean
+  glittering clean
 }
 
 def main [] {
-  print "charm.nu — Formatted Nushell wrapper for charm (tables, styled indicators)
+  print "✨glitter — Formatted wrapper for glittering (tables, styled indicators)
 
 Commands:
   status         List discovered packages (table)
@@ -584,23 +584,23 @@ def print-footer [git_data: record, test_data: record, analyze_data: record, pat
     print $"(ansi dark_gray)($parts | str join $sep)(ansi reset)"
   }
   if (not ($warnings | is-empty)) {
-    print $"(ansi yellow)($warnings | str join ' \u{00b7} ') — run: charm.nu recache --path ($path)(ansi reset)"
+    print $"(ansi yellow)($warnings | str join ' \u{00b7} ') — run: glitter recache --path ($path)(ansi reset)"
   }
   if (not ($missing | is-empty)) {
-    print $"(ansi dark_gray)No cached ($missing | str join '/') data — run: charm.nu recache --path ($path)(ansi reset)"
+    print $"(ansi dark_gray)No cached ($missing | str join '/') data — run: glitter recache --path ($path)(ansi reset)"
   }
 }
 
 # Check if a cache kind is fresh (within threshold_min minutes)
 def cache-fresh [kind: string, path: string, threshold_min: int]: nothing -> bool {
-  let result = (charm $kind --cached --path $path | from json)
+  let result = (glittering $kind --cached --path $path | from json)
   if ($result.timestamp? == null) { return false }
   let ts = ($result.timestamp | into datetime)
   let age_min = (((date now) - $ts) / 1min | math floor)
   $age_min < $threshold_min
 }
 
-# Build --path and --filter args for charm
+# Build --path and --filter args for glittering
 def build-args [path: string, filter: string]: nothing -> list<string> {
   mut args = [--path $path]
   if $filter != "" { $args = ($args | append [--filter $filter]) }

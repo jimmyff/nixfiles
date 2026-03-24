@@ -3,10 +3,10 @@ package main
 import (
 	"fmt"
 	"os"
-	"charm/cmd"
+	"glittering/cmd"
 )
 
-const helpText = `charm — Dart/Flutter super-project orchestrator (JSON to stdout, logs to stderr)
+const helpText = `glittering — Dart/Flutter super-project orchestrator (JSON to stdout, logs to stderr)
 
 Commands:
   status       List discovered packages (type, tests, dependencies)
@@ -22,7 +22,7 @@ Common flags:
   -filter string  comma-separated package name filters
   -cached         read from cache instead of running live
 
-Run 'charm <command> -help' for command-specific flags.
+Run 'glittering <command> -help' for command-specific flags.
 `
 
 func main() {

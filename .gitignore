@@ -24,7 +24,7 @@ dotfiles/vscode/**/*Storage/
 dotfiles/vscode/**/History/
 
 # Built binaries
-scripts/charm/charm
+scripts/glitter/glittering
 
 # Temporary files
 tmp/

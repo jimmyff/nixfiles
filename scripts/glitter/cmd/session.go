@@ -7,8 +7,8 @@ import (
 	"time"
 )
 
-// getSessionBase returns the base directory for charm sessions.
-// Uses $XDG_CACHE_HOME/charm/ if set, otherwise ~/.cache/charm/.
+// getSessionBase returns the base directory for glitter sessions.
+// Uses $XDG_CACHE_HOME/glitter/ if set, otherwise ~/.cache/glitter/.
 func getSessionBase() (string, error) {
 	base := os.Getenv("XDG_CACHE_HOME")
 	if base == "" {
@@ -18,7 +18,7 @@ func getSessionBase() (string, error) {
 		}
 		base = filepath.Join(home, ".cache")
 	}
-	return filepath.Join(base, "charm"), nil
+	return filepath.Join(base, "glitter"), nil
 }
 
 // createSession creates a new session directory and returns its absolute path.

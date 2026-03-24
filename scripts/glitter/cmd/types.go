@@ -197,7 +197,7 @@ type CheckIssue struct {
 	Severity string `json:"severity"` // "error", "warn", "info"
 	Type     string `json:"type"`     // "dirty", "detached", "unpushed", "stash", "no_upstream", "ahead_parent", "behind_parent"
 	Message  string `json:"message"`
-	Fix      string `json:"fix"` // charm command to resolve
+	Fix      string `json:"fix"` // glittering command to resolve
 }
 
 type CheckSummary struct {

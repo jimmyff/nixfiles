@@ -99,7 +99,7 @@ func Test(args []string) int {
 			testable = append(testable, pkg)
 		}
 	}
-	logf("charm: found %d testable packages\n", len(testable))
+	logf("glittering: found %d testable packages\n", len(testable))
 
 	session, err := createSession()
 	if err != nil {
@@ -197,7 +197,7 @@ func runTestPackage(root, session, pkgPath, runner string, timeout int) (TestPac
 	pkgDir := filepath.Join(root, pkgPath)
 
 	// Create temp file for JSON report
-	tmpFile, err := os.CreateTemp("", "charm-test-*.json")
+	tmpFile, err := os.CreateTemp("", "glittering-test-*.json")
 	if err != nil {
 		result.Status = "error"
 		result.Error = fmt.Sprintf("failed to create temp file: %v", err)

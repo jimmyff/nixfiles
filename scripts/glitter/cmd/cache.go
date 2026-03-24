@@ -16,7 +16,7 @@ func nowTimestamp() *string {
 }
 
 // cachePath returns the cache file path for a given absolute directory and filename.
-// Layout: ~/.cache/charm/cache/<absDir-without-leading-sep>/filename
+// Layout: ~/.cache/glitter/cache/<absDir-without-leading-sep>/filename
 func cachePath(absDir, filename string) (string, error) {
 	base, err := getSessionBase()
 	if err != nil {

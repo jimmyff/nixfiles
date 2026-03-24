@@ -1,16 +1,16 @@
 ---
-name: charmfix
+name: glitterfix
 description: Run tests and/or analysis across Dart/Flutter workspace packages and fix failures
 disable-model-invocation: true
 ---
 
-# charmfix
+# glitterfix
 
 Run tests and/or analysis across all Dart/Flutter packages in the workspace and fix issues.
 
 ## Usage
 
-`/charmfix [$ARGUMENTS]`
+`/glitterfix [$ARGUMENTS]`
 
 Arguments:
 - `tests` — run tests and fix failures
@@ -19,18 +19,18 @@ Arguments:
 - `fix` — auto-fix without prompting
 - Comma-separated filter: `blink_highlight,blink_core` to target specific packages
 
-Combine freely: `/charmfix fix tests blink_highlight`, `/charmfix analyze`, `/charmfix fix`.
+Combine freely: `/glitterfix fix tests blink_highlight`, `/glitterfix analyze`, `/glitterfix fix`.
 
 ## Common Steps
 
 1. Parse arguments: extract subcommand (`tests`, `analyze`, or both), `fix` flag, and package filter
-2. Run: `charm get --path <workspace_root> [--filter <filter>]` to ensure dependencies are resolved
+2. Run: `glittering get --path <workspace_root> [--filter <filter>]` to ensure dependencies are resolved
 
 ## Analyze
 
 ### Phase 1 — Run Analysis
 
-1. Run: `charm analyze --path <workspace_root> [--filter <filter>]`
+1. Run: `glittering analyze --path <workspace_root> [--filter <filter>]`
 2. Parse the JSON output from stdout
 3. Present a summary table with columns: package, status, errors, warnings, infos
 4. For packages with issues, read the session detail file (from `details_file` in the JSON) and list: severity, file:line:col, message, code
@@ -45,7 +45,7 @@ For each package with errors or warnings, spawn a parallel Agent (one per packag
 > Fix analysis issues in `<package_path>`.
 >
 > Workspace root: `<workspace_root>`
-> This package is part of a multi-package workspace. Run `charm status --path <workspace_root>` if you need to understand the package layout.
+> This package is part of a multi-package workspace. Run `glittering status --path <workspace_root>` if you need to understand the package layout.
 >
 > **Issues:**
 > - `<severity>` `<file>:<line>:<col>` — `<message>` (`<code>`)
@@ -61,20 +61,20 @@ For each package with errors or warnings, spawn a parallel Agent (one per packag
 
 ### Post-fix (Analyze)
 
-1. Re-run `charm analyze --path <workspace_root> [--filter <filter>]` to verify
+1. Re-run `glittering analyze --path <workspace_root> [--filter <filter>]` to verify
 2. Present a final report: packages fixed, packages still with issues
 
 ## Tests
 
 ### Phase 1 — Run Tests
 
-1. Run: `charm test --path <workspace_root> [--filter <filter>]`
+1. Run: `glittering test --path <workspace_root> [--filter <filter>]`
 2. Parse the JSON output from stdout
 3. Present a summary table with columns: package, status, passed, failed, skipped
-4. For packages with `error` status: check the error message. If it's a compilation error, run `charm analyze` on that package to get details. If it's a missing dependency, re-run `charm get`. Resolve before proceeding
+4. For packages with `error` status: check the error message. If it's a compilation error, run `glittering analyze` on that package to get details. If it's a missing dependency, re-run `glittering get`. Resolve before proceeding
 5. For packages with `fail` status, read the session detail file (from `details_file` in the JSON) and list: test name, file:line, truncated error (first 2 lines)
 6. If all pass: report success and stop
-7. Run `charm analyze --path <workspace_root> [--filter <filter>]` on failing packages — analysis errors are often the root cause of test failures. If found, fix analysis errors first and re-run tests before proceeding to Phase 2
+7. Run `glittering analyze --path <workspace_root> [--filter <filter>]` on failing packages — analysis errors are often the root cause of test failures. If found, fix analysis errors first and re-run tests before proceeding to Phase 2
 8. If failures remain and `fix` was NOT passed: ask the user whether to auto-fix
 9. If failures remain and `fix` was passed: proceed to Phase 2
 
@@ -86,7 +86,7 @@ For each package with failures, spawn a parallel Agent (one per package) with th
 >
 > Runner: `<dart|flutter> test`
 > Workspace root: `<workspace_root>`
-> This package is part of a multi-package workspace. Run `charm status --path <workspace_root>` if you need to understand the package layout.
+> This package is part of a multi-package workspace. Run `glittering status --path <workspace_root>` if you need to understand the package layout.
 >
 > **Failures:**
 > - `<test_name>` in `<test_file>:<line>` — `<error_summary>`
@@ -104,7 +104,7 @@ For each package with failures, spawn a parallel Agent (one per package) with th
 
 ### Post-fix (Tests)
 
-1. Re-run `charm test --path <workspace_root> [--filter <filter>]` to verify the full suite
+1. Re-run `glittering test --path <workspace_root> [--filter <filter>]` to verify the full suite
 2. Present a final report: packages fixed, packages still failing, packages needing manual attention
 
 ## Final

@@ -32,8 +32,7 @@
 - **Granular updates:** Specialized nixpkgs inputs for independent update control per layer
 - **Project environments:** Declarative dev setup with direnv + Doppler secrets
 - **Encrypted secrets:** agenix + private flake input for sensitive files
-- **IDE integration:** Wrapped IDEs with Doppler secret injection
-- **Workspace management:** [`charm`](scripts/charm/) - Dart/Flutter workspace + git submodule manager
+- **Workspace management:** [`✨glitter`](scripts/glitter/) - Multi-package orchestrator: git, test, analyze across Dart/Flutter workspaces
 - **Flutter hot reload:** [`flitter.rs`](scripts/flitter/) - hot reloading with debug info capture
 - **Package freshness:** [`flake-freshness.nu`](scripts/flake-freshness/) - monitor nix package versions across inputs
 

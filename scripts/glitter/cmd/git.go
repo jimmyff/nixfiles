@@ -10,7 +10,7 @@ import (
 	"sync"
 )
 
-const gitHelpText = `charm git — Git operations across parent repo and submodules
+const gitHelpText = `glittering git — Git operations across parent repo and submodules
 
 Subcommands:
   (default)      Fetch remotes and show status (branch, dirty, ahead/behind)
@@ -26,7 +26,7 @@ Status flags:
   -skip-fetch     skip fetching from remotes
   -cached         read from cache instead of running live
 
-Run 'charm git <subcommand> -help' for subcommand-specific flags.
+Run 'glittering git <subcommand> -help' for subcommand-specific flags.
 `
 
 // Git dispatches to git subcommands.
@@ -60,9 +60,9 @@ func Git(args []string) int {
 // Fetches and status checks run concurrently across submodules with bounded parallelism.
 func collectGitData(root string, fetch bool) (GitOutput, error) {
 	if fetch {
-		logf("charm: fetching remotes in %s\n", root)
+		logf("glittering: fetching remotes in %s\n", root)
 	} else {
-		logf("charm: checking git status in %s\n", root)
+		logf("glittering: checking git status in %s\n", root)
 	}
 
 	repo, err := getRepoStatus(root)

@@ -19,7 +19,7 @@ func analyzeGitIssues(data GitOutput) []CheckIssue {
 			Severity: "error",
 			Type:     "dirty",
 			Message:  "parent repo has uncommitted changes",
-			Fix:      fmt.Sprintf("charm git diff --path %s", root),
+			Fix:      fmt.Sprintf("glittering git diff --path %s", root),
 		})
 	}
 	if data.Repo.Detached {
@@ -28,7 +28,7 @@ func analyzeGitIssues(data GitOutput) []CheckIssue {
 			Severity: "error",
 			Type:     "detached",
 			Message:  "parent repo is in detached HEAD state",
-			Fix:      fmt.Sprintf("charm git pull --path %s", root),
+			Fix:      fmt.Sprintf("glittering git pull --path %s", root),
 		})
 	}
 	if data.Repo.AheadRemote > 0 && !data.Repo.HeadOnRemote {
@@ -37,7 +37,7 @@ func analyzeGitIssues(data GitOutput) []CheckIssue {
 			Severity: "error",
 			Type:     "unpushed",
 			Message:  fmt.Sprintf("parent repo has %d unpushed commit(s)", data.Repo.AheadRemote),
-			Fix:      fmt.Sprintf("charm git push --path %s", root),
+			Fix:      fmt.Sprintf("glittering git push --path %s", root),
 		})
 	}
 	if data.Repo.StashCount > 0 {
@@ -65,7 +65,7 @@ func analyzeGitIssues(data GitOutput) []CheckIssue {
 				Severity: "error",
 				Type:     "dirty",
 				Message:  fmt.Sprintf("%s has uncommitted changes", sub.Path),
-				Fix:      fmt.Sprintf("charm git diff --path %s", root),
+				Fix:      fmt.Sprintf("glittering git diff --path %s", root),
 			})
 		}
 		if sub.Detached {
@@ -74,7 +74,7 @@ func analyzeGitIssues(data GitOutput) []CheckIssue {
 				Severity: "error",
 				Type:     "detached",
 				Message:  fmt.Sprintf("%s is in detached HEAD state", sub.Path),
-				Fix:      fmt.Sprintf("charm git pull --path %s", root),
+				Fix:      fmt.Sprintf("glittering git pull --path %s", root),
 			})
 		}
 		if sub.AheadRemote > 0 && !sub.HeadOnRemote {
@@ -83,7 +83,7 @@ func analyzeGitIssues(data GitOutput) []CheckIssue {
 				Severity: "error",
 				Type:     "unpushed",
 				Message:  fmt.Sprintf("%s has %d unpushed commit(s)", sub.Path, sub.AheadRemote),
-				Fix:      fmt.Sprintf("charm git push --path %s", root),
+				Fix:      fmt.Sprintf("glittering git push --path %s", root),
 			})
 		}
 		if sub.StashCount > 0 {
@@ -108,7 +108,7 @@ func analyzeGitIssues(data GitOutput) []CheckIssue {
 				Severity: "warn",
 				Type:     "ahead_parent",
 				Message:  fmt.Sprintf("%s is %d commit(s) ahead of parent ref", sub.Path, sub.AheadParent),
-				Fix:      fmt.Sprintf("charm git commit-parent -m \"update %s submodule ref\" --path %s %s", sub.Path, root, sub.Path),
+				Fix:      fmt.Sprintf("glittering git commit-parent -m \"update %s submodule ref\" --path %s %s", sub.Path, root, sub.Path),
 			})
 		}
 		if sub.BehindParent > 0 {

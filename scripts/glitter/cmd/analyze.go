@@ -92,7 +92,7 @@ func Analyze(args []string) int {
 		return ExitFailure
 	}
 
-	logf("charm: analyzing %d packages\n", len(packages))
+	logf("glittering: analyzing %d packages\n", len(packages))
 
 	session, err := createSession()
 	if err != nil {

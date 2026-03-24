@@ -204,7 +204,7 @@ func GitPull(args []string) int {
 	}
 
 	// Pull parent
-	logf("charm: pulling parent (%s)...\n", branch)
+	logf("glittering: pulling parent (%s)...\n", branch)
 	_, pullErr := runGit(root, "pull", "origin", branch)
 	if pullErr != nil {
 		result := GitPullResult{Path: root, Branch: branch, Warnings: warnings, Error: fmt.Sprintf("pull failed: %v", pullErr)}
@@ -218,7 +218,7 @@ func GitPull(args []string) int {
 	// Instead, detect uninitialised submodules and only update those.
 	uninit := getUninitialisedSubmodules(root)
 	if len(uninit) > 0 {
-		logf("charm: initialising %d new submodules...\n", len(uninit))
+		logf("glittering: initialising %d new submodules...\n", len(uninit))
 		args := append([]string{"submodule", "update", "--init", "--"}, uninit...)
 		if _, initErr := runGit(root, args...); initErr != nil {
 			warnings = append(warnings, fmt.Sprintf("submodule init failed: %v", initErr))
