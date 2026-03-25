@@ -2,7 +2,7 @@ package cmd
 
 import (
 	"encoding/json"
-	"flag"
+	flag "github.com/spf13/pflag"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -24,6 +24,7 @@ func Analyze(args []string) int {
 	filter := fs.String("filter", "", "comma-separated package name filters")
 	cached := fs.Bool("cached", false, "read from cache instead of running live")
 	jobs := fs.Int("jobs", 4, "number of parallel analyze jobs")
+	fs.BoolVarP(&verbose, "verbose", "v", false, "show progress logs")
 	fs.Parse(args)
 
 	root, err := resolveRoot(*path)
@@ -92,7 +93,7 @@ func Analyze(args []string) int {
 		return ExitFailure
 	}
 
-	logf("glittering: analyzing %d packages\n", len(packages))
+	progressf("glittering: analyzing %d packages\n", len(packages))
 
 	session, err := createSession()
 	if err != nil {
@@ -120,7 +121,7 @@ func Analyze(args []string) int {
 	for i, pkg := range packages {
 		sem <- struct{}{}
 		mu.Lock()
-		logf("  analyzing %s...\n", pkg.Path)
+		progressf("  analyzing %s...\n", pkg.Path)
 		mu.Unlock()
 		go func(i int, pkg PackageInfo) {
 			result, logs := runAnalyzePackage(root, session, pkg.Path)

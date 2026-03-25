@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"flag"
+	flag "github.com/spf13/pflag"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -13,6 +13,7 @@ func GitDiff(args []string) int {
 	fs := flag.NewFlagSet("git diff", flag.ExitOnError)
 	path := fs.String("path", ".", "repository root path")
 	stagedOnly := fs.Bool("staged", false, "only show staged changes")
+	fs.BoolVarP(&verbose, "verbose", "v", false, "show progress logs")
 	fs.Parse(args)
 
 	root, err := resolveRoot(*path)
@@ -31,7 +32,7 @@ func GitDiff(args []string) int {
 		return ExitFailure
 	}
 
-	logf("glittering: collecting diffs in %s\n", root)
+	progressf("glittering: collecting diffs in %s\n", root)
 
 	var repos []DiffRepoResult
 	summary := DiffSummary{}
@@ -154,7 +155,7 @@ func collectRepoDiff(repoPath, absDir, session string, stagedOnly bool) *DiffRep
 	// Get branch
 	branch, _ := runGit(absDir, "branch", "--show-current")
 
-	logf("  %s: %d files (+%d/-%d), %d untracked\n", repoPath, len(fileSet), totalIns, totalDel, len(untracked))
+	progressf("  %s: %d files (+%d/-%d), %d untracked\n", repoPath, len(fileSet), totalIns, totalDel, len(untracked))
 
 	return &DiffRepoResult{
 		Path:            repoPath,

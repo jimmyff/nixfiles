@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"flag"
+	flag "github.com/spf13/pflag"
 	"fmt"
 	"path/filepath"
 )
@@ -10,6 +10,7 @@ import (
 func GitPush(args []string) int {
 	fs := flag.NewFlagSet("git push", flag.ExitOnError)
 	path := fs.String("path", ".", "repository root path")
+	fs.BoolVarP(&verbose, "verbose", "v", false, "show progress logs")
 	fs.Parse(args)
 
 	root, err := resolveRoot(*path)
@@ -64,7 +65,7 @@ func GitPush(args []string) int {
 			continue
 		}
 		subDir := filepath.Join(root, sub.Path)
-		logf("  pushing %s...\n", sub.Path)
+		progressf("  pushing %s...\n", sub.Path)
 		if _, pushErr := runGit(subDir, "push"); pushErr != nil {
 			failed = append(failed, PushRepoResult{Path: sub.Path, Status: "failed", Ref: sub.Ref, Error: fmt.Sprintf("%v", pushErr)})
 		} else {
@@ -74,7 +75,7 @@ func GitPush(args []string) int {
 
 	// Push parent
 	if data.Repo.AheadRemote > 0 && data.Repo.Upstream != "" {
-		logf("  pushing parent...\n")
+		progressf("  pushing parent...\n")
 		if _, pushErr := runGit(root, "push"); pushErr != nil {
 			failed = append(failed, PushRepoResult{Path: ".", Status: "failed", Ref: data.Repo.Ref, Error: fmt.Sprintf("%v", pushErr)})
 		} else {

@@ -2,7 +2,7 @@ package cmd
 
 import (
 	"encoding/json"
-	"flag"
+	flag "github.com/spf13/pflag"
 	"fmt"
 )
 
@@ -108,7 +108,7 @@ func analyzeGitIssues(data GitOutput) []CheckIssue {
 				Severity: "warn",
 				Type:     "ahead_parent",
 				Message:  fmt.Sprintf("%s is %d commit(s) ahead of parent ref", sub.Path, sub.AheadParent),
-				Fix:      fmt.Sprintf("glittering git commit-parent -m \"update %s submodule ref\" --path %s %s", sub.Path, root, sub.Path),
+				Fix:      fmt.Sprintf("glittering git commit-parent --message \"update %s submodule ref\" --path %s %s", sub.Path, root, sub.Path),
 			})
 		}
 		if sub.BehindParent > 0 {
@@ -155,6 +155,7 @@ func GitCheck(args []string) int {
 	path := fs.String("path", ".", "repository root path")
 	skipFetch := fs.Bool("skip-fetch", false, "skip fetching from remotes")
 	cached := fs.Bool("cached", false, "read from cache instead of running live")
+	fs.BoolVarP(&verbose, "verbose", "v", false, "show progress logs")
 	fs.Parse(args)
 
 	if *cached && *skipFetch {

@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"flag"
+	flag "github.com/spf13/pflag"
 	"path/filepath"
 	"strings"
 	"time"
@@ -21,6 +21,7 @@ func pubCommand(args []string, operation string) int {
 	fs := flag.NewFlagSet(operation, flag.ExitOnError)
 	path := fs.String("path", ".", "workspace root path")
 	filter := fs.String("filter", "", "comma-separated package name filters")
+	fs.BoolVarP(&verbose, "verbose", "v", false, "show progress logs")
 	fs.Parse(args)
 
 	root, err := resolveRoot(*path)
@@ -36,7 +37,7 @@ func pubCommand(args []string, operation string) int {
 		return ExitFailure
 	}
 
-	logf("glittering: running pub %s on %d packages\n", operation, len(packages))
+	progressf("glittering: running pub %s on %d packages\n", operation, len(packages))
 
 	var results []PubPackageResult
 	hasFailure := false
@@ -76,16 +77,16 @@ func runPubCommand(root, pkgPath, pkgType, operation string) PubPackageResult {
 	}
 	result.Runner = runner
 
-	logf("  %s pub %s (%s)...", pkgPath, operation, runner)
+	progressf("  %s pub %s (%s)...", pkgPath, operation, runner)
 
 	_, stderr, err := runCommand(pkgDir, 120*time.Second, runner, "pub", operation)
 	if err != nil {
 		result.Status = "error"
 		result.Error = strings.TrimSpace(stderr)
-		logf(" error\n")
+		progressf(" error\n")
 	} else {
 		result.Status = "pass"
-		logf(" ok\n")
+		progressf(" ok\n")
 	}
 
 	return result

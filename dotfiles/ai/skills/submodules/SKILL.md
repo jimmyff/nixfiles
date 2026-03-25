@@ -16,7 +16,7 @@ Arguments: `status`, `diff`, `commit`, `sync`, or omit to run `status` then ask 
 
 ## glittering
 
-Prefer glittering commands over manual git. Run `/glitter` for full command reference.
+Prefer glittering commands over manual git. Run `/glittering` for full command reference.
 
 **Important:** Always use `commit-sub`/`commit-parent` (which push automatically) rather than raw `git commit`/`git push`. Raw git leaves work unpushed and parent refs out of sync.
 
@@ -80,7 +80,7 @@ Run `glittering analyze --path <workspace>` on the packages being committed. If 
 
 **5. Update parent repository**
 
-1. Stage **only** the submodule references that were committed and pushed in step 3
+1. Stage **only** the submodule references that were committed and pushed in step 3 (use `--all` to include other tracked parent changes alongside submodule refs)
 2. Check if any **other** submodules have HEADs ahead of the parent's recorded ref. For each:
    - Verify the commit exists on the remote (`git fetch` then check). If not pushed, warn the user and do NOT stage it
    - If pushed, ask the user whether to include it in the parent update

@@ -2,7 +2,7 @@ package cmd
 
 import (
 	"encoding/json"
-	"flag"
+	flag "github.com/spf13/pflag"
 	"fmt"
 	"io"
 	"os"
@@ -23,6 +23,7 @@ func Test(args []string) int {
 	timeout := fs.Int("timeout", 120, "per-package timeout in seconds")
 	cached := fs.Bool("cached", false, "read from cache instead of running live")
 	jobs := fs.Int("jobs", 4, "number of parallel test jobs")
+	fs.BoolVarP(&verbose, "verbose", "v", false, "show progress logs")
 	fs.Parse(args)
 
 	root, err := resolveRoot(*path)
@@ -99,7 +100,7 @@ func Test(args []string) int {
 			testable = append(testable, pkg)
 		}
 	}
-	logf("glittering: found %d testable packages\n", len(testable))
+	progressf("glittering: found %d testable packages\n", len(testable))
 
 	session, err := createSession()
 	if err != nil {
@@ -128,7 +129,7 @@ func Test(args []string) int {
 		runner := detectRunner(root, pkg.Path)
 		sem <- struct{}{} // acquire slot before printing
 		mu.Lock()
-		logf("  testing %s (%s)...\n", pkg.Path, runner)
+		progressf("  testing %s (%s)...\n", pkg.Path, runner)
 		mu.Unlock()
 		go func(i int, pkg PackageInfo, runner string) {
 			result, logs := runTestPackage(root, session, pkg.Path, runner, *timeout)

@@ -4,44 +4,86 @@
 
 def "main status" [--path: string = "." --filter: string = ""] {
   let args = (build-args $path $filter)
-  let result = (glittering status ...$args | from json)
+  let result = (glittering status --verbose ...$args | from json)
   $result.packages | select path name type has_tests dependencies dev_dependencies
 }
 
 def "main test" [--path: string = "." --filter: string = "" --timeout: int = 60] {
   let args = (build-args $path $filter)
-  let result = (glittering test ...$args --timeout $timeout | from json)
-  $result.packages | select path runner status total passed failed skipped
+  let result = (glittering test --verbose ...$args --timeout $timeout | from json)
+  let root = $result.path
+  $result.packages
+    | update path { |p| rel-path $root $p.path }
+    | update status { |p| format-status $p.status }
+    | select path runner status total passed failed skipped
+    | print
+  let s = $result.summary
+  let verdict = if $s.failed_packages > 0 or $s.error_packages > 0 {
+    $"(ansi red)\u{2717}(ansi reset)"
+  } else {
+    $"(ansi green)\u{2713}(ansi reset)"
+  }
+  mut parts = [$"($s.total_passed) passed"]
+  if $s.total_failed > 0 { $parts = ($parts | append $"($s.total_failed) failed") }
+  if $s.total_skipped > 0 { $parts = ($parts | append $"($s.total_skipped) skipped") }
+  print $"($verdict) ($s.total_packages) packages, ($s.total_tests) tests \(($parts | str join ', ')\)"
   let failures = ($result.packages | where status != "pass" | where details_file? != null)
   if (not ($failures | is-empty)) {
-    print ""
-    print "Detail files:"
-    $failures | each { |r| print $"  ($r.details_file)" }
+    $failures | each { |r| print $"  Detail: ($r.details_file)" }
   }
 }
 
 def "main analyze" [--path: string = "." --filter: string = ""] {
   let args = (build-args $path $filter)
-  let result = (glittering analyze ...$args | from json)
-  $result.packages | select path status errors warnings infos
+  let result = (glittering analyze --verbose ...$args | from json)
+  let root = $result.path
+  $result.packages
+    | update path { |p| rel-path $root $p.path }
+    | update status { |p| format-status $p.status }
+    | select path status errors warnings infos
+    | print
+  let s = $result.summary
+  let verdict = if $s.failed_packages > 0 or $s.error_packages > 0 {
+    $"(ansi red)\u{2717}(ansi reset)"
+  } else {
+    $"(ansi green)\u{2713}(ansi reset)"
+  }
+  mut parts = []
+  if $s.total_errors > 0 { $parts = ($parts | append $"($s.total_errors) errors") }
+  if $s.total_warnings > 0 { $parts = ($parts | append $"($s.total_warnings) warnings") }
+  if $s.total_infos > 0 { $parts = ($parts | append $"($s.total_infos) infos") }
+  let detail = if ($parts | is-empty) { "clean" } else { $parts | str join ", " }
+  print $"($verdict) ($s.total_packages) packages \(($detail)\)"
   let issues = ($result.packages | where status != "pass" | where details_file? != null)
   if (not ($issues | is-empty)) {
-    print ""
-    print "Detail files:"
-    $issues | each { |r| print $"  ($r.details_file)" }
+    $issues | each { |r| print $"  Detail: ($r.details_file)" }
   }
 }
 
 def "main get" [--path: string = "." --filter: string = ""] {
   let args = (build-args $path $filter)
-  let result = (glittering get ...$args | from json)
-  $result.packages | select path runner status
+  let result = (glittering get --verbose ...$args | from json)
+  $result.packages
+    | update status { |p| format-status $p.status }
+    | select path runner status
+    | print
+  let errors = ($result.packages | where status != "pass")
+  if (not ($errors | is-empty)) {
+    $errors | each { |r| print $"  (ansi red)\u{2717}(ansi reset) ($r.path): ($r.error)" }
+  }
 }
 
 def "main upgrade" [--path: string = "." --filter: string = ""] {
   let args = (build-args $path $filter)
-  let result = (glittering upgrade ...$args | from json)
-  $result.packages | select path runner status
+  let result = (glittering upgrade --verbose ...$args | from json)
+  $result.packages
+    | update status { |p| format-status $p.status }
+    | select path runner status
+    | print
+  let errors = ($result.packages | where status != "pass")
+  if (not ($errors | is-empty)) {
+    $errors | each { |r| print $"  (ansi red)\u{2717}(ansi reset) ($r.path): ($r.error)" }
+  }
 }
 
 def "main git" [--path: string = "." --skip-fetch --cached] {
@@ -57,7 +99,7 @@ def "main git" [--path: string = "." --skip-fetch --cached] {
   } else {
     []
   }
-  let result = (glittering git --path $path ...$extra_args | from json)
+  let result = (glittering git --verbose --path $path ...$extra_args | from json)
   let repo = ($result.repo | update path $result.path)
   let subs = $result.submodules
 
@@ -76,19 +118,21 @@ def "main git" [--path: string = "." --skip-fetch --cached] {
 }
 
 def "main git commit-sub" [--path: string = "." --all -m: string sub_path: string] {
-  mut args = [--path $path -m $m]
+  mut args = [--verbose --path $path --message $m]
   if $all { $args = ($args | append [--all]) }
   $args = ($args | append [$sub_path])
   glittering git commit-sub ...$args | from json
 }
 
-def "main git commit-parent" [--path: string = "." -m: string ...sub_paths: string] {
-  let args = [--path $path -m $m ...$sub_paths]
+def "main git commit-parent" [--path: string = "." --all -m: string ...sub_paths: string] {
+  mut args = [--verbose --path $path --message $m]
+  if $all { $args = ($args | append [--all]) }
+  $args = ($args | append $sub_paths)
   glittering git commit-parent ...$args | from json
 }
 
 def "main git pull" [--path: string = "."] {
-  let result = (glittering git pull --path $path | from json)
+  let result = (glittering git pull --verbose --path $path | from json)
   let warns = ($result.warnings? | default [])
   if (not ($warns | is-empty)) {
     for w in $warns { print $"(ansi yellow)warning:(ansi reset) ($w)" }
@@ -119,7 +163,7 @@ def "main git check" [--path: string = "." --skip-fetch --cached] {
   } else {
     []
   }
-  let result = (glittering git check --path $path ...$extra_args | from json)
+  let result = (glittering git check --verbose --path $path ...$extra_args | from json)
   if $result.clean and ($result.issues | is-empty) {
     print $"(ansi green_bold)\u{2713} Ready(ansi reset) — fully committed and pushed"
     return
@@ -148,7 +192,7 @@ def "main git check" [--path: string = "." --skip-fetch --cached] {
 }
 
 def "main git push" [--path: string = "."] {
-  let result = (glittering git push --path $path | from json)
+  let result = (glittering git push --verbose --path $path | from json)
   if ($result.error? | default "") != "" {
     print $"(ansi red_bold)Push aborted:(ansi reset) ($result.error)"
     return
@@ -176,7 +220,7 @@ def "main git push" [--path: string = "."] {
 
 def "main git diff" [--path: string = "." --staged] {
   let extra_args = if $staged { [--staged] } else { [] }
-  let result = (glittering git diff --path $path ...$extra_args | from json)
+  let result = (glittering git diff --verbose --path $path ...$extra_args | from json)
   let repos = $result.repos
   if ($repos | is-empty) {
     print "No changes detected."
@@ -211,16 +255,16 @@ def "main git diff" [--path: string = "." --staged] {
 }
 
 def "main overview" [--path: string = "." --fetch] {
-  let status = (glittering status --path $path | from json)
+  let status = (glittering status --verbose --path $path | from json)
 
   # Git: cached by default, live --skip-fetch as fallback, live fetch with --fetch
   let git = if $fetch {
-    (glittering git --path $path | from json)
+    (glittering git --verbose --path $path | from json)
   } else {
-    let cached = (glittering git --cached --path $path | from json)
+    let cached = (glittering git --verbose --cached --path $path | from json)
     if ($cached.submodules | is-empty) and ($cached.timestamp? == null) {
       # No cache exists, fall back to live without fetch (clear timestamp so staleness doesn't show)
-      glittering git --skip-fetch --path $path | from json | update timestamp null
+      glittering git --verbose --skip-fetch --path $path | from json | update timestamp null
     } else {
       $cached
     }
@@ -229,8 +273,8 @@ def "main overview" [--path: string = "." --fetch] {
   let fetched = $fetch or ($git.timestamp? != null)
 
   # Test + analyze: always from cache
-  let test_data = (glittering test --cached --path $path | from json)
-  let analyze_data = (glittering analyze --cached --path $path | from json)
+  let test_data = (glittering test --verbose --cached --path $path | from json)
+  let analyze_data = (glittering analyze --verbose --cached --path $path | from json)
 
   let has_tests = ($test_data.packages | length) > 0
   let has_analyze = ($analyze_data.packages | length) > 0
@@ -293,7 +337,7 @@ def "main recache" [--path: string = "." --force] {
   # Git (with fetch)
   if $force or (not (cache-fresh "git" $path 60)) {
     print "Refreshing git cache..."
-    try { glittering git --path $path out> /dev/null }
+    try { glittering git --verbose --path $path out> /dev/null }
   } else {
     print $"(ansi dark_gray)Git cache is recent, skipping \(use --force to override\)(ansi reset)"
   }
@@ -301,7 +345,7 @@ def "main recache" [--path: string = "." --force] {
   # Test
   if $force or (not (cache-fresh "test" $path 60)) {
     print "Refreshing test cache..."
-    try { glittering test --path $path out> /dev/null }
+    try { glittering test --verbose --path $path out> /dev/null }
   } else {
     print $"(ansi dark_gray)Test cache is recent, skipping \(use --force to override\)(ansi reset)"
   }
@@ -309,7 +353,7 @@ def "main recache" [--path: string = "." --force] {
   # Analyze
   if $force or (not (cache-fresh "analyze" $path 60)) {
     print "Refreshing analyze cache..."
-    try { glittering analyze --path $path out> /dev/null }
+    try { glittering analyze --verbose --path $path out> /dev/null }
   } else {
     print $"(ansi dark_gray)Analyze cache is recent, skipping \(use --force to override\)(ansi reset)"
   }
@@ -318,7 +362,7 @@ def "main recache" [--path: string = "." --force] {
 }
 
 def "main clean" [] {
-  glittering clean
+  glittering clean --verbose
 }
 
 def main [] {
@@ -593,7 +637,7 @@ def print-footer [git_data: record, test_data: record, analyze_data: record, pat
 
 # Check if a cache kind is fresh (within threshold_min minutes)
 def cache-fresh [kind: string, path: string, threshold_min: int]: nothing -> bool {
-  let result = (glittering $kind --cached --path $path | from json)
+  let result = (glittering $kind --verbose --cached --path $path | from json)
   if ($result.timestamp? == null) { return false }
   let ts = ($result.timestamp | into datetime)
   let age_min = (((date now) - $ts) / 1min | math floor)
@@ -605,4 +649,20 @@ def build-args [path: string, filter: string]: nothing -> list<string> {
   mut args = [--path $path]
   if $filter != "" { $args = ($args | append [--filter $filter]) }
   $args
+}
+
+# Colored status indicator for table cells
+def format-status [status: string]: nothing -> string {
+  if $status == "pass" {
+    $"(ansi green)\u{2713} pass(ansi reset)"
+  } else if $status == "fail" {
+    $"(ansi red)\u{2717} fail(ansi reset)"
+  } else {
+    $"(ansi red)\u{2717} error(ansi reset)"
+  }
+}
+
+# Strip root prefix to get relative path
+def rel-path [root: string, abs: string]: nothing -> string {
+  $abs | str replace $"($root)/" "" | str replace $root ""
 }

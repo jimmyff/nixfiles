@@ -31,8 +31,8 @@ glittering git check --path workspace
 glittering git push --path workspace
 glittering get --path workspace                  # pub get all packages
 glittering upgrade --path workspace              # pub upgrade all packages
-glittering git commit-sub <path> -m "msg" --path workspace
-glittering git commit-parent -m "msg" --path workspace sub1 sub2
+glittering git commit-sub --message "msg" --path workspace [--all] <path>
+glittering git commit-parent --message "msg" --path workspace [--all] sub1 sub2
 glittering git pull --path workspace
 glittering clean                                 # Tidy old sessions
 ```

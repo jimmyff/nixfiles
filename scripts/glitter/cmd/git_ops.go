@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"flag"
+	flag "github.com/spf13/pflag"
 	"fmt"
 	"path/filepath"
 	"strings"
@@ -11,12 +11,13 @@ import (
 func GitCommitSub(args []string) int {
 	fs := flag.NewFlagSet("git commit-sub", flag.ExitOnError)
 	path := fs.String("path", ".", "repository root path")
-	message := fs.String("m", "", "commit message (required)")
+	message := fs.StringP("message", "m", "", "commit message (required)")
 	all := fs.Bool("all", false, "stage all tracked changes before committing")
+	fs.BoolVarP(&verbose, "verbose", "v", false, "show progress logs")
 	fs.Parse(args)
 
 	if *message == "" {
-		logf("error: -m (commit message) is required\n")
+		logf("error: --message/-m (commit message) is required\n")
 		return ExitUsage
 	}
 
@@ -71,6 +72,10 @@ func GitCommitSub(args []string) int {
 	deleteCache(root, "git.json")
 
 	outputJSON(result)
+	if result.Success {
+		logf("hint: update parent ref: glittering git commit-parent --message \"update %s submodule ref\" --path %s %s\n",
+			filepath.Base(subPath), root, subPath)
+	}
 	if !pushed {
 		return ExitFailure
 	}
@@ -81,11 +86,13 @@ func GitCommitSub(args []string) int {
 func GitCommitParent(args []string) int {
 	fs := flag.NewFlagSet("git commit-parent", flag.ExitOnError)
 	path := fs.String("path", ".", "repository root path")
-	message := fs.String("m", "", "commit message (required)")
+	message := fs.StringP("message", "m", "", "commit message (required)")
+	all := fs.Bool("all", false, "stage all tracked parent changes before committing")
+	fs.BoolVarP(&verbose, "verbose", "v", false, "show progress logs")
 	fs.Parse(args)
 
 	if *message == "" {
-		logf("error: -m (commit message) is required\n")
+		logf("error: --message/-m (commit message) is required\n")
 		return ExitUsage
 	}
 
@@ -124,6 +131,15 @@ func GitCommitParent(args []string) int {
 		branches, err := runGit(subDir, "branch", "-r", "--contains", head)
 		if err != nil || strings.TrimSpace(branches) == "" {
 			result := GitCommitResult{Path: root, Error: fmt.Sprintf("%s HEAD %s is not pushed to remote", sub, head[:12])}
+			outputJSON(result)
+			return ExitFailure
+		}
+	}
+
+	// Stage all tracked parent changes if --all
+	if *all {
+		if _, err := runGit(root, "add", "-A"); err != nil {
+			result := GitCommitResult{Path: root, Error: fmt.Sprintf("stage all failed: %v", err)}
 			outputJSON(result)
 			return ExitFailure
 		}
@@ -177,6 +193,7 @@ func GitCommitParent(args []string) int {
 func GitPull(args []string) int {
 	fs := flag.NewFlagSet("git pull", flag.ExitOnError)
 	path := fs.String("path", ".", "repository root path")
+	fs.BoolVarP(&verbose, "verbose", "v", false, "show progress logs")
 	fs.Parse(args)
 
 	root, err := resolveRoot(*path)
@@ -204,7 +221,7 @@ func GitPull(args []string) int {
 	}
 
 	// Pull parent
-	logf("glittering: pulling parent (%s)...\n", branch)
+	progressf("glittering: pulling parent (%s)...\n", branch)
 	_, pullErr := runGit(root, "pull", "origin", branch)
 	if pullErr != nil {
 		result := GitPullResult{Path: root, Branch: branch, Warnings: warnings, Error: fmt.Sprintf("pull failed: %v", pullErr)}
@@ -218,7 +235,7 @@ func GitPull(args []string) int {
 	// Instead, detect uninitialised submodules and only update those.
 	uninit := getUninitialisedSubmodules(root)
 	if len(uninit) > 0 {
-		logf("glittering: initialising %d new submodules...\n", len(uninit))
+		progressf("glittering: initialising %d new submodules...\n", len(uninit))
 		args := append([]string{"submodule", "update", "--init", "--"}, uninit...)
 		if _, initErr := runGit(root, args...); initErr != nil {
 			warnings = append(warnings, fmt.Sprintf("submodule init failed: %v", initErr))
@@ -255,7 +272,7 @@ func GitPull(args []string) int {
 		if dirtySet[subPath] {
 			sub.WasDirty = true
 			sub.Branch = getSubmoduleBranch(root, subPath)
-			logf("  %s: skipped (dirty)\n", subPath)
+			progressf("  %s: skipped (dirty)\n", subPath)
 			subResults = append(subResults, sub)
 			continue
 		}
@@ -265,7 +282,7 @@ func GitPull(args []string) int {
 		sub.Branch = subBranch
 
 		// Checkout branch (get off detached HEAD)
-		logf("  %s: checkout %s, pulling...\n", subPath, subBranch)
+		progressf("  %s: checkout %s, pulling...\n", subPath, subBranch)
 		if _, err := runGit(subDir, "checkout", subBranch); err != nil {
 			sub.Error = fmt.Sprintf("checkout %s failed: %v", subBranch, err)
 			hasError = true
@@ -295,7 +312,7 @@ func GitPull(args []string) int {
 			}
 		}
 
-		logf("  %s: %d new commits\n", subPath, sub.NewCommits)
+		progressf("  %s: %d new commits\n", subPath, sub.NewCommits)
 		subResults = append(subResults, sub)
 	}
 

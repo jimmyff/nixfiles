@@ -12,9 +12,19 @@ import (
 	"time"
 )
 
-// logf prints a message to stderr.
+// verbose controls whether progress messages are printed.
+var verbose bool
+
+// logf prints a message to stderr (always — for errors, hints, warnings).
 func logf(format string, args ...interface{}) {
 	fmt.Fprintf(os.Stderr, format, args...)
+}
+
+// progressf prints a progress message to stderr only when verbose is true.
+func progressf(format string, args ...interface{}) {
+	if verbose {
+		fmt.Fprintf(os.Stderr, "\033[90m"+format+"\033[0m", args...)
+	}
 }
 
 // outputJSON writes v as indented JSON to stdout.

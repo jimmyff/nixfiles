@@ -1,12 +1,13 @@
 package cmd
 
-import "flag"
+import flag "github.com/spf13/pflag"
 
 // Status discovers Dart/Flutter packages and outputs their metadata.
 func Status(args []string) int {
 	fs := flag.NewFlagSet("status", flag.ExitOnError)
 	path := fs.String("path", ".", "workspace root path")
 	filter := fs.String("filter", "", "comma-separated package name filters")
+	fs.BoolVarP(&verbose, "verbose", "v", false, "show progress logs")
 	fs.Parse(args)
 
 	root, err := resolveRoot(*path)
@@ -22,7 +23,7 @@ func Status(args []string) int {
 		return ExitFailure
 	}
 
-	logf("glittering: found %d packages\n", len(packages))
+	progressf("glittering: found %d packages\n", len(packages))
 
 	out := StatusOutput{Path: root, Packages: packages}
 	if out.Packages == nil {

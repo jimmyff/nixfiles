@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"flag"
+	flag "github.com/spf13/pflag"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -60,9 +60,9 @@ func Git(args []string) int {
 // Fetches and status checks run concurrently across submodules with bounded parallelism.
 func collectGitData(root string, fetch bool) (GitOutput, error) {
 	if fetch {
-		logf("glittering: fetching remotes in %s\n", root)
+		progressf("glittering: fetching remotes in %s\n", root)
 	} else {
-		logf("glittering: checking git status in %s\n", root)
+		progressf("glittering: checking git status in %s\n", root)
 	}
 
 	repo, err := getRepoStatus(root)
@@ -80,7 +80,7 @@ func collectGitData(root string, fetch bool) (GitOutput, error) {
 	// Phase 1: Parallel fetch
 	if fetch {
 		if _, err := runGit(root, "fetch", "origin"); err != nil {
-			logf("  warning: fetch failed for parent: %v\n", err)
+			progressf("  warning: fetch failed for parent: %v\n", err)
 		}
 		sem := make(chan struct{}, maxJobs)
 		var wg sync.WaitGroup
@@ -94,7 +94,7 @@ func collectGitData(root string, fetch bool) (GitOutput, error) {
 				subDir := filepath.Join(root, sp)
 				if _, err := runGit(subDir, "fetch", "origin"); err != nil {
 					mu.Lock()
-					logf("  warning: fetch failed for %s: %v\n", sp, err)
+					progressf("  warning: fetch failed for %s: %v\n", sp, err)
 					mu.Unlock()
 				}
 			}(subPath)
@@ -114,7 +114,7 @@ func collectGitData(root string, fetch bool) (GitOutput, error) {
 	for i, subPath := range submodulePaths {
 		sem <- struct{}{}
 		mu.Lock()
-		logf("  checking %s...\n", subPath)
+		progressf("  checking %s...\n", subPath)
 		mu.Unlock()
 		go func(i int, sp string) {
 			result := getSubmoduleStatus(root, sp)
@@ -146,6 +146,7 @@ func gitStatus(args []string) int {
 	path := fs.String("path", ".", "repository root path")
 	skipFetch := fs.Bool("skip-fetch", false, "skip fetching from remotes")
 	cached := fs.Bool("cached", false, "read from cache instead of running live")
+	fs.BoolVarP(&verbose, "verbose", "v", false, "show progress logs")
 	fs.Parse(args)
 
 	if *cached && *skipFetch {

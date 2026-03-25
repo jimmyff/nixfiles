@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"flag"
+	flag "github.com/spf13/pflag"
 	"os"
 	"path/filepath"
 	"time"
@@ -10,6 +10,7 @@ import (
 // Clean removes session directories older than 24 hours.
 func Clean(args []string) int {
 	fs := flag.NewFlagSet("clean", flag.ExitOnError)
+	fs.BoolVarP(&verbose, "verbose", "v", false, "show progress logs")
 	fs.Parse(args)
 
 	sessionBase, err := getSessionBase()
@@ -21,7 +22,7 @@ func Clean(args []string) int {
 	entries, err := os.ReadDir(sessionBase)
 	if err != nil {
 		if os.IsNotExist(err) {
-			logf("glittering: no sessions to clean\n")
+			progressf("glittering: no sessions to clean\n")
 			return ExitOK
 		}
 		logf("error: %v\n", err)
@@ -51,7 +52,7 @@ func Clean(args []string) int {
 		}
 	}
 
-	logf("glittering: removed %d old sessions\n", removed)
+	progressf("glittering: removed %d old sessions\n", removed)
 
 	// Remove glitter cache dir if empty
 	remaining, _ := os.ReadDir(sessionBase)
