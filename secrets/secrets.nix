@@ -14,7 +14,9 @@ let
   allUsers = builtins.attrValues users;
   allSystems = builtins.attrValues systems;
 in {
+  # NextDNS config IDs (one per host)
   "nextdns_nixelbook.age".publicKeys = allUsers ++ [systems.nixelbook];
+  "nextdns_mpb14.age".publicKeys = allUsers ++ [systems.jimmyff-mbp14];
   "android-release-key.jks.age".publicKeys = allUsers ++ [systems.nixelbook systems.jimmyff-mbp14];
   "android-debug-keystore.age".publicKeys = allUsers ++ [systems.nixelbook systems.jimmyff-mbp14];
   # Rclone koofr remote secrets

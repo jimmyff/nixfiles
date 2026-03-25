@@ -26,6 +26,8 @@
   signal.enable = true;
   raycast.enable = true;
   playwright.enable = true;
+  nextdns.enable = true;
+  nextdns.vaultFile = "nextdns_mpb14.age";
   rclone.enable = true;
   minisign.enable = true;
 

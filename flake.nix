@@ -35,7 +35,6 @@
     nixos-hardware.url = "github:NixOS/nixos-hardware/master";
 
     # agenix (encryption)
-    # TODO: not using it yet
     agenix = {
       url = "github:ryantm/agenix";
       inputs.nixpkgs.follows = "pkgs-stable";

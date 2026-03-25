@@ -45,6 +45,8 @@
   signal.enable = true;
   google-chrome.enable = false;
   playwright.enable = false;
+  nextdns.enable = true;
+  nextdns.vaultFile = "nextdns_nixelbook.age";
   rclone.enable = true;
   minisign.enable = true;
 
