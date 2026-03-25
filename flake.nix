@@ -170,7 +170,7 @@
       specialArgs = darwinArgs;
 
       modules = [
-        ./hosts/jimmyff-mpb14/configuration.nix
+        ./hosts/jimmyff-mbp14/configuration.nix
         ./modules/core/darwin
         ./modules/workstation
 

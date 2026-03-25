@@ -5,7 +5,7 @@
     ../../modules/development
   ];
 
-  networking.hostName = "jimmyff-mpb14";
+  networking.hostName = "jimmyff-mbp14";
 
   # Development environment configuration
   development = {
@@ -27,7 +27,7 @@
   raycast.enable = true;
   playwright.enable = true;
   nextdns.enable = true;
-  nextdns.vaultFile = "nextdns_mpb14.age";
+  nextdns.vaultFile = "nextdns_mbp14.age";
   rclone.enable = true;
   minisign.enable = true;
 
