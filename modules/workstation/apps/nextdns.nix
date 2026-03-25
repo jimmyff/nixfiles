@@ -134,7 +134,15 @@ EOF
           chown ${username}:${userGroup} "$PROFILE_PATH"
           chmod 600 "$PROFILE_PATH"
           echo "NextDNS profile generated at $PROFILE_PATH"
-          echo "Install once via: open $PROFILE_PATH"
+
+          # Prompt user to install if profile not already active
+          if ! profiles list -type configuration 2>/dev/null | grep -q "io.nextdns.dns-profile"; then
+            echo "NextDNS profile not installed — opening installer..."
+            sudo -u ${username} open "$PROFILE_PATH"
+            echo "Please approve the NextDNS profile in System Settings → General → Profiles"
+          else
+            echo "NextDNS profile already installed"
+          fi
         else
           echo "Warning: NextDNS secret not available"
         fi
