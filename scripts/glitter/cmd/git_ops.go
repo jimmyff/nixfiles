@@ -3,6 +3,7 @@ package cmd
 import (
 	flag "github.com/spf13/pflag"
 	"fmt"
+	"os"
 	"path/filepath"
 	"strings"
 )
@@ -13,11 +14,29 @@ func GitCommitSub(args []string) int {
 	path := fs.String("path", ".", "repository root path")
 	message := fs.StringP("message", "m", "", "commit message (required)")
 	all := fs.Bool("all", false, "stage all tracked changes before committing")
+	files := fs.StringArrayP("files", "f", nil, "specific files to stage (relative to submodule root)")
+	staged := fs.Bool("staged", false, "commit whatever is already staged (skip staging)")
 	fs.BoolVarP(&verbose, "verbose", "v", false, "show progress logs")
 	fs.Parse(args)
 
 	if *message == "" {
 		logf("error: --message/-m (commit message) is required\n")
+		return ExitUsage
+	}
+
+	// Validate mutual exclusivity of staging flags
+	flagCount := 0
+	if *all {
+		flagCount++
+	}
+	if len(*files) > 0 {
+		flagCount++
+	}
+	if *staged {
+		flagCount++
+	}
+	if flagCount > 1 {
+		logf("error: --all, --files, and --staged are mutually exclusive\n")
 		return ExitUsage
 	}
 
@@ -36,14 +55,29 @@ func GitCommitSub(args []string) int {
 
 	subDir := filepath.Join(root, subPath)
 
-	// Stage if --all
+	// Validate submodule directory exists
+	if info, err := os.Stat(subDir); err != nil || !info.IsDir() {
+		logf("error: submodule directory not found: %s\n", subDir)
+		return ExitUsage
+	}
+
+	// Stage based on flags
 	if *all {
 		if _, err := runGit(subDir, "add", "-A"); err != nil {
 			result := GitCommitResult{Path: root, Error: fmt.Sprintf("stage failed: %v", err)}
 			outputJSON(result)
 			return ExitFailure
 		}
+	} else if len(*files) > 0 {
+		for _, f := range *files {
+			if _, err := runGit(subDir, "add", "--", f); err != nil {
+				result := GitCommitResult{Path: root, Error: fmt.Sprintf("stage failed for %s: %v", f, err)}
+				outputJSON(result)
+				return ExitFailure
+			}
+		}
 	}
+	// --staged or no flag: no-op (commit index as-is)
 
 	// Commit
 	if _, err := runGit(subDir, "commit", "-m", *message); err != nil {

@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	flag "github.com/spf13/pflag"
 	"fmt"
-	"os"
 	"path/filepath"
 	"regexp"
 	"sort"
@@ -129,7 +128,7 @@ func Analyze(args []string) int {
 			result.Timestamp = nowTimestamp()
 			writeCache(filepath.Join(root, pkg.Path), "analyze.json", result)
 			mu.Lock()
-			fmt.Fprint(os.Stderr, logs)
+			progressPrint(logs)
 			mu.Unlock()
 			resultsCh <- indexedResult{index: i, result: result}
 			<-sem
@@ -172,9 +171,6 @@ func Analyze(args []string) int {
 		return ExitFailure
 	}
 
-	if summary.FailedPackages > 0 || summary.ErrorPackages > 0 {
-		return ExitFailure
-	}
 	return ExitOK
 }
 

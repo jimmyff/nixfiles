@@ -27,6 +27,13 @@ func progressf(format string, args ...interface{}) {
 	}
 }
 
+// progressPrint writes a pre-formatted progress string to stderr in grey (verbose only).
+func progressPrint(s string) {
+	if verbose && s != "" {
+		fmt.Fprintf(os.Stderr, "\033[90m%s\033[0m", s)
+	}
+}
+
 // outputJSON writes v as indented JSON to stdout.
 func outputJSON(v interface{}) error {
 	enc := json.NewEncoder(os.Stdout)

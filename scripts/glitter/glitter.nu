@@ -117,9 +117,13 @@ def "main git" [--path: string = "." --skip-fetch --cached] {
   print (format-readiness $result)
 }
 
-def "main git commit-sub" [--path: string = "." --all -m: string sub_path: string] {
+def "main git commit-sub" [--path: string = "." --all --staged --files: list<string> -m: string sub_path: string] {
   mut args = [--verbose --path $path --message $m]
   if $all { $args = ($args | append [--all]) }
+  if $staged { $args = ($args | append [--staged]) }
+  if ($files != null) {
+    for f in $files { $args = ($args | append [--files $f]) }
+  }
   $args = ($args | append [$sub_path])
   glittering git commit-sub ...$args | from json
 }

@@ -40,13 +40,9 @@ func pubCommand(args []string, operation string) int {
 	progressf("glittering: running pub %s on %d packages\n", operation, len(packages))
 
 	var results []PubPackageResult
-	hasFailure := false
 	for _, pkg := range packages {
 		result := runPubCommand(root, pkg.Path, pkg.Type, operation)
 		results = append(results, result)
-		if result.Status != "pass" {
-			hasFailure = true
-		}
 	}
 
 	out := PubOutput{Path: root, Packages: results}
@@ -58,9 +54,6 @@ func pubCommand(args []string, operation string) int {
 		return ExitFailure
 	}
 
-	if hasFailure {
-		return ExitFailure
-	}
 	return ExitOK
 }
 

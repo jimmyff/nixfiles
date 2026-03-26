@@ -29,7 +29,7 @@ glittering git --path <root> --cached                           # read cached st
 glittering git check --path <root> [--cached]                   # verify committed/pushed/refs in sync
 glittering git push --path <root>                               # push all repos with unpushed commits
 glittering git diff --path <root> [--staged]                    # diff summary + .patch detail files
-glittering git commit-sub --message "msg" --path <root> [--all] <sub>       # commit + push submodule
+glittering git commit-sub --message "msg" --path <root> [--all|--staged|--files f --files f] <sub>       # commit + push submodule
 glittering git commit-parent --message "msg" --path <root> [--all] <sub>... # stage refs, commit + push parent
 glittering git pull --path <root>                               # pull parent, checkout branches, pull all subs
 ```

@@ -74,7 +74,7 @@ Run `glittering analyze --path <workspace>` on the packages being committed. If 
 
 **4. Commit dirty submodules**
 
-1. Stage appropriate files in each dirty submodule (prefer specific files over `git add -A`). If a submodule has a mix of unrelated changes, group them into separate commits by staging selectively
+1. Stage appropriate files in each dirty submodule using `--files` for selective staging (prefer `--files` over `--all`). If a submodule has a mix of unrelated changes, group them into separate commits with different `--files` lists
 2. Present all proposed commit messages together in a single summary for the user to review, confirm, or adjust (avoid per-submodule back-and-forth when multiple are dirty)
 3. Commit and push each submodule to its remote tracking branch
 
