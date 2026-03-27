@@ -27,6 +27,19 @@
     echo "============================="
     echo ""
 
+    # Copy file only if content has changed (avoids unnecessary direnv reloads)
+    copy_if_changed() {
+      local src="$1" dest="$2" label="$3"
+      if [ -f "$dest" ] && cmp -s "$src" "$dest"; then
+        echo "  $label unchanged, skipping"
+        return 1
+      fi
+      chmod u+w "$dest" 2>/dev/null || true
+      cp "$src" "$dest"
+      echo "  Copied $label"
+      return 0
+    }
+
     # Check Flutter and Android SDK installation (only if Android is enabled)
     ${lib.optionalString (config.android.enable or false) ''
       echo "📱 Checking Flutter and Android SDK installation..."
@@ -226,47 +239,54 @@
               fi
             fi
 
-            # Copy .envrc with warning comment
+            # Copy .envrc with warning comment (only if changed)
             if [ -f "$PROJECT_SOURCE/.envrc" ]; then
-              chmod u+w "$PROJECT_DIR/.envrc" 2>/dev/null || true
+              TMPFILE=$(mktemp)
               {
                 echo "# NOTE: Copied version: original is in nixfiles/projects/${name}/.envrc"
                 echo "# This file is read-only to prevent accidental edits. Edit the original in nixfiles instead."
                 echo ""
                 cat "$PROJECT_SOURCE/.envrc"
-              } > "$PROJECT_DIR/.envrc"
-              echo "✅ Copied .envrc (with read-only warning)"
+              } > "$TMPFILE"
+              copy_if_changed "$TMPFILE" "$PROJECT_DIR/.envrc" ".envrc"
+              rm -f "$TMPFILE"
             else
               echo "⚠️  .envrc not found"
             fi
 
-            cp "$PROJECT_SOURCE/startup.nu" "$PROJECT_DIR/" 2>/dev/null && echo "✅ Copied startup.nu" || echo "⚠️  startup.nu not found"
+            if [ -f "$PROJECT_SOURCE/startup.nu" ]; then
+              copy_if_changed "$PROJECT_SOURCE/startup.nu" "$PROJECT_DIR/startup.nu" "startup.nu"
+            else
+              echo "⚠️  startup.nu not found"
+            fi
 
-            # Copy flake.nix with warning comment
+            # Copy flake.nix with warning comment (only if changed)
             if [ -f "$PROJECT_SOURCE/flake.nix" ]; then
-              chmod u+w "$PROJECT_DIR/flake.nix" 2>/dev/null || true
+              TMPFILE=$(mktemp)
               {
                 echo "# NOTE: Copied version: original is in nixfiles/projects/${name}/flake.nix"
                 echo "# This file is read-only to prevent accidental edits. Edit the original in nixfiles instead."
                 echo ""
                 cat "$PROJECT_SOURCE/flake.nix"
-              } > "$PROJECT_DIR/flake.nix"
-              echo "✅ Copied flake.nix (with read-only warning)"
+              } > "$TMPFILE"
+              copy_if_changed "$TMPFILE" "$PROJECT_DIR/flake.nix" "flake.nix"
+              rm -f "$TMPFILE"
             else
               echo "⚠️  flake.nix not found"
             fi
 
-            # Copy shared devshell-utils.nix with warning comment
+            # Copy shared devshell-utils.nix with warning comment (only if changed)
             UTILS_SOURCE="${homeDir}/nixfiles/projects/devshell-utils.nix"
             if [ -f "$UTILS_SOURCE" ]; then
-              chmod u+w "$PROJECT_DIR/devshell-utils.nix" 2>/dev/null || true
+              TMPFILE=$(mktemp)
               {
                 echo "# NOTE: Copied version: original is in nixfiles/projects/devshell-utils.nix"
                 echo "# This file is read-only to prevent accidental edits. Edit the original in nixfiles instead."
                 echo ""
                 cat "$UTILS_SOURCE"
-              } > "$PROJECT_DIR/devshell-utils.nix"
-              echo "✅ Copied devshell-utils.nix (with read-only warning)"
+              } > "$TMPFILE"
+              copy_if_changed "$TMPFILE" "$PROJECT_DIR/devshell-utils.nix" "devshell-utils.nix"
+              rm -f "$TMPFILE"
             else
               echo "⚠️  devshell-utils.nix not found"
             fi
@@ -274,7 +294,6 @@
             # Copy flake.lock to keep it in sync (Nix doesn't support symlinks for flake.lock)
             if [ -f "$PROJECT_SOURCE/flake.lock" ]; then
               if [ -f "$PROJECT_DIR/flake.lock" ]; then
-                # Check if files differ to prevent losing local changes
                 if ! cmp -s "$PROJECT_SOURCE/flake.lock" "$PROJECT_DIR/flake.lock"; then
                   echo "❌ ERROR: flake.lock files differ between nixfiles and project directory"
                   echo "   Source: $PROJECT_SOURCE/flake.lock"
@@ -282,8 +301,10 @@
                   echo "   Please manually sync these files to avoid losing local changes."
                   exit 1
                 fi
+                echo "  flake.lock unchanged, skipping"
+              else
+                cp "$PROJECT_SOURCE/flake.lock" "$PROJECT_DIR/flake.lock" && echo "  Copied flake.lock" || echo "⚠️  Failed to copy flake.lock"
               fi
-              cp "$PROJECT_SOURCE/flake.lock" "$PROJECT_DIR/flake.lock" && echo "✅ Copied flake.lock" || echo "⚠️  Failed to copy flake.lock"
             fi
 
             # Setup development scripts via symlinks

@@ -283,7 +283,7 @@ def "main overview" [--path: string = "." --refresh --force] {
   let status = (glittering status --verbose --path $path | from json)
 
   # Git: read from cache, fall back to live without fetch if no cache
-  let git = {
+  let git = (do {
     let cached = (glittering git --verbose --cached --path $path | from json)
     if ($cached.submodules | is-empty) and ($cached.timestamp? == null) {
       # No cache — fall back to live without fetch
@@ -291,7 +291,7 @@ def "main overview" [--path: string = "." --refresh --force] {
     } else {
       $cached
     }
-  }
+  })
   let fetched = ($git.timestamp? != null)
 
   # Test + analyze: always from cache
