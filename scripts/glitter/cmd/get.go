@@ -64,15 +64,10 @@ func runPubCommand(root, pkgPath, pkgType, operation string) PubPackageResult {
 	}
 
 	pkgDir := filepath.Join(root, pkgPath)
-	runner := pkgType
-	if runner == "" {
-		runner = detectRunner(root, pkgPath)
-	}
-	result.Runner = runner
 
-	progressf("  %s pub %s (%s)...", pkgPath, operation, runner)
+	progressf("  %s pub %s (%s)...", pkgPath, operation, pkgType)
 
-	_, stderr, err := runCommand(pkgDir, 120*time.Second, runner, "pub", operation)
+	_, stderr, err := runCommand(pkgDir, 120*time.Second, pkgType, "pub", operation)
 	if err != nil {
 		result.Status = "error"
 		result.Error = strings.TrimSpace(stderr)

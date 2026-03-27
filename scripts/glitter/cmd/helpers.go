@@ -84,19 +84,6 @@ func runGit(dir string, args ...string) (string, error) {
 	return strings.TrimSpace(stdout), nil
 }
 
-// detectRunner checks if a package uses Flutter (has flutter_test dependency).
-func detectRunner(root, pkgPath string) string {
-	pubspec := filepath.Join(root, pkgPath, "pubspec.yaml")
-	data, err := os.ReadFile(pubspec)
-	if err != nil {
-		return "dart"
-	}
-	if strings.Contains(string(data), "flutter_test:") {
-		return "flutter"
-	}
-	return "dart"
-}
-
 // parseFilter splits a comma-separated filter string into a slice.
 func parseFilter(filter string) []string {
 	if filter == "" {

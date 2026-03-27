@@ -126,7 +126,7 @@ func Test(args []string) int {
 	var mu sync.Mutex
 
 	for i, pkg := range testable {
-		runner := detectRunner(root, pkg.Path)
+		runner := pkg.Type
 		sem <- struct{}{} // acquire slot before printing
 		mu.Lock()
 		progressf("  testing %s (%s)...\n", pkg.Path, runner)

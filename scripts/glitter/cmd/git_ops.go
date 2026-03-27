@@ -17,7 +17,7 @@ func GitCommitSub(args []string) int {
 	}
 	path := fs.String("path", ".", "repository root path")
 	message := fs.StringP("message", "m", "", "commit message (required)")
-	all := fs.Bool("all", false, "stage all tracked changes before committing")
+	all := fs.Bool("all", false, "stage all changes (including untracked) before committing")
 	files := fs.StringArrayP("files", "f", nil, "specific files to stage (relative to submodule root)")
 	staged := fs.Bool("staged", false, "commit whatever is already staged (skip staging)")
 	fs.BoolVarP(&verbose, "verbose", "v", false, "show progress logs")
@@ -144,7 +144,7 @@ func GitCommitParent(args []string) int {
 	}
 	path := fs.String("path", ".", "repository root path")
 	message := fs.StringP("message", "m", "", "commit message (required)")
-	all := fs.Bool("all", false, "stage all tracked parent changes before committing")
+	all := fs.Bool("all", false, "stage all parent changes (including untracked) before committing")
 	fs.BoolVarP(&verbose, "verbose", "v", false, "show progress logs")
 	fs.Parse(args)
 
