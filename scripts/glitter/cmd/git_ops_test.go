@@ -59,3 +59,12 @@ func TestGitCommitParent_MissingMessage(t *testing.T) {
 		t.Errorf("missing message: expected ExitUsage (%d), got %d", ExitUsage, got)
 	}
 }
+
+func TestGitCommitSub_CommaFiles_MissingSubmoduleDir(t *testing.T) {
+	tmp := t.TempDir()
+	// Comma-separated files should be accepted (error will be about missing submodule, not about files)
+	got := GitCommitSub([]string{"-m", "test", "--path", tmp, "-f", "a.dart,b.dart", "nonexistent/sub"})
+	if got != ExitUsage {
+		t.Errorf("comma files: expected ExitUsage (%d), got %d", ExitUsage, got)
+	}
+}

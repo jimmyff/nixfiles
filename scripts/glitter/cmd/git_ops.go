@@ -10,6 +10,11 @@ import (
 // GitCommitSub commits and pushes a single submodule.
 func GitCommitSub(args []string) int {
 	fs := flag.NewFlagSet("git commit-sub", flag.ExitOnError)
+	fs.Usage = func() {
+		logf("Usage: glittering git commit-sub <submodule> [flags]\n\n")
+		logf("Example: glittering git commit-sub notes -m \"fix bug\" -f file1.dart -f file2.dart\n\n")
+		fs.PrintDefaults()
+	}
 	path := fs.String("path", ".", "repository root path")
 	message := fs.StringP("message", "m", "", "commit message (required)")
 	all := fs.Bool("all", false, "stage all tracked changes before committing")
@@ -17,6 +22,20 @@ func GitCommitSub(args []string) int {
 	staged := fs.Bool("staged", false, "commit whatever is already staged (skip staging)")
 	fs.BoolVarP(&verbose, "verbose", "v", false, "show progress logs")
 	fs.Parse(args)
+
+	// Expand comma-separated --files values (accept both -f a -f b and -f "a,b")
+	if len(*files) > 0 {
+		var expanded []string
+		for _, f := range *files {
+			for _, part := range strings.Split(f, ",") {
+				part = strings.TrimSpace(part)
+				if part != "" {
+					expanded = append(expanded, part)
+				}
+			}
+		}
+		*files = expanded
+	}
 
 	if *message == "" {
 		logf("error: --message/-m (commit message) is required\n")
@@ -41,7 +60,7 @@ func GitCommitSub(args []string) int {
 
 	remaining := fs.Args()
 	if len(remaining) == 0 {
-		logf("error: submodule path is required\n")
+		logf("error: submodule path is required\nUsage: glittering git commit-sub <submodule> -m \"msg\" [-f file ...]\n")
 		return ExitUsage
 	}
 	subPath := remaining[0]
@@ -118,6 +137,11 @@ func GitCommitSub(args []string) int {
 // GitCommitParent verifies submodule refs are on remote, stages them, commits and pushes parent.
 func GitCommitParent(args []string) int {
 	fs := flag.NewFlagSet("git commit-parent", flag.ExitOnError)
+	fs.Usage = func() {
+		logf("Usage: glittering git commit-parent <sub>... [flags]\n\n")
+		logf("Example: glittering git commit-parent notes editor -m \"update submodule refs\"\n\n")
+		fs.PrintDefaults()
+	}
 	path := fs.String("path", ".", "repository root path")
 	message := fs.StringP("message", "m", "", "commit message (required)")
 	all := fs.Bool("all", false, "stage all tracked parent changes before committing")
@@ -131,7 +155,7 @@ func GitCommitParent(args []string) int {
 
 	rawSubs := fs.Args()
 	if len(rawSubs) == 0 {
-		logf("error: specify submodule paths to stage\n")
+		logf("error: specify submodule paths to stage\nUsage: glittering git commit-parent <sub>... -m \"msg\"\n")
 		return ExitUsage
 	}
 

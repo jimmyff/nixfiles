@@ -29,7 +29,7 @@ glittering git --path <root> --cached [--filter <names>]          # read cached 
 glittering git check --path <root> [--cached] [--filter <names>]  # verify committed/pushed
 glittering git push --path <root> [--filter <names>]              # push repos with unpushed
 glittering git diff --path <root> [--staged] [--filter <names>]   # diff summary
-glittering git commit-sub --message "msg" --path <root> [--all|--staged|--files f --files f] <sub>
+glittering git commit-sub <sub> -m "msg" --path <root> [-f file -f file | --all | --staged]
 glittering git commit-parent --message "msg" --path <root> [--all] <sub>...
 glittering git pull --path <root> [--filter <names>]              # pull parent + subs
 ```

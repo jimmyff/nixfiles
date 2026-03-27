@@ -51,6 +51,7 @@
           ]
           ++ pkgs-stable.lib.optionals pkgs-stable.stdenv.isDarwin [
             pkgs-stable.sqlite
+            pkgs-stable.pcre2
           ]
           ++ pkgs-stable.lib.optionals pkgs-stable.stdenv.isLinux [
             pkgs-unstable.gtk3
@@ -103,6 +104,8 @@
             flutter config --jdk-dir="$JAVA_HOME" >/dev/null 2>&1 || true
           fi
           ${utils.darwinPathHook pkgs-stable}
+          # Unset Nix apple-sdk env vars that break /usr/bin/cc (points at stripped SDK without clang)
+          unset DEVELOPER_DIR SDKROOT
           echo "📝 Entering Blink development environment"
           echo "Flutter: $(flutter --version 2>/dev/null | head -1 || echo 'Not available')"
           echo "Dart: $(dart --version 2>/dev/null || echo 'Not available')"

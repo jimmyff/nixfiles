@@ -263,23 +263,36 @@ def "main git diff" [--path: string = "." --staged --filter: string = ""] {
   null
 }
 
-def "main overview" [--path: string = "." --fetch] {
+def "main overview" [--path: string = "." --refresh --force] {
+  # Refresh caches if requested (--force implies --refresh, ignores freshness)
+  if $refresh or $force {
+    if $force or (not (cache-fresh "git" $path 60)) {
+      print "Refreshing git..."
+      try { glittering git --verbose --path $path out> /dev/null }
+    }
+    if $force or (not (cache-fresh "test" $path 60)) {
+      print "Refreshing tests..."
+      try { glittering test --verbose --path $path out> /dev/null }
+    }
+    if $force or (not (cache-fresh "analyze" $path 60)) {
+      print "Refreshing analysis..."
+      try { glittering analyze --verbose --path $path out> /dev/null }
+    }
+  }
+
   let status = (glittering status --verbose --path $path | from json)
 
-  # Git: cached by default, live --skip-fetch as fallback, live fetch with --fetch
-  let git = if $fetch {
-    (glittering git --verbose --path $path | from json)
-  } else {
+  # Git: read from cache, fall back to live without fetch if no cache
+  let git = {
     let cached = (glittering git --verbose --cached --path $path | from json)
     if ($cached.submodules | is-empty) and ($cached.timestamp? == null) {
-      # No cache exists, fall back to live without fetch (clear timestamp so staleness doesn't show)
+      # No cache — fall back to live without fetch
       glittering git --verbose --skip-fetch --path $path | from json | update timestamp null
     } else {
       $cached
     }
   }
-  # Show behind counts if we fetched live or have cached data from a fetched run
-  let fetched = $fetch or ($git.timestamp? != null)
+  let fetched = ($git.timestamp? != null)
 
   # Test + analyze: always from cache
   let test_data = (glittering test --verbose --cached --path $path | from json)
@@ -337,37 +350,9 @@ def "main overview" [--path: string = "." --fetch] {
   # Footer: readiness + staleness
   print-footer $git $test_data $analyze_data $path
 
-  if (not $fetched) and ($git.timestamp? == null) {
-    print $"(ansi dark_gray)Run with --fetch for up-to-date remote tracking(ansi reset)"
+  if (not $fetched) {
+    print $"(ansi dark_gray)Run with --refresh for up-to-date data(ansi reset)"
   }
-}
-
-def "main recache" [--path: string = "." --force] {
-  # Git (with fetch)
-  if $force or (not (cache-fresh "git" $path 60)) {
-    print "Refreshing git cache..."
-    try { glittering git --verbose --path $path out> /dev/null }
-  } else {
-    print $"(ansi dark_gray)Git cache is recent, skipping \(use --force to override\)(ansi reset)"
-  }
-
-  # Test
-  if $force or (not (cache-fresh "test" $path 60)) {
-    print "Refreshing test cache..."
-    try { glittering test --verbose --path $path out> /dev/null }
-  } else {
-    print $"(ansi dark_gray)Test cache is recent, skipping \(use --force to override\)(ansi reset)"
-  }
-
-  # Analyze
-  if $force or (not (cache-fresh "analyze" $path 60)) {
-    print "Refreshing analyze cache..."
-    try { glittering analyze --verbose --path $path out> /dev/null }
-  } else {
-    print $"(ansi dark_gray)Analyze cache is recent, skipping \(use --force to override\)(ansi reset)"
-  }
-
-  print "Done."
 }
 
 def "main clean" [] {
@@ -390,8 +375,7 @@ Commands:
   git commit-sub Commit and push a single submodule
   git commit-parent  Stage submodule refs, commit and push parent
   git pull       Pull parent, checkout branches, pull all submodules
-  overview       Combined dashboard: git + cached test/analyze (table)
-  recache        Refresh git/test/analyze caches
+  overview       Combined dashboard: git + test + analyze (--refresh to update)
   clean          Remove old session directories
 
 Common flags: --path <dir> --filter <name>"
@@ -637,10 +621,10 @@ def print-footer [git_data: record, test_data: record, analyze_data: record, pat
     print $"(ansi dark_gray)($parts | str join $sep)(ansi reset)"
   }
   if (not ($warnings | is-empty)) {
-    print $"(ansi yellow)($warnings | str join ' \u{00b7} ') — run: glitter recache --path ($path)(ansi reset)"
+    print $"(ansi yellow)($warnings | str join ' \u{00b7} ') — run with --refresh(ansi reset)"
   }
   if (not ($missing | is-empty)) {
-    print $"(ansi dark_gray)No cached ($missing | str join '/') data — run: glitter recache --path ($path)(ansi reset)"
+    print $"(ansi dark_gray)No cached ($missing | str join '/') data — run with --refresh(ansi reset)"
   }
 }
 

@@ -2,8 +2,7 @@
 name: submodules
 description: Manage git submodule workflows — status, commit, sync across repos with submodules
 disable-model-invocation: true
-model: sonnet
-effot: high
+effort: medium
 ---
 
 # Git Submodules Management
@@ -60,7 +59,7 @@ Read `.patch` detail files selectively to inspect full diffs for specific repos.
 
 - Identify submodules with uncommitted changes (if none, report and exit)
 - For each, check branch state — warn and stop if detached HEAD
-- Show status and diff summary for each dirty submodule
+- Review changes per submodule: `glittering git diff --path <workspace> --filter <sub>`
 
 **2. Safety checks**
 
@@ -79,7 +78,9 @@ Run `glittering analyze --path <workspace>` on the packages being committed. If 
 
 **4. Commit dirty submodules**
 
-1. Stage appropriate files in each dirty submodule using `--files` for selective staging (prefer `--files` over `--all`). If a submodule has a mix of unrelated changes, group them into separate commits with different `--files` lists
+1. Stage appropriate files in each dirty submodule using `-f` for selective staging (prefer `-f` over `--all`):
+   `glittering git commit-sub <sub> -m "msg" --path <root> -f file1.dart -f file2.dart`
+   If a submodule has a mix of unrelated changes, group them into separate commits with different `-f` lists
 2. Present all proposed commit messages together in a single summary for the user to review, confirm, or adjust (avoid per-submodule back-and-forth when multiple are dirty)
 3. Commit and push each submodule to its remote tracking branch
 
