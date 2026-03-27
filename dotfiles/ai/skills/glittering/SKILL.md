@@ -23,20 +23,22 @@ glittering clean                                                # remove old ses
 ### Git subcommands
 
 ```
-glittering git --path <root>                                    # fetch + status
-glittering git --path <root> --skip-fetch                       # status without fetching
-glittering git --path <root> --cached                           # read cached status (instant)
-glittering git check --path <root> [--cached]                   # verify committed/pushed/refs in sync
-glittering git push --path <root>                               # push all repos with unpushed commits
-glittering git diff --path <root> [--staged]                    # diff summary + .patch detail files
-glittering git commit-sub --message "msg" --path <root> [--all|--staged|--files f --files f] <sub>       # commit + push submodule
-glittering git commit-parent --message "msg" --path <root> [--all] <sub>... # stage refs, commit + push parent
-glittering git pull --path <root>                               # pull parent, checkout branches, pull all subs
+glittering git --path <root> [--filter <names>]                   # fetch + status
+glittering git --path <root> --skip-fetch [--filter <names>]      # status without fetching
+glittering git --path <root> --cached [--filter <names>]          # read cached status (instant)
+glittering git check --path <root> [--cached] [--filter <names>]  # verify committed/pushed
+glittering git push --path <root> [--filter <names>]              # push repos with unpushed
+glittering git diff --path <root> [--staged] [--filter <names>]   # diff summary
+glittering git commit-sub --message "msg" --path <root> [--all|--staged|--files f --files f] <sub>
+glittering git commit-parent --message "msg" --path <root> [--all] <sub>...
+glittering git pull --path <root> [--filter <names>]              # pull parent + subs
 ```
 
 ## Tips
 
 - Pass `--path <workspace_root>` to every command
+- `--filter` uses substring matching: `--filter blog` matches `packages/blog`
+- `commit-sub`/`commit-parent` auto-resolve short names: `git_dart` → `packages/git_dart`
 - Prefer `commit-sub` / `commit-parent` over raw `git commit` / `git push` — they auto-push and keep parent refs in sync
 - `commit-parent --all` stages all tracked parent changes alongside submodule refs
 - Use `--cached` for instant reads from last live run

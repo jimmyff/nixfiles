@@ -2,6 +2,8 @@
 name: submodules
 description: Manage git submodule workflows — status, commit, sync across repos with submodules
 disable-model-invocation: true
+model: sonnet
+effot: high
 ---
 
 # Git Submodules Management
@@ -42,7 +44,7 @@ Present a summary table with columns: path, branch, dirty/clean, ahead/behind re
 
 ### `diff` — Show changes across all submodules
 
-**glittering**: `glittering git diff --path <workspace>` (add `--staged` for staged only)
+**glittering**: `glittering git diff --path <workspace>` (add `--staged` for staged only, `--filter <name>` to scope to specific submodules)
 
 Returns JSON with per-repo entries containing: staged/unstaged changed files (path, status M/A/D/R, insertions, deletions), untracked files, aggregate stats, and a `details_file` path to a `.patch` file with the full unified diff. Clean repos are omitted.
 
@@ -51,6 +53,8 @@ Read `.patch` detail files selectively to inspect full diffs for specific repos.
 ### `commit` — Commit and push dirty submodules, then update parent
 
 **glittering**: Use `git commit-sub` for each dirty submodule, then `git commit-parent` to update the parent refs.
+
+**Note:** Submodule paths auto-resolve — you can use short names (e.g., `git_dart` instead of `packages/git_dart`). If ambiguous, the error lists matching paths.
 
 **1. Audit**
 
@@ -61,6 +65,7 @@ Read `.patch` detail files selectively to inspect full diffs for specific repos.
 **2. Safety checks**
 
 Before staging, flag and ask the user about:
+
 - Secrets: `.env`, credentials, keys, tokens, `.pem`, `.p12`
 - Large binaries or build artifacts
 - OS/IDE junk: `.DS_Store`, `Thumbs.db`, `.idea/`, `.vscode/` (unless already tracked)
@@ -92,6 +97,7 @@ Run `glittering analyze --path <workspace>` on the packages being committed. If 
 **glittering**: `glittering git pull --path <workspace>`
 
 `glittering git pull` handles the full sync workflow:
+
 1. Pull parent repo
 2. Init any new submodules (without resetting existing ones)
 3. Checkout each submodule's tracking branch and pull latest

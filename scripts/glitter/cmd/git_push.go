@@ -10,6 +10,7 @@ import (
 func GitPush(args []string) int {
 	fs := flag.NewFlagSet("git push", flag.ExitOnError)
 	path := fs.String("path", ".", "repository root path")
+	filter := fs.String("filter", "", "comma-separated submodule name filters")
 	fs.BoolVarP(&verbose, "verbose", "v", false, "show progress logs")
 	fs.Parse(args)
 
@@ -24,6 +25,11 @@ func GitPush(args []string) int {
 	if err != nil {
 		logf("error: %v\n", err)
 		return ExitFailure
+	}
+
+	filters := parseFilter(*filter)
+	if len(filters) > 0 {
+		data.Submodules = filterGitSubmodules(data.Submodules, filters)
 	}
 
 	// Pre-flight: abort if any repo is dirty or any submodule is detached
@@ -73,18 +79,20 @@ func GitPush(args []string) int {
 		}
 	}
 
-	// Push parent
-	if data.Repo.AheadRemote > 0 && data.Repo.Upstream != "" {
-		progressf("  pushing parent...\n")
-		if _, pushErr := runGit(root, "push"); pushErr != nil {
-			failed = append(failed, PushRepoResult{Path: ".", Status: "failed", Ref: data.Repo.Ref, Error: fmt.Sprintf("%v", pushErr)})
+	// Push parent (skip when filter is active)
+	if len(filters) == 0 {
+		if data.Repo.AheadRemote > 0 && data.Repo.Upstream != "" {
+			progressf("  pushing parent...\n")
+			if _, pushErr := runGit(root, "push"); pushErr != nil {
+				failed = append(failed, PushRepoResult{Path: ".", Status: "failed", Ref: data.Repo.Ref, Error: fmt.Sprintf("%v", pushErr)})
+			} else {
+				pushed = append(pushed, PushRepoResult{Path: ".", Status: "pushed", Ref: data.Repo.Ref})
+			}
+		} else if data.Repo.AheadRemote > 0 && data.Repo.Upstream == "" {
+			skipped = append(skipped, PushRepoResult{Path: ".", Status: "skipped", Error: "no upstream configured"})
 		} else {
-			pushed = append(pushed, PushRepoResult{Path: ".", Status: "pushed", Ref: data.Repo.Ref})
+			skipped = append(skipped, PushRepoResult{Path: ".", Status: "skipped"})
 		}
-	} else if data.Repo.AheadRemote > 0 && data.Repo.Upstream == "" {
-		skipped = append(skipped, PushRepoResult{Path: ".", Status: "skipped", Error: "no upstream configured"})
-	} else {
-		skipped = append(skipped, PushRepoResult{Path: ".", Status: "skipped"})
 	}
 
 	// Invalidate git cache

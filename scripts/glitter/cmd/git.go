@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"encoding/json"
 	flag "github.com/spf13/pflag"
 	"fmt"
 	"os"
@@ -146,6 +147,7 @@ func gitStatus(args []string) int {
 	path := fs.String("path", ".", "repository root path")
 	skipFetch := fs.Bool("skip-fetch", false, "skip fetching from remotes")
 	cached := fs.Bool("cached", false, "read from cache instead of running live")
+	filter := fs.String("filter", "", "comma-separated submodule name filters")
 	fs.BoolVarP(&verbose, "verbose", "v", false, "show progress logs")
 	fs.Parse(args)
 
@@ -168,6 +170,15 @@ func gitStatus(args []string) int {
 			return ExitFailure
 		}
 		if data != nil {
+			filters := parseFilter(*filter)
+			if len(filters) > 0 {
+				var gitOut GitOutput
+				if err := json.Unmarshal(data, &gitOut); err == nil {
+					gitOut.Submodules = filterGitSubmodules(gitOut.Submodules, filters)
+					outputJSON(gitOut)
+					return ExitOK
+				}
+			}
 			os.Stdout.Write(data)
 			return ExitOK
 		}
@@ -184,11 +195,15 @@ func gitStatus(args []string) int {
 		logf("error: %v\n", err)
 		return ExitFailure
 	}
+	// Always write full (unfiltered) data to cache
+	writeCache(root, "git.json", out)
+	// Then filter for output
+	filters := parseFilter(*filter)
+	out.Submodules = filterGitSubmodules(out.Submodules, filters)
 	if err := outputJSON(out); err != nil {
 		logf("error: %v\n", err)
 		return ExitFailure
 	}
-	writeCache(root, "git.json", out)
 	return ExitOK
 }
 

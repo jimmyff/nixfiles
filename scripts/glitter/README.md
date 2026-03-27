@@ -26,14 +26,15 @@ glitter git diff                           # Diff summary for dirty repos
 glittering status --path workspace
 glittering test --path workspace --timeout 120
 glittering analyze --cached --path workspace
-glittering git --path workspace
-glittering git check --path workspace
-glittering git push --path workspace
+glittering git --path workspace [--filter name]
+glittering git check --path workspace [--filter name]
+glittering git push --path workspace [--filter name]
 glittering get --path workspace                  # pub get all packages
 glittering upgrade --path workspace              # pub upgrade all packages
+glittering git diff --path workspace [--filter name]
 glittering git commit-sub --message "msg" --path workspace [--all|--staged|--files f1 --files f2] <sub>
 glittering git commit-parent --message "msg" --path workspace [--all] sub1 sub2
-glittering git pull --path workspace
+glittering git pull --path workspace [--filter name]
 glittering clean                                 # Tidy old sessions
 ```
 

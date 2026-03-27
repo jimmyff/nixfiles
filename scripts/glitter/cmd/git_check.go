@@ -155,6 +155,7 @@ func GitCheck(args []string) int {
 	path := fs.String("path", ".", "repository root path")
 	skipFetch := fs.Bool("skip-fetch", false, "skip fetching from remotes")
 	cached := fs.Bool("cached", false, "read from cache instead of running live")
+	filter := fs.String("filter", "", "comma-separated submodule name filters")
 	fs.BoolVarP(&verbose, "verbose", "v", false, "show progress logs")
 	fs.Parse(args)
 
@@ -194,6 +195,11 @@ func GitCheck(args []string) int {
 			return ExitFailure
 		}
 		writeCache(root, "git.json", data)
+	}
+
+	filters := parseFilter(*filter)
+	if len(filters) > 0 {
+		data.Submodules = filterGitSubmodules(data.Submodules, filters)
 	}
 
 	issues := analyzeGitIssues(data)

@@ -113,6 +113,72 @@ func parseFilter(filter string) []string {
 	return result
 }
 
+// filterSubmodulePaths filters string paths by substring match (same logic as discoverPackages)
+func filterSubmodulePaths(paths []string, filters []string) []string {
+	if len(filters) == 0 {
+		return paths
+	}
+	var filtered []string
+	for _, p := range paths {
+		for _, f := range filters {
+			if strings.Contains(p, f) {
+				filtered = append(filtered, p)
+				break
+			}
+		}
+	}
+	return filtered
+}
+
+// filterGitSubmodules filters GitSubmoduleStatus slices by substring match on Path
+func filterGitSubmodules(subs []GitSubmoduleStatus, filters []string) []GitSubmoduleStatus {
+	if len(filters) == 0 {
+		return subs
+	}
+	var filtered []GitSubmoduleStatus
+	for _, sub := range subs {
+		for _, f := range filters {
+			if strings.Contains(sub.Path, f) {
+				filtered = append(filtered, sub)
+				break
+			}
+		}
+	}
+	return filtered
+}
+
+// resolveSubmodulePath resolves a potentially short submodule name to the full path.
+// Tries exact directory match first, then substring match against discovered submodules.
+func resolveSubmodulePath(root, subPath string) (string, error) {
+	// Exact match — directory exists
+	exact := filepath.Join(root, subPath)
+	if info, err := os.Stat(exact); err == nil && info.IsDir() {
+		return subPath, nil
+	}
+	// Substring match against discovered submodules
+	paths, err := getSubmodulePaths(root)
+	if err != nil {
+		return "", fmt.Errorf("submodule directory not found: %s", subPath)
+	}
+	var matches []string
+	for _, p := range paths {
+		if strings.Contains(p, subPath) {
+			matches = append(matches, p)
+		}
+	}
+	if len(matches) == 1 {
+		progressf("resolved '%s' to '%s'\n", subPath, matches[0])
+		return matches[0], nil
+	}
+	if len(matches) > 1 {
+		return "", fmt.Errorf("ambiguous submodule path '%s' matches: %s", subPath, strings.Join(matches, ", "))
+	}
+	if len(paths) > 0 {
+		return "", fmt.Errorf("submodule not found: '%s'. Available: %s", subPath, strings.Join(paths, ", "))
+	}
+	return "", fmt.Errorf("submodule directory not found: %s", subPath)
+}
+
 // resolveRoot converts a --path value to an absolute path.
 func resolveRoot(path string) (string, error) {
 	return filepath.Abs(path)

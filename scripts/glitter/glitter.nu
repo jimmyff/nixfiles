@@ -86,12 +86,13 @@ def "main upgrade" [--path: string = "." --filter: string = ""] {
   }
 }
 
-def "main git" [--path: string = "." --skip-fetch --cached] {
+def "main git" [--path: string = "." --skip-fetch --cached --filter: string = ""] {
   if $skip_fetch and $cached {
     print -e "error: --cached and --skip-fetch are mutually exclusive"
     return
   }
   let fetched = if $cached { false } else { not $skip_fetch }
+  let args = (build-args $path $filter)
   let extra_args = if $cached {
     [--cached]
   } else if $skip_fetch {
@@ -99,7 +100,7 @@ def "main git" [--path: string = "." --skip-fetch --cached] {
   } else {
     []
   }
-  let result = (glittering git --verbose --path $path ...$extra_args | from json)
+  let result = (glittering git --verbose ...$args ...$extra_args | from json)
   let repo = ($result.repo | update path $result.path)
   let subs = $result.submodules
 
@@ -135,8 +136,9 @@ def "main git commit-parent" [--path: string = "." --all -m: string ...sub_paths
   glittering git commit-parent ...$args | from json
 }
 
-def "main git pull" [--path: string = "."] {
-  let result = (glittering git pull --verbose --path $path | from json)
+def "main git pull" [--path: string = "." --filter: string = ""] {
+  let args = (build-args $path $filter)
+  let result = (glittering git pull --verbose ...$args | from json)
   let warns = ($result.warnings? | default [])
   if (not ($warns | is-empty)) {
     for w in $warns { print $"(ansi yellow)warning:(ansi reset) ($w)" }
@@ -159,7 +161,8 @@ def "main git pull" [--path: string = "."] {
   } | print
 }
 
-def "main git check" [--path: string = "." --skip-fetch --cached] {
+def "main git check" [--path: string = "." --skip-fetch --cached --filter: string = ""] {
+  let args = (build-args $path $filter)
   let extra_args = if $cached {
     [--cached]
   } else if $skip_fetch {
@@ -167,7 +170,7 @@ def "main git check" [--path: string = "." --skip-fetch --cached] {
   } else {
     []
   }
-  let result = (glittering git check --verbose --path $path ...$extra_args | from json)
+  let result = (glittering git check --verbose ...$args ...$extra_args | from json)
   if $result.clean and ($result.issues | is-empty) {
     print $"(ansi green_bold)\u{2713} Ready(ansi reset) — fully committed and pushed"
     return
@@ -195,8 +198,9 @@ def "main git check" [--path: string = "." --skip-fetch --cached] {
   }
 }
 
-def "main git push" [--path: string = "."] {
-  let result = (glittering git push --verbose --path $path | from json)
+def "main git push" [--path: string = "." --filter: string = ""] {
+  let args = (build-args $path $filter)
+  let result = (glittering git push --verbose ...$args | from json)
   if ($result.error? | default "") != "" {
     print $"(ansi red_bold)Push aborted:(ansi reset) ($result.error)"
     return
@@ -222,9 +226,10 @@ def "main git push" [--path: string = "."] {
   }
 }
 
-def "main git diff" [--path: string = "." --staged] {
+def "main git diff" [--path: string = "." --staged --filter: string = ""] {
+  let args = (build-args $path $filter)
   let extra_args = if $staged { [--staged] } else { [] }
-  let result = (glittering git diff --verbose --path $path ...$extra_args | from json)
+  let result = (glittering git diff --verbose ...$args ...$extra_args | from json)
   let repos = $result.repos
   if ($repos | is-empty) {
     print "No changes detected."

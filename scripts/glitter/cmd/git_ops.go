@@ -3,7 +3,6 @@ package cmd
 import (
 	flag "github.com/spf13/pflag"
 	"fmt"
-	"os"
 	"path/filepath"
 	"strings"
 )
@@ -53,13 +52,13 @@ func GitCommitSub(args []string) int {
 		return ExitUsage
 	}
 
-	subDir := filepath.Join(root, subPath)
-
-	// Validate submodule directory exists
-	if info, err := os.Stat(subDir); err != nil || !info.IsDir() {
-		logf("error: submodule directory not found: %s\n", subDir)
+	resolvedPath, resolveErr := resolveSubmodulePath(root, subPath)
+	if resolveErr != nil {
+		logf("error: %v\n", resolveErr)
 		return ExitUsage
 	}
+	subPath = resolvedPath
+	subDir := filepath.Join(root, subPath)
 
 	// Stage based on flags
 	if *all {
@@ -130,8 +129,8 @@ func GitCommitParent(args []string) int {
 		return ExitUsage
 	}
 
-	submodules := fs.Args()
-	if len(submodules) == 0 {
+	rawSubs := fs.Args()
+	if len(rawSubs) == 0 {
 		logf("error: specify submodule paths to stage\n")
 		return ExitUsage
 	}
@@ -140,6 +139,18 @@ func GitCommitParent(args []string) int {
 	if err != nil {
 		logf("error: %v\n", err)
 		return ExitUsage
+	}
+
+	// Resolve each submodule path
+	submodules := make([]string, len(rawSubs))
+	copy(submodules, rawSubs)
+	for i, sub := range submodules {
+		resolved, resolveErr := resolveSubmodulePath(root, sub)
+		if resolveErr != nil {
+			logf("error: %v\n", resolveErr)
+			return ExitUsage
+		}
+		submodules[i] = resolved
 	}
 
 	// Verify each submodule's HEAD exists on its remote
@@ -227,6 +238,7 @@ func GitCommitParent(args []string) int {
 func GitPull(args []string) int {
 	fs := flag.NewFlagSet("git pull", flag.ExitOnError)
 	path := fs.String("path", ".", "repository root path")
+	filter := fs.String("filter", "", "comma-separated submodule name filters")
 	fs.BoolVarP(&verbose, "verbose", "v", false, "show progress logs")
 	fs.Parse(args)
 
@@ -294,6 +306,10 @@ func GitPull(args []string) int {
 			warnings = append(warnings, fmt.Sprintf("%s has uncommitted changes (skipping pull)", subPath))
 		}
 	}
+
+	// Filter submodules for pull (parent pull always runs)
+	filters := parseFilter(*filter)
+	submodulePaths = filterSubmodulePaths(submodulePaths, filters)
 
 	// Pull each submodule
 	var subResults []GitPullSubmodule

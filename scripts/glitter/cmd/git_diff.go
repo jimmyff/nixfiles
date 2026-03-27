@@ -13,6 +13,7 @@ func GitDiff(args []string) int {
 	fs := flag.NewFlagSet("git diff", flag.ExitOnError)
 	path := fs.String("path", ".", "repository root path")
 	stagedOnly := fs.Bool("staged", false, "only show staged changes")
+	filter := fs.String("filter", "", "comma-separated submodule name filters")
 	fs.BoolVarP(&verbose, "verbose", "v", false, "show progress logs")
 	fs.Parse(args)
 
@@ -37,17 +38,22 @@ func GitDiff(args []string) int {
 	var repos []DiffRepoResult
 	summary := DiffSummary{}
 
-	// Parent repo
-	if result := collectRepoDiff(".", root, session, *stagedOnly); result != nil {
-		repos = append(repos, *result)
-	}
-
 	// Submodules
 	submodulePaths, err := getSubmodulePaths(root)
 	if err != nil {
 		logf("error: %v\n", err)
 		return ExitFailure
 	}
+	filters := parseFilter(*filter)
+	submodulePaths = filterSubmodulePaths(submodulePaths, filters)
+
+	// Parent repo — skip when filter is active
+	if len(filters) == 0 {
+		if result := collectRepoDiff(".", root, session, *stagedOnly); result != nil {
+			repos = append(repos, *result)
+		}
+	}
+
 	for _, subPath := range submodulePaths {
 		absDir := filepath.Join(root, subPath)
 		if result := collectRepoDiff(subPath, absDir, session, *stagedOnly); result != nil {
