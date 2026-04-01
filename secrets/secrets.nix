@@ -19,6 +19,7 @@ in {
   "nextdns_mpb14.age".publicKeys = allUsers ++ [systems.jimmyff-mbp14];
   "android-release-key.jks.age".publicKeys = allUsers ++ [systems.nixelbook systems.jimmyff-mbp14];
   "android-debug-keystore.age".publicKeys = allUsers ++ [systems.nixelbook systems.jimmyff-mbp14];
+  "android-googleplay-upload-key.jks.age".publicKeys = allUsers ++ [systems.nixelbook systems.jimmyff-mbp14];
   # Rclone koofr remote secrets
   "rclone-koofr-user.age".publicKeys = allUsers ++ allSystems;
   "rclone-koofr-pass.age".publicKeys = allUsers ++ allSystems;
