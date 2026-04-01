@@ -19,7 +19,7 @@ Arguments: `status`, `diff`, `commit`, `sync`, or omit to run `status` then ask 
 
 Prefer glittering commands over manual git. Run `/glittering` for full command reference.
 
-**Important:** Always use `commit-sub`/`commit-parent` (which push automatically) rather than raw `git commit`/`git push`. Raw git leaves work unpushed and parent refs out of sync.
+**Important:** Always use `git commit` (which pushes automatically) rather than raw `git commit`/`git push`. Raw git leaves work unpushed and parent refs out of sync.
 
 ## Commit Messages
 
@@ -51,7 +51,7 @@ Read `.patch` detail files selectively to inspect full diffs for specific repos.
 
 ### `commit` — Commit and push dirty submodules, then update parent
 
-**glittering**: Use `git commit-sub` for each dirty submodule, then `git commit-parent` to update the parent refs.
+**glittering**: Use `glittering git commit <sub> -m "msg" --path <root>` — commits sub and auto-updates parent.
 
 **Note:** Submodule paths auto-resolve — you can use short names (e.g., `git_dart` instead of `packages/git_dart`). If ambiguous, the error lists matching paths.
 
@@ -79,19 +79,22 @@ Run `glittering analyze --path <workspace>` on the packages being committed. If 
 **4. Commit dirty submodules**
 
 1. Stage appropriate files in each dirty submodule using `-f` for selective staging (prefer `-f` over `--all`):
-   `glittering git commit-sub <sub> -m "msg" --path <root> -f file1.dart -f file2.dart`
+   `glittering git commit <sub> -m "msg" --path <root> -f file1.dart -f file2.dart`
    If a submodule has a mix of unrelated changes, group them into separate commits with different `-f` lists
 2. Present all proposed commit messages together in a single summary for the user to review, confirm, or adjust (avoid per-submodule back-and-forth when multiple are dirty)
 3. Commit and push each submodule to its remote tracking branch
 
 **5. Update parent repository**
 
-1. Stage **only** the submodule references that were committed and pushed in step 3 (use `--all` to include other tracked parent changes alongside submodule refs)
-2. Check if any **other** submodules have HEADs ahead of the parent's recorded ref. For each:
-   - Verify the commit exists on the remote (`git fetch` then check). If not pushed, warn the user and do NOT stage it
-   - If pushed, ask the user whether to include it in the parent update
-3. Propose a commit message, ask user to confirm
-4. Commit and push
+Parent ref update is automatic by default when using `glittering git commit`. For multi-sub workflows with distinct messages, use `--no-parent` and then a final `--parent-only`:
+
+```
+glittering git commit sub1 -m "fix auth" --path <root> --all --no-parent
+glittering git commit sub2 -m "add search" --path <root> --all --no-parent
+glittering git commit --parent-only --path <root>
+```
+
+If other submodules also have out-of-sync refs, `--parent-only` (without explicit subs) auto-detects them. Verify those refs are pushed before including.
 
 ### `sync` — Pull and sync everything
 

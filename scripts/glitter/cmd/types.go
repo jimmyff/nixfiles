@@ -241,6 +241,14 @@ type GitCommitResult struct {
 	Error   string   `json:"error,omitempty"`
 }
 
+type GitCommitOutput struct {
+	Path       string            `json:"path"`
+	Success    bool              `json:"success"`
+	Submodules []GitCommitResult `json:"submodules"`
+	Parent     *GitCommitResult  `json:"parent,omitempty"`
+	Error      string            `json:"error,omitempty"`
+}
+
 type GitPullSubmodule struct {
 	Path       string `json:"path"`
 	Branch     string `json:"branch"`

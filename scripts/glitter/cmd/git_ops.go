@@ -125,8 +125,7 @@ func GitCommitSub(args []string) int {
 
 	outputJSON(result)
 	if result.Success {
-		logf("hint: update parent ref: glittering git commit-parent --message \"update %s submodule ref\" --path %s %s\n",
-			filepath.Base(subPath), root, subPath)
+		logf("hint: commit-sub is deprecated, use: glittering git commit %s -m \"msg\" --path %s\n", subPath, root)
 	}
 	if !pushed {
 		return ExitFailure
@@ -253,6 +252,334 @@ func GitCommitParent(args []string) int {
 
 	outputJSON(result)
 	if !pushed {
+		return ExitFailure
+	}
+	return ExitOK
+}
+
+// getOutOfSyncSubmodules returns submodule paths where HEAD differs from the parent's recorded ref.
+func getOutOfSyncSubmodules(root string) ([]string, error) {
+	paths, err := getSubmodulePaths(root)
+	if err != nil {
+		return nil, err
+	}
+	var outOfSync []string
+	for _, subPath := range paths {
+		subDir := filepath.Join(root, subPath)
+		head, err := runGit(subDir, "rev-parse", "HEAD")
+		if err != nil {
+			continue
+		}
+		parentRef, err := runGit(root, "ls-tree", "HEAD", subPath)
+		if err != nil || parentRef == "" {
+			continue
+		}
+		fields := strings.Fields(parentRef)
+		if len(fields) >= 3 && fields[2] != head {
+			outOfSync = append(outOfSync, subPath)
+		}
+	}
+	return outOfSync, nil
+}
+
+// commitParentRefs verifies sub HEADs are on remote, stages refs, commits and pushes parent.
+// Returns GitCommitResult with Path=".".
+func commitParentRefs(root string, subs []string, message string) GitCommitResult {
+	// Fetch + verify each sub HEAD on remote
+	for _, sub := range subs {
+		subDir := filepath.Join(root, sub)
+
+		if _, err := runGit(subDir, "fetch", "origin"); err != nil {
+			return GitCommitResult{Path: ".", Error: fmt.Sprintf("fetch failed for %s: %v", sub, err)}
+		}
+
+		head, err := runGit(subDir, "rev-parse", "HEAD")
+		if err != nil {
+			return GitCommitResult{Path: ".", Error: fmt.Sprintf("cannot get HEAD for %s: %v", sub, err)}
+		}
+
+		branches, err := runGit(subDir, "branch", "-r", "--contains", head)
+		if err != nil || strings.TrimSpace(branches) == "" {
+			short := head
+			if len(short) > 12 {
+				short = short[:12]
+			}
+			return GitCommitResult{Path: ".", Error: fmt.Sprintf("%s HEAD %s is not pushed to remote", sub, short)}
+		}
+	}
+
+	// Stage each sub ref
+	var staged []string
+	for _, sub := range subs {
+		if _, err := runGit(root, "add", sub); err != nil {
+			return GitCommitResult{Path: ".", Error: fmt.Sprintf("stage failed for %s: %v", sub, err)}
+		}
+		staged = append(staged, sub)
+	}
+
+	// Auto-generate message if empty
+	if message == "" {
+		names := make([]string, len(subs))
+		for i, s := range subs {
+			names[i] = filepath.Base(s)
+		}
+		if len(subs) == 1 {
+			message = fmt.Sprintf("update %s submodule ref", names[0])
+		} else {
+			message = fmt.Sprintf("update %s submodule refs", strings.Join(names, ", "))
+		}
+	}
+
+	// Commit
+	if _, err := runGit(root, "commit", "-m", message); err != nil {
+		return GitCommitResult{Path: ".", Error: fmt.Sprintf("commit failed: %v", err)}
+	}
+
+	ref, _ := runGit(root, "rev-parse", "HEAD")
+
+	// Push
+	_, pushErr := runGit(root, "push")
+	pushed := pushErr == nil
+
+	result := GitCommitResult{
+		Path:    ".",
+		Success: true,
+		Ref:     ref,
+		Staged:  staged,
+		Pushed:  pushed,
+	}
+	if !pushed {
+		result.Error = fmt.Sprintf("push failed: %v", pushErr)
+	}
+	return result
+}
+
+// GitCommit is the unified commit command: commits submodules and auto-updates parent ref.
+func GitCommit(args []string) int {
+	fs := flag.NewFlagSet("git commit", flag.ExitOnError)
+	fs.Usage = func() {
+		logf("Usage: glittering git commit <sub>... -m \"msg\" [flags]\n\n")
+		logf("Commit submodules and auto-update parent ref.\n\n")
+		fs.PrintDefaults()
+	}
+	path := fs.String("path", ".", "repository root path")
+	message := fs.StringP("message", "m", "", "commit message (required for sub commits)")
+	all := fs.Bool("all", false, "stage all changes (including untracked) before committing")
+	files := fs.StringArrayP("files", "f", nil, "specific files to stage (relative to submodule root)")
+	staged := fs.Bool("staged", false, "commit whatever is already staged (skip staging)")
+	noParent := fs.Bool("no-parent", false, "skip parent ref update")
+	parentOnly := fs.Bool("parent-only", false, "parent-only mode: no sub commits, stage out-of-sync refs")
+	parentMessage := fs.String("parent-message", "", "custom parent commit message (default: auto-generated)")
+	fs.BoolVarP(&verbose, "verbose", "v", false, "show progress logs")
+	fs.Parse(args)
+
+	// Expand comma-separated --files values
+	if len(*files) > 0 {
+		var expanded []string
+		for _, f := range *files {
+			for _, part := range strings.Split(f, ",") {
+				part = strings.TrimSpace(part)
+				if part != "" {
+					expanded = append(expanded, part)
+				}
+			}
+		}
+		*files = expanded
+	}
+
+	// Validation
+	if *noParent && *parentOnly {
+		logf("error: --no-parent and --parent-only are mutually exclusive\n")
+		return ExitUsage
+	}
+	if *parentOnly && (*all || len(*files) > 0 || *staged) {
+		logf("error: --parent-only cannot be combined with --all, --files, or --staged\n")
+		return ExitUsage
+	}
+
+	// Staging flags mutual exclusivity
+	flagCount := 0
+	if *all {
+		flagCount++
+	}
+	if len(*files) > 0 {
+		flagCount++
+	}
+	if *staged {
+		flagCount++
+	}
+	if flagCount > 1 {
+		logf("error: --all, --files, and --staged are mutually exclusive\n")
+		return ExitUsage
+	}
+
+	subs := fs.Args()
+
+	if !*parentOnly && len(subs) == 0 {
+		logf("error: submodule path(s) required (or use --parent-only)\n")
+		return ExitUsage
+	}
+	if !*parentOnly && *message == "" {
+		logf("error: --message/-m is required\n")
+		return ExitUsage
+	}
+	if len(*files) > 0 && len(subs) > 1 {
+		logf("error: --files cannot be used with multiple submodules\n")
+		return ExitUsage
+	}
+
+	root, err := resolveRoot(*path)
+	if err != nil {
+		logf("error: %v\n", err)
+		return ExitUsage
+	}
+
+	// Parent-only mode
+	if *parentOnly {
+		var targetSubs []string
+		if len(subs) > 0 {
+			for _, sub := range subs {
+				resolved, resolveErr := resolveSubmodulePath(root, sub)
+				if resolveErr != nil {
+					logf("error: %v\n", resolveErr)
+					return ExitUsage
+				}
+				targetSubs = append(targetSubs, resolved)
+			}
+		} else {
+			targetSubs, err = getOutOfSyncSubmodules(root)
+			if err != nil {
+				output := GitCommitOutput{Path: root, Error: fmt.Sprintf("failed to detect out-of-sync submodules: %v", err)}
+				outputJSON(output)
+				return ExitFailure
+			}
+		}
+
+		if len(targetSubs) == 0 {
+			output := GitCommitOutput{Path: root, Success: true, Submodules: []GitCommitResult{}}
+			progressf("glittering: nothing to do — all submodule refs are in sync\n")
+			outputJSON(output)
+			return ExitOK
+		}
+
+		parentMsg := *message
+		if parentMsg == "" {
+			parentMsg = *parentMessage
+		}
+
+		parentResult := commitParentRefs(root, targetSubs, parentMsg)
+		output := GitCommitOutput{
+			Path:       root,
+			Success:    parentResult.Success && parentResult.Pushed,
+			Submodules: []GitCommitResult{},
+			Parent:     &parentResult,
+		}
+		if !output.Success {
+			output.Error = parentResult.Error
+		}
+
+		deleteCache(root, "git.json")
+		outputJSON(output)
+
+		if !output.Success {
+			return ExitFailure
+		}
+		return ExitOK
+	}
+
+	// Default mode: commit subs, then optionally parent
+	resolvedSubs := make([]string, len(subs))
+	for i, sub := range subs {
+		resolved, resolveErr := resolveSubmodulePath(root, sub)
+		if resolveErr != nil {
+			logf("error: %v\n", resolveErr)
+			return ExitUsage
+		}
+		resolvedSubs[i] = resolved
+	}
+
+	var subResults []GitCommitResult
+
+	for i, subPath := range resolvedSubs {
+		subDir := filepath.Join(root, subPath)
+
+		// Stage
+		if *all {
+			if _, err := runGit(subDir, "add", "-A"); err != nil {
+				subResults = append(subResults, GitCommitResult{Path: subPath, Error: fmt.Sprintf("stage failed: %v", err)})
+				output := GitCommitOutput{Path: root, Submodules: subResults, Error: fmt.Sprintf("stage failed in %s: %v", subPath, err)}
+				outputJSON(output)
+				return ExitFailure
+			}
+		} else if len(*files) > 0 && i == 0 {
+			for _, f := range *files {
+				if _, err := runGit(subDir, "add", "--", f); err != nil {
+					subResults = append(subResults, GitCommitResult{Path: subPath, Error: fmt.Sprintf("stage failed for %s: %v", f, err)})
+					output := GitCommitOutput{Path: root, Submodules: subResults, Error: fmt.Sprintf("stage failed for %s in %s: %v", f, subPath, err)}
+					outputJSON(output)
+					return ExitFailure
+				}
+			}
+		}
+
+		// Commit
+		if _, err := runGit(subDir, "commit", "-m", *message); err != nil {
+			subResults = append(subResults, GitCommitResult{Path: subPath, Error: fmt.Sprintf("commit failed: %v", err)})
+			output := GitCommitOutput{Path: root, Submodules: subResults, Error: fmt.Sprintf("commit failed in %s: %v", subPath, err)}
+			outputJSON(output)
+			return ExitFailure
+		}
+
+		ref, _ := runGit(subDir, "rev-parse", "HEAD")
+
+		// Push
+		_, pushErr := runGit(subDir, "push", "--set-upstream", "origin", "HEAD")
+		pushed := pushErr == nil
+
+		result := GitCommitResult{
+			Path:    subPath,
+			Success: true,
+			Ref:     ref,
+			Pushed:  pushed,
+		}
+		if !pushed {
+			result.Error = fmt.Sprintf("push failed: %v", pushErr)
+			subResults = append(subResults, result)
+			output := GitCommitOutput{Path: root, Submodules: subResults, Error: result.Error}
+			outputJSON(output)
+			return ExitFailure
+		}
+
+		subResults = append(subResults, result)
+	}
+
+	// All subs succeeded
+	output := GitCommitOutput{
+		Path:       root,
+		Success:    true,
+		Submodules: subResults,
+	}
+
+	if *noParent {
+		deleteCache(root, "git.json")
+		outputJSON(output)
+		logf("hint: update parent ref later: glittering git commit --parent-only --path %s\n", root)
+		return ExitOK
+	}
+
+	// Auto-commit parent
+	parentResult := commitParentRefs(root, resolvedSubs, *parentMessage)
+	output.Parent = &parentResult
+
+	if !parentResult.Success || !parentResult.Pushed {
+		output.Success = false
+		output.Error = parentResult.Error
+	}
+
+	deleteCache(root, "git.json")
+	outputJSON(output)
+
+	if !output.Success {
 		return ExitFailure
 	}
 	return ExitOK

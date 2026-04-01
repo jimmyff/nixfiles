@@ -118,7 +118,66 @@ def "main git" [--path: string = "." --skip-fetch --cached --filter: string = ""
   print (format-readiness $result)
 }
 
+def "main git commit" [
+  --path: string = "."
+  --all
+  --staged
+  --files(-f): list<string>
+  -m: string
+  --no-parent
+  --parent-only
+  --parent-message: string
+  ...sub_paths: string
+] {
+  mut args = [--verbose --path $path]
+  if ($m != null) and ($m != "") { $args = ($args | append [--message $m]) }
+  if $all { $args = ($args | append [--all]) }
+  if $staged { $args = ($args | append [--staged]) }
+  if ($files != null) {
+    for f in $files { $args = ($args | append [--files $f]) }
+  }
+  if $no_parent { $args = ($args | append [--no-parent]) }
+  if $parent_only { $args = ($args | append [--parent-only]) }
+  if ($parent_message != null) and ($parent_message != "") { $args = ($args | append [--parent-message $parent_message]) }
+  $args = ($args | append $sub_paths)
+  let result = (glittering git commit ...$args | from json)
+
+  # Display sub results
+  let subs = ($result.submodules? | default [])
+  if (not ($subs | is-empty)) {
+    for s in $subs {
+      let icon = if ($s.success? | default false) and ($s.pushed? | default false) {
+        $"(ansi green)\u{2713}(ansi reset)"
+      } else {
+        $"(ansi red)\u{2717}(ansi reset)"
+      }
+      let ref_str = if ($s.ref? | default "") != "" { $" (($s.ref | str substring 0..7))" } else { "" }
+      let push_str = if ($s.pushed? | default false) { " pushed" } else { "" }
+      let err_str = if ($s.error? | default "") != "" { $" (ansi red)($s.error)(ansi reset)" } else { "" }
+      print $"  ($icon) ($s.path)($ref_str)($push_str)($err_str)"
+    }
+  }
+
+  # Display parent result
+  let parent = ($result.parent? | default null)
+  if $parent != null {
+    let icon = if ($parent.success? | default false) and ($parent.pushed? | default false) {
+      $"(ansi green)\u{2713}(ansi reset)"
+    } else {
+      $"(ansi red)\u{2717}(ansi reset)"
+    }
+    let staged_str = if ($parent.staged? | default []) != [] { $" staged: ($parent.staged | str join ', ')" } else { "" }
+    let ref_str = if ($parent.ref? | default "") != "" { $" (($parent.ref | str substring 0..7))" } else { "" }
+    let push_str = if ($parent.pushed? | default false) { " pushed" } else { "" }
+    let err_str = if ($parent.error? | default "") != "" { $" (ansi red)($parent.error)(ansi reset)" } else { "" }
+    print $"  ($icon) (parent)($staged_str)($ref_str)($push_str)($err_str)"
+  }
+
+  $result
+}
+
 def "main git commit-sub" [--path: string = "." --all --staged --files: list<string> -m: string sub_path: string] {
+  print -e "hint: commit-sub is deprecated, use: glitter git commit"
   mut args = [--verbose --path $path --message $m]
   if $all { $args = ($args | append [--all]) }
   if $staged { $args = ($args | append [--staged]) }
@@ -130,6 +189,7 @@ def "main git commit-sub" [--path: string = "." --all --staged --files: list<str
 }
 
 def "main git commit-parent" [--path: string = "." --all -m: string ...sub_paths: string] {
+  print -e "hint: commit-parent is deprecated, use: glitter git commit --parent-only"
   mut args = [--verbose --path $path --message $m]
   if $all { $args = ($args | append [--all]) }
   $args = ($args | append $sub_paths)
@@ -372,8 +432,7 @@ Commands:
   git check      Verify everything is committed, pushed, and refs in sync
   git push       Push all repos with unpushed commits
   git diff       Structured diff summary (staged/unstaged/untracked)
-  git commit-sub Commit and push a single submodule
-  git commit-parent  Stage submodule refs, commit and push parent
+  git commit    Commit submodules and auto-update parent ref
   git pull       Pull parent, checkout branches, pull all submodules
   overview       Combined dashboard: git + test + analyze (--refresh to update)
   clean          Remove old session directories

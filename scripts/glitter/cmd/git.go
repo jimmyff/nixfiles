@@ -17,8 +17,9 @@ Subcommands:
   (default)      Fetch remotes and show status (branch, dirty, ahead/behind)
   check          Verify everything is committed, pushed, and refs are in sync
   push           Push all repos with unpushed commits
-  commit-sub     Commit and push a single submodule
-  commit-parent  Stage submodule refs, commit and push parent repo
+  commit         Commit submodules and auto-update parent ref
+  commit-sub     (deprecated) Commit and push a single submodule
+  commit-parent  (deprecated) Stage submodule refs, commit and push parent repo
   pull           Pull parent, checkout branches, pull all submodules
   diff           Structured diff summary across all repos
 
@@ -39,9 +40,13 @@ func Git(args []string) int {
 	case "-help", "--help", "help":
 		fmt.Fprint(os.Stderr, gitHelpText)
 		return ExitOK
+	case "commit":
+		return GitCommit(args[1:])
 	case "commit-sub":
+		logf("hint: commit-sub is deprecated, use: glittering git commit\n")
 		return GitCommitSub(args[1:])
 	case "commit-parent":
+		logf("hint: commit-parent is deprecated, use: glittering git commit --parent-only\n")
 		return GitCommitParent(args[1:])
 	case "pull":
 		return GitPull(args[1:])

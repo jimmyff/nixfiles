@@ -29,8 +29,7 @@ glittering git --path <root> --cached [--filter <names>]          # read cached 
 glittering git check --path <root> [--cached] [--filter <names>]  # verify committed/pushed
 glittering git push --path <root> [--filter <names>]              # push repos with unpushed
 glittering git diff --path <root> [--staged] [--filter <names>]   # diff summary
-glittering git commit-sub <sub> -m "msg" --path <root> [-f file -f file | --all | --staged]
-glittering git commit-parent --message "msg" --path <root> [--all] <sub>...
+glittering git commit <sub>... -m "msg" --path <root> [--all | -f file | --staged] [--no-parent] [--parent-only] [--parent-message "msg"]
 glittering git pull --path <root> [--filter <names>]              # pull parent + subs
 ```
 
@@ -38,10 +37,11 @@ glittering git pull --path <root> [--filter <names>]              # pull parent 
 
 - Pass `--path <workspace_root>` to every command
 - `--filter` uses substring matching: `--filter blog` matches `packages/blog`
-- `commit-sub`/`commit-parent` auto-resolve short names: `git_dart` → `packages/git_dart`
-- Prefer `commit-sub` / `commit-parent` over raw `git commit` / `git push` — they auto-push and keep parent refs in sync
-- `commit-parent --all` stages all tracked parent changes alongside submodule refs
+- `git commit` auto-resolves short names: `git_dart` → `packages/git_dart`
+- Prefer `git commit` over raw `git commit` / `git push` — it auto-pushes and keeps parent refs in sync
+- Use `--no-parent` to skip parent update, `--parent-only` for parent-only mode
 - Use `--cached` for instant reads from last live run
+- Never pipe through `head`/`tail`/truncate glittering output — it's already summarised JSON; truncating breaks parsing
 - Run `glittering <command> --help` for flag details
 
 ## JSON Output Shapes
@@ -50,7 +50,7 @@ glittering git pull --path <root> [--filter <names>]              # pull parent 
 - **git**: `{ repo: { branch, dirty, ahead_remote, ... }, submodules: [{ ..., ahead_parent, behind_parent }] }`
 - **git check**: `{ clean: bool, issues: [{ repo, severity, type, message, fix }], summary }`
 - **git diff**: `{ repos: [{ path, staged, unstaged, untracked_files, details_file }], summary }`
-- **commit-sub / commit-parent**: `{ success, ref, pushed, error }`
+- **commit**: `{ success, submodules: [{ path, ref, pushed }], parent: { ref, staged, pushed } }`
 - **git pull**: `{ branch, submodules: [{ path, new_commits, was_dirty }], warnings }`
 
 ## When to use raw commands instead

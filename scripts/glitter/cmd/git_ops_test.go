@@ -68,3 +68,84 @@ func TestGitCommitSub_CommaFiles_MissingSubmoduleDir(t *testing.T) {
 		t.Errorf("comma files: expected ExitUsage (%d), got %d", ExitUsage, got)
 	}
 }
+
+// --- GitCommit (unified) validation tests ---
+
+func TestGitCommit_MissingMessage(t *testing.T) {
+	got := GitCommit([]string{"sub"})
+	if got != ExitUsage {
+		t.Errorf("missing message: expected ExitUsage (%d), got %d", ExitUsage, got)
+	}
+}
+
+func TestGitCommit_AllAndStaged(t *testing.T) {
+	got := GitCommit([]string{"-m", "test", "--all", "--staged", "sub"})
+	if got != ExitUsage {
+		t.Errorf("--all + --staged: expected ExitUsage (%d), got %d", ExitUsage, got)
+	}
+}
+
+func TestGitCommit_AllAndFiles(t *testing.T) {
+	got := GitCommit([]string{"-m", "test", "--all", "-f", "a.dart", "sub"})
+	if got != ExitUsage {
+		t.Errorf("--all + --files: expected ExitUsage (%d), got %d", ExitUsage, got)
+	}
+}
+
+func TestGitCommit_FilesAndStaged(t *testing.T) {
+	got := GitCommit([]string{"-m", "test", "-f", "a.dart", "--staged", "sub"})
+	if got != ExitUsage {
+		t.Errorf("--files + --staged: expected ExitUsage (%d), got %d", ExitUsage, got)
+	}
+}
+
+func TestGitCommit_NoParentAndParentOnly(t *testing.T) {
+	got := GitCommit([]string{"-m", "test", "--no-parent", "--parent-only", "sub"})
+	if got != ExitUsage {
+		t.Errorf("--no-parent + --parent-only: expected ExitUsage (%d), got %d", ExitUsage, got)
+	}
+}
+
+func TestGitCommit_FilesWithMultipleSubs(t *testing.T) {
+	tmp := t.TempDir()
+	got := GitCommit([]string{"-m", "test", "--path", tmp, "-f", "a.dart", "sub1", "sub2"})
+	if got != ExitUsage {
+		t.Errorf("--files + multiple subs: expected ExitUsage (%d), got %d", ExitUsage, got)
+	}
+}
+
+func TestGitCommit_NoSubsNotParentOnly(t *testing.T) {
+	got := GitCommit([]string{"-m", "test"})
+	if got != ExitUsage {
+		t.Errorf("no subs + not --parent-only: expected ExitUsage (%d), got %d", ExitUsage, got)
+	}
+}
+
+func TestGitCommit_ParentOnlyWithAll(t *testing.T) {
+	got := GitCommit([]string{"--parent-only", "--all"})
+	if got != ExitUsage {
+		t.Errorf("--parent-only + --all: expected ExitUsage (%d), got %d", ExitUsage, got)
+	}
+}
+
+func TestGitCommit_ParentOnlyWithFiles(t *testing.T) {
+	got := GitCommit([]string{"--parent-only", "-f", "a.dart"})
+	if got != ExitUsage {
+		t.Errorf("--parent-only + --files: expected ExitUsage (%d), got %d", ExitUsage, got)
+	}
+}
+
+func TestGitCommit_ParentOnlyWithStaged(t *testing.T) {
+	got := GitCommit([]string{"--parent-only", "--staged"})
+	if got != ExitUsage {
+		t.Errorf("--parent-only + --staged: expected ExitUsage (%d), got %d", ExitUsage, got)
+	}
+}
+
+func TestGitCommit_MissingSubmoduleDir(t *testing.T) {
+	tmp := t.TempDir()
+	got := GitCommit([]string{"-m", "test", "--path", tmp, "nonexistent/sub"})
+	if got != ExitUsage {
+		t.Errorf("missing submodule dir: expected ExitUsage (%d), got %d", ExitUsage, got)
+	}
+}

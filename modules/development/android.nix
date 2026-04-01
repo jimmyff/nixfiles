@@ -189,6 +189,13 @@ in {
       owner = username;
       group = userGroup;
     };
+    age.secrets.android-googleplay-upload-keystore = {
+      file = nixfiles-vault + "/android-googleplay-upload-key.jks.age";
+      path = "${xdgDataHome}/android/googleplay-upload-key.jks";
+      mode = "600";
+      owner = username;
+      group = userGroup;
+    };
     age.secrets.android-debug-keystore = {
       file = nixfiles-vault + "/android-debug-keystore.age";
       path = "${homeDir}/.android/debug.keystore";

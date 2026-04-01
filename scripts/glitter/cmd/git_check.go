@@ -108,7 +108,7 @@ func analyzeGitIssues(data GitOutput) []CheckIssue {
 				Severity: "warn",
 				Type:     "ahead_parent",
 				Message:  fmt.Sprintf("%s is %d commit(s) ahead of parent ref", sub.Path, sub.AheadParent),
-				Fix:      fmt.Sprintf("glittering git commit-parent --message \"update %s submodule ref\" --path %s %s", sub.Path, root, sub.Path),
+				Fix:      fmt.Sprintf("glittering git commit --parent-only --path %s %s", root, sub.Path),
 			})
 		}
 		if sub.BehindParent > 0 {
