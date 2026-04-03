@@ -60,6 +60,30 @@ def "main analyze" [--path: string = "." --filter: string = ""] {
   }
 }
 
+def "main stats" [--path: string = "." --filter: string = "" --threshold: int = 200] {
+  let args = (build-args $path $filter)
+  let result = (glittering stats --verbose ...$args --threshold $threshold | from json)
+  let root = $result.path
+  $result.packages
+    | update path { |p| rel-path $root $p.path }
+    | select path source_files source_lines test_files test_lines oversized_count
+    | print
+  let s = $result.summary
+  let verdict = if $s.total_oversized > 0 {
+    $"(ansi yellow)\u{26a0}(ansi reset)"
+  } else {
+    $"(ansi green)\u{2713}(ansi reset)"
+  }
+  mut parts = [$"($s.total_source_files) source files" $"($s.total_source_lines) lines"]
+  if $s.total_test_files > 0 { $parts = ($parts | append $"($s.total_test_files) test files") }
+  if $s.total_oversized > 0 { $parts = ($parts | append $"(ansi yellow)($s.total_oversized) oversized(ansi reset)") }
+  print $"($verdict) ($s.total_packages) packages \(($parts | str join ', ')\)"
+  let oversized = ($result.packages | where oversized_count > 0 | where details_file? != null)
+  if (not ($oversized | is-empty)) {
+    $oversized | each { |r| print $"  Detail: ($r.details_file)" } | ignore
+  }
+}
+
 def "main get" [--path: string = "." --filter: string = ""] {
   let args = (build-args $path $filter)
   let result = (glittering get --verbose ...$args | from json)
@@ -129,7 +153,8 @@ def "main git commit" [
   --parent-message: string
   ...sub_paths: string
 ] {
-  mut args = [--verbose --path $path]
+  let abs_path = ($path | path expand)
+  mut args = [--verbose --path $abs_path]
   if ($m != null) and ($m != "") { $args = ($args | append [--message $m]) }
   if $all { $args = ($args | append [--all]) }
   if $staged { $args = ($args | append [--staged]) }
@@ -178,7 +203,7 @@ def "main git commit" [
 
 def "main git commit-sub" [--path: string = "." --all --staged --files: list<string> -m: string sub_path: string] {
   print -e "hint: commit-sub is deprecated, use: glitter git commit"
-  mut args = [--verbose --path $path --message $m]
+  mut args = [--verbose --path ($path | path expand) --message $m]
   if $all { $args = ($args | append [--all]) }
   if $staged { $args = ($args | append [--staged]) }
   if ($files != null) {
@@ -190,7 +215,7 @@ def "main git commit-sub" [--path: string = "." --all --staged --files: list<str
 
 def "main git commit-parent" [--path: string = "." --all -m: string ...sub_paths: string] {
   print -e "hint: commit-parent is deprecated, use: glitter git commit --parent-only"
-  mut args = [--verbose --path $path --message $m]
+  mut args = [--verbose --path ($path | path expand) --message $m]
   if $all { $args = ($args | append [--all]) }
   $args = ($args | append $sub_paths)
   glittering git commit-parent ...$args | from json
@@ -338,6 +363,10 @@ def "main overview" [--path: string = "." --refresh --force] {
       print "Refreshing analysis..."
       try { glittering analyze --verbose --path $path out> /dev/null }
     }
+    if $force or (not (cache-fresh "stats" $path 60)) {
+      print "Refreshing stats..."
+      try { glittering stats --verbose --path $path out> /dev/null }
+    }
   }
 
   let status = (glittering status --verbose --path $path | from json)
@@ -354,12 +383,14 @@ def "main overview" [--path: string = "." --refresh --force] {
   })
   let fetched = ($git.timestamp? != null)
 
-  # Test + analyze: always from cache
+  # Test + analyze + stats: always from cache
   let test_data = (glittering test --verbose --cached --path $path | from json)
   let analyze_data = (glittering analyze --verbose --cached --path $path | from json)
+  let stats_data = (glittering stats --verbose --cached --path $path | from json)
 
   let has_tests = ($test_data.packages | length) > 0
   let has_analyze = ($analyze_data.packages | length) > 0
+  let has_stats = ($stats_data.packages | length) > 0
 
   # Package summary
   let total = ($status.packages | length)
@@ -386,6 +417,9 @@ def "main overview" [--path: string = "." --refresh --force] {
   if $has_analyze {
     $repo_row = ($repo_row | insert analyze (aggregate-analyze-repo $sub_paths $analyze_data.packages))
   }
+  if $has_stats {
+    $repo_row = ($repo_row | insert stats (aggregate-stats-repo $sub_paths $stats_data.packages))
+  }
 
   # Submodule rows
   let sub_rows = ($subs | each { |r|
@@ -396,6 +430,9 @@ def "main overview" [--path: string = "." --refresh --force] {
     if $has_analyze {
       $row = ($row | insert analyze (aggregate-analyze $r.path $analyze_data.packages))
     }
+    if $has_stats {
+      $row = ($row | insert stats (aggregate-stats $r.path $stats_data.packages))
+    }
     $row
   })
 
@@ -405,10 +442,11 @@ def "main overview" [--path: string = "." --refresh --force] {
   if $has_parent { $cols = ($cols | append "parent") }
   if $has_tests { $cols = ($cols | append "tests") }
   if $has_analyze { $cols = ($cols | append "analyze") }
+  if $has_stats { $cols = ($cols | append "stats") }
   $rows | select ...$cols | print
 
   # Footer: readiness + staleness
-  print-footer $git $test_data $analyze_data $path
+  print-footer $git $test_data $analyze_data $stats_data $path
 
   if (not $fetched) {
     print $"(ansi dark_gray)Run with --refresh for up-to-date data(ansi reset)"
@@ -426,6 +464,7 @@ Commands:
   status         List discovered packages (table)
   test           Run tests across all packages (table)
   analyze        Run dart analyze across all packages (table)
+  stats          Count files/lines per package, detect oversized files
   get            Run pub get across all packages (table)
   upgrade        Run pub upgrade across all packages (table)
   git            Git status with styled indicators
@@ -434,7 +473,7 @@ Commands:
   git diff       Structured diff summary (staged/unstaged/untracked)
   git commit    Commit submodules and auto-update parent ref
   git pull       Pull parent, checkout branches, pull all submodules
-  overview       Combined dashboard: git + test + analyze (--refresh to update)
+  overview       Combined dashboard: git + test + analyze + stats (--refresh to update)
   clean          Remove old session directories
 
 Common flags: --path <dir> --filter <name>"
@@ -558,6 +597,44 @@ def aggregate-analyze-repo [sub_paths: list<string>, packages: list<record>]: no
   }
 }
 
+# Format stats line count as compact string (rounds to nearest 1k for 1000+)
+def format-loc [lines: int]: nothing -> string {
+  if $lines >= 1000 {
+    let rounded = ($lines / 1000 | math round --precision 0 | into int)
+    $"($rounded)k"
+  } else {
+    $"($lines)"
+  }
+}
+
+# Aggregate stats for a submodule path
+def aggregate-stats [sub_path: string, packages: list<record>]: nothing -> string {
+  let matched = ($packages | where { |p| ($p.path | str starts-with $sub_path) })
+  if ($matched | is-empty) { return "" }
+  let files = ($matched | get source_files | math sum)
+  let lines = ($matched | get source_lines | math sum)
+  let oversized = ($matched | get oversized_count | math sum)
+  mut result = $"(format-loc $lines) \u{00b7} ($files)f"
+  if $oversized > 0 {
+    $result = $"($result) (ansi yellow)($oversized)XL(ansi reset)"
+  }
+  $result
+}
+
+# Aggregate stats for packages NOT under any submodule
+def aggregate-stats-repo [sub_paths: list<string>, packages: list<record>]: nothing -> string {
+  let matched = ($packages | where { |p| not ($sub_paths | any { |sp| ($p.path | str starts-with $sp) }) })
+  if ($matched | is-empty) { return "" }
+  let files = ($matched | get source_files | math sum)
+  let lines = ($matched | get source_lines | math sum)
+  let oversized = ($matched | get oversized_count | math sum)
+  mut result = $"(format-loc $lines) \u{00b7} ($files)f"
+  if $oversized > 0 {
+    $result = $"($result) (ansi yellow)($oversized)XL(ansi reset)"
+  }
+  $result
+}
+
 # Format age as human-readable string
 def format-age [timestamp: string]: nothing -> string {
   let ts = ($timestamp | into datetime)
@@ -632,7 +709,7 @@ def format-readiness [git_data: record]: nothing -> string {
 }
 
 # Print footer with readiness verdict + staleness info
-def print-footer [git_data: record, test_data: record, analyze_data: record, path: string] {
+def print-footer [git_data: record, test_data: record, analyze_data: record, stats_data: record, path: string] {
   # Readiness verdict
   if ($git_data.timestamp? != null) or (not ($git_data.submodules? | default [] | is-empty)) {
     print (format-readiness $git_data)
@@ -675,6 +752,18 @@ def print-footer [git_data: record, test_data: record, analyze_data: record, pat
     $missing = ($missing | append "analyze")
   }
 
+  if ($stats_data.timestamp? != null) {
+    let age = (format-age $stats_data.timestamp)
+    let ts = ($stats_data.timestamp | into datetime)
+    if ((date now) - $ts) > 48hr {
+      $warnings = ($warnings | append $"Stats are ($age) old")
+    } else {
+      $parts = ($parts | append $"Stats ($age) ago")
+    }
+  } else {
+    $missing = ($missing | append "stats")
+  }
+
   if (not ($parts | is-empty)) {
     let sep = $" \u{00b7} "
     print $"(ansi dark_gray)($parts | str join $sep)(ansi reset)"
@@ -698,7 +787,7 @@ def cache-fresh [kind: string, path: string, threshold_min: int]: nothing -> boo
 
 # Build --path and --filter args for glittering
 def build-args [path: string, filter: string]: nothing -> list<string> {
-  mut args = [--path $path]
+  mut args = [--path ($path | path expand)]
   if $filter != "" { $args = ($args | append [--filter $filter]) }
   $args
 }

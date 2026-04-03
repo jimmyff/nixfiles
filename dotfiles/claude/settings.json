@@ -71,6 +71,7 @@
       "Bash(glittering analyze:*)",
       "Bash(glittering get:*)",
       "Bash(glittering upgrade:*)",
+      "Bash(glittering stats:*)",
       "Bash(glittering clean:*)"
     ],
     "deny": [

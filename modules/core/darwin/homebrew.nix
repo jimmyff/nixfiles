@@ -17,6 +17,7 @@
     };
 
     casks = [
+      "camo-studio"
       "signal"
       "ungoogled-chromium"
     ];

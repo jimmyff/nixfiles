@@ -2,17 +2,17 @@
 
 > *glittering* (n.) — a flock of hummingbirds. See also: [Dash](https://docs.flutter.dev/dash).
 
-Multi-package orchestrator for Dart/Flutter workspaces — git, test, and analyze across parent repos and submodules, in parallel, with caching.
+Multi-package orchestrator for Dart/Flutter workspaces — git, test, analyze, and stats across parent repos and submodules, in parallel, with caching.
 
 ## Usage
 
 ```bash
-glitter overview --path workspace          # Combined dashboard (git + cached test/analyze)
-glitter overview --path workspace --fetch  # Fetch remotes first
-glitter recache --path workspace           # Refresh all caches
+glitter overview --path workspace            # Combined dashboard (git + cached test/analyze/stats)
+glitter overview --path workspace --refresh # Refresh all caches first
 
-glitter test --filter blink_highlight      # Run tests
-glitter analyze                            # Run dart analyze
+glitter test --filter blink_highlight       # Run tests
+glitter analyze                             # Run dart analyze
+glitter stats                               # File/line counts, oversized detection
 glitter git                                # Git status (fetches by default)
 glitter git --cached                       # Git status from cache (instant)
 glitter git check                          # Verify committed, pushed, refs in sync
@@ -26,6 +26,7 @@ glitter git diff                           # Diff summary for dirty repos
 glittering status --path workspace
 glittering test --path workspace --timeout 120
 glittering analyze --cached --path workspace
+glittering stats --path workspace [--threshold 200]
 glittering git --path workspace [--filter name]
 glittering git check --path workspace [--filter name]
 glittering git push --path workspace [--filter name]
@@ -43,18 +44,18 @@ glittering clean                                 # Tidy old sessions
 ```
 Packages: 26 (17 flutter, 9 dart, 26 testable)
 
-╭────┬─────────────────────┬────────────┬──────────┬─────────╮
-│  # │       package       │    git     │  tests   │ analyze │
-├────┼─────────────────────┼────────────┼──────────┼─────────┤
-│  0 │ workspace           │ main       │ ✓ 4      │ ✓       │
-│  1 │ editor ●            │ main ↑· ↓· │ ✓ 42     │ ✓       │
-│  2 │ blink_filesystem    │ main ↑1 ↓· │ ✗ 3      │ 2e 1w   │
-│  3 │ notes               │ main ↑· ↓· │ ✓ 18     │ 3i      │
-╰────┴─────────────────────┴────────────┴──────────┴─────────╯
-Git 7min ago · Tests 2hr ago · Analysis 2hr ago
+╭────┬─────────────────────┬────────────┬──────────┬─────────┬──────────────╮
+│  # │       package       │    git     │  tests   │ analyze │    stats     │
+├────┼─────────────────────┼────────────┼──────────┼─────────┼──────────────┤
+│  0 │ workspace           │ main       │ ✓ 4      │ ✓       │ 1k · 12f     │
+│  1 │ editor ●            │ main ↑· ↓· │ ✓ 42     │ ✓       │ 6k · 30f     │
+│  2 │ blink_filesystem    │ main ↑1 ↓· │ ✗ 3      │ 2e 1w   │ 1k · 8f      │
+│  3 │ notes               │ main ↑· ↓· │ ✓ 18     │ 3i      │ 18k · 85f 2XL│
+╰────┴─────────────────────┴────────────┴──────────┴─────────┴──────────────╯
+Git 7min ago · Tests 2hr ago · Analysis 2hr ago · Stats 2hr ago
 ```
 
-**Indicators:** `●` dirty · `↑N` ahead · `↓N` behind · `·` zero · failures in red
+**Indicators:** `●` dirty · `↑N` ahead · `↓N` behind · `·` zero · failures in red · `XL` oversized files
 
 ## Architecture
 

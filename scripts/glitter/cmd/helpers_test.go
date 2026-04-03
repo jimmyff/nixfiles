@@ -97,6 +97,49 @@ func TestFilterGitSubmodules_NilSubs(t *testing.T) {
 	}
 }
 
+func TestResolveRoot_Dot(t *testing.T) {
+	cwd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("failed to get cwd: %v", err)
+	}
+	got, err := resolveRoot(".")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if got != cwd {
+		t.Errorf("resolveRoot('.'): expected %s, got %s", cwd, got)
+	}
+	if !filepath.IsAbs(got) {
+		t.Errorf("resolveRoot('.'): expected absolute path, got %s", got)
+	}
+}
+
+func TestResolveRoot_RelativePath(t *testing.T) {
+	cwd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("failed to get cwd: %v", err)
+	}
+	got, err := resolveRoot("foo/bar")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	expected := filepath.Join(cwd, "foo/bar")
+	if got != expected {
+		t.Errorf("resolveRoot('foo/bar'): expected %s, got %s", expected, got)
+	}
+}
+
+func TestResolveRoot_AbsolutePassthrough(t *testing.T) {
+	abs := filepath.Join(os.TempDir(), "workspace")
+	got, err := resolveRoot(abs)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if got != abs {
+		t.Errorf("resolveRoot(%s): expected same path back, got %s", abs, got)
+	}
+}
+
 func TestResolveSubmodulePath_ExactMatch(t *testing.T) {
 	tmp := t.TempDir()
 	os.MkdirAll(filepath.Join(tmp, "packages", "foo"), 0755)

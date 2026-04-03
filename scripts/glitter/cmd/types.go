@@ -133,6 +133,48 @@ type AnalyzeOutput struct {
 	Summary   AnalyzeSummary         `json:"summary"`
 }
 
+// --- Stats command ---
+
+type StatsOversizedFile struct {
+	File  string `json:"file"`
+	Lines int    `json:"lines"`
+}
+
+type StatsPackageResult struct {
+	Path           string  `json:"path"`
+	SourceFiles    int     `json:"source_files"`
+	SourceLines    int     `json:"source_lines"`
+	TestFiles      int     `json:"test_files"`
+	TestLines      int     `json:"test_lines"`
+	OversizedCount int     `json:"oversized_count"`
+	DetailsFile    string  `json:"details_file,omitempty"`
+	Timestamp      *string `json:"timestamp,omitempty"`
+}
+
+type StatsDetailFile struct {
+	Path      string               `json:"path"`
+	Threshold int                  `json:"threshold"`
+	Oversized []StatsOversizedFile `json:"oversized"`
+}
+
+type StatsSummary struct {
+	TotalPackages    int `json:"total_packages"`
+	TotalSourceFiles int `json:"total_source_files"`
+	TotalSourceLines int `json:"total_source_lines"`
+	TotalTestFiles   int `json:"total_test_files"`
+	TotalTestLines   int `json:"total_test_lines"`
+	TotalOversized   int `json:"total_oversized"`
+}
+
+type StatsOutput struct {
+	Path      string               `json:"path"`
+	Timestamp *string              `json:"timestamp"`
+	Session   string               `json:"session"`
+	Threshold int                  `json:"threshold"`
+	Packages  []StatsPackageResult `json:"packages"`
+	Summary   StatsSummary         `json:"summary"`
+}
+
 // --- Get/Upgrade command ---
 
 type PubPackageResult struct {

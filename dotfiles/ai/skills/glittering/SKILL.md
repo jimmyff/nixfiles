@@ -1,6 +1,6 @@
 ---
 name: glittering
-description: Multi-package project orchestrator — git (status, diff, commit, push, pull, check), Dart/Flutter test, analyze, pub get/upgrade
+description: Multi-package project orchestrator — git (status, diff, commit, push, pull, check), Dart/Flutter test, analyze, stats, pub get/upgrade
 ---
 
 # glittering Command Reference
@@ -15,6 +15,7 @@ Source: `~/nixfiles/scripts/glitter/`
 glittering status --path <root> [--filter <names>]              # package list (type, tests, deps)
 glittering test --path <root> [--filter <names>] [--timeout 60] # run tests (parallel, cached)
 glittering analyze --path <root> [--filter <names>]             # dart analyze (parallel, cached)
+glittering stats --path <root> [--filter <names>] [--threshold 200] # file/line counts, oversized detection (cached)
 glittering get --path <root> [--filter <names>]                 # pub get all packages
 glittering upgrade --path <root> [--filter <names>]             # pub upgrade all packages
 glittering clean                                                # remove old session dirs
@@ -35,7 +36,7 @@ glittering git pull --path <root> [--filter <names>]              # pull parent 
 
 ## Tips
 
-- Pass `--path <workspace_root>` to every command
+- **Always use an absolute path** for `--path` (e.g. `--path /Users/jimmyff/Projects/foo/workspace`). Relative paths like `--path .` can resolve incorrectly across repeated tool invocations due to CWD shifts
 - `--filter` uses substring matching: `--filter blog` matches `packages/blog`
 - `git commit` auto-resolves short names: `git_dart` → `packages/git_dart`
 - Prefer `git commit` over raw `git commit` / `git push` — it auto-pushes and keeps parent refs in sync
@@ -47,6 +48,7 @@ glittering git pull --path <root> [--filter <names>]              # pull parent 
 ## JSON Output Shapes
 
 - **test/analyze**: `{ packages: [{ path, status, details_file, ... }], summary }` — read `details_file` for details
+- **stats**: `{ threshold, packages: [{ path, source_files, source_lines, test_files, test_lines, oversized_count, details_file }], summary }`
 - **git**: `{ repo: { branch, dirty, ahead_remote, ... }, submodules: [{ ..., ahead_parent, behind_parent }] }`
 - **git check**: `{ clean: bool, issues: [{ repo, severity, type, message, fix }], summary }`
 - **git diff**: `{ repos: [{ path, staged, unstaged, untracked_files, details_file }], summary }`

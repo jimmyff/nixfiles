@@ -12,6 +12,7 @@ Commands:
   status       List discovered packages (type, tests, dependencies)
   test         Run tests across all packages (parallel, cached)
   analyze      Run dart analyze across all packages (parallel, cached)
+  stats        Count files/lines per package, detect oversized files (cached)
   get          Run pub get across all packages
   upgrade      Run pub upgrade across all packages
   git          Git status, check, push, commits, diffs across parent + submodules
@@ -42,6 +43,8 @@ func main() {
 		os.Exit(cmd.Test(args))
 	case "analyze":
 		os.Exit(cmd.Analyze(args))
+	case "stats":
+		os.Exit(cmd.Stats(args))
 	case "get":
 		os.Exit(cmd.Get(args))
 	case "upgrade":
