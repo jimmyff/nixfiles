@@ -181,21 +181,9 @@ in {
       export PATH="${androidSdk}/share/android-sdk/build-tools/33.0.2:$PATH"
     '';
 
-    # Deploy encrypted keystores using agenix
-    age.secrets.android-keystore = {
-      file = nixfiles-vault + "/android-release-key.jks.age";
-      path = "${xdgDataHome}/android/key.jks";
-      mode = "600";
-      owner = username;
-      group = userGroup;
-    };
-    age.secrets.android-googleplay-upload-keystore = {
-      file = nixfiles-vault + "/android-googleplay-upload-key.jks.age";
-      path = "${xdgDataHome}/android/googleplay-upload-key.jks";
-      mode = "600";
-      owner = username;
-      group = userGroup;
-    };
+    # Debug keystore stays on agenix: it's needed by every `flutter run` and
+    # isn't really a secret (well-known "android" password). Release/upload
+    # keystores moved to sops — see modules/development/rocketware-secrets.nix.
     age.secrets.android-debug-keystore = {
       file = nixfiles-vault + "/android-debug-keystore.age";
       path = "${homeDir}/.android/debug.keystore";

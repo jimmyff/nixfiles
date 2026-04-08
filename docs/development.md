@@ -3,9 +3,9 @@
 ## Development Environments
 
 **Project setup:**
-- Flake-based development environments with Doppler secret integration
+- Flake-based development environments
 - Declarative dependency management via Nix
-- Environment variables safely parsed to handle special characters
+- On-demand secrets via `sops` wrapper scripts (see `docs/secrets.md`)
 
 **Setup:** Run `dev-setup` to validate and clone projects.
 

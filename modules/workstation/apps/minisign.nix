@@ -1,4 +1,4 @@
-{ lib, config, pkgs-stable, username, nixfiles-vault, ... }:
+{ lib, config, pkgs-stable, username, ... }:
 let
   cfg = config.minisign;
   homeDir =
@@ -15,15 +15,9 @@ in {
   };
 
   config = lib.mkIf cfg.enable {
-    age.secrets.minisign-rocketware-signing-key = {
-      file = nixfiles-vault + "/minisign-rocketware-signing-key.age";
-      path = "${homeDir}/.minisign/minisign-rocketware.key";
-      mode = "600";
-      owner = username;
-      group = userGroup;
-    };
-
-    # Deploy public key (not secret, written directly)
+    # Signing key moved to sops — materialised on demand by the
+    # `rocketware-minisign` wrapper. See modules/development/rocketware-secrets.nix.
+    # Public key still deployed directly below (not a secret).
     system.activationScripts.minisignPublicKey = {
       text = ''
         mkdir -p ${homeDir}/.minisign

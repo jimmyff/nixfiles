@@ -37,25 +37,6 @@ rec {
       export PATH="${wrappers.base64}/bin:${wrappers.xcrun}/bin:$PATH"
     '';
 
-  # Doppler environment variable loading hook
-  mkDopplerShellHook = {
-    project,
-    config ? "dev",
-  }: ''
-    # Load Doppler environment variables safely without eval
-    set -a
-    while IFS='=' read -r key value; do
-      # Only export valid variable names and non-empty keys
-      if [[ $key =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]]; then
-        # Strip surrounding quotes if present
-        value=''${value#\"}
-        value=''${value%\"}
-        export "$key"="$value"
-      fi
-    done < <(doppler secrets download --no-file --format env --project ${project} --config ${config})
-    set +a
-  '';
-
   # Common shellHook tail: run startup.nu
   commonShellHook = ''
     # Run startup script if it exists and nushell is available

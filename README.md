@@ -30,8 +30,8 @@
 
 - **Multi-platform:** NixOS + macOS Darwin support
 - **Granular updates:** Specialized nixpkgs inputs for independent update control per layer
-- **Project environments:** Declarative dev setup with direnv + Doppler secrets
-- **Encrypted secrets:** agenix + private flake input for sensitive files
+- **Project environments:** Declarative dev setup with direnv
+- **Encrypted secrets:** agenix (boot-time) + sops (on-demand) sharing one age identity, both backed by a private vault flake input
 - **Workspace management:** [`✨glitter`](scripts/glitter/) - Multi-package orchestrator: git, test, analyze across Dart/Flutter workspaces
 - **Flutter hot reload:** [`flitter.rs`](scripts/flitter/) - hot reloading with debug info capture
 - **Package freshness:** [`flake-freshness.nu`](scripts/flake-freshness/) - monitor nix package versions across inputs

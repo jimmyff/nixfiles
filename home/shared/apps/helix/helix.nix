@@ -1,20 +1,9 @@
 {
   pkgs-dev-tools,
-  pkgs-ai,
   lib,
   config,
   ...
-}: let
-  # Import shared utilities
-  sharedLib = import ../../lib.nix { inherit lib config; pkgs = pkgs-dev-tools; };
-
-  # Create Doppler-wrapped helix package
-  wrappedHelix = sharedLib.mkDopplerWrapper {
-    package = pkgs-dev-tools.helix;
-    project = "ide";
-    binaries = [ "hx" ];
-  };
-in {
+}: {
   options = {
     helix_module.enable = lib.mkEnableOption "enables helix_module";
   };
@@ -51,7 +40,7 @@ in {
 
     programs.helix = {
       enable = true;
-      package = wrappedHelix;
+      package = pkgs-dev-tools.helix;
 
       # External packages required for language support
       extraPackages = [
@@ -67,9 +56,6 @@ in {
 
         # Other language support (dev-tools)
         pkgs-dev-tools.taplo # TOML language server
-
-        # AI tools (bleeding edge)
-        pkgs-ai.lsp-ai # AI-powered language server
       ];
 
       settings = {
@@ -174,20 +160,6 @@ in {
       languages = {
         # Language server definitions
         language-server = {
-          # AI-powered language server
-          lsp-ai = {
-            command = "lsp-ai";
-            models = {
-              cs4 = {
-                type = "anthropic";
-                chat_endpoint = "https://api.anthropic.com/v1/messages";
-                model = "claude-sonnet-4-20250514";
-                auth_token_env_var_name = "ANTHROPIC_API_KEY";
-                max_requests_per_second = 1;
-              };
-            };
-          };
-
           # Nix language server
           nil = {
             command = "nil";
@@ -219,7 +191,7 @@ in {
           # Dart/Flutter language configuration with debugging support
           {
             name = "dart";
-            language-servers = ["dart" "lsp-ai"];
+            language-servers = ["dart"];
             auto-format = true;
             formatter = {
               command = "dart";

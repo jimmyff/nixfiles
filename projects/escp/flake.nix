@@ -22,7 +22,6 @@
       pkgs-stable.mkShellNoCC {
         shellHook = ''
           ${utils.darwinPathHook pkgs-stable}
-          ${utils.mkDopplerShellHook {project = "rocketware"; config = "dev";}}
           echo "🚀 Entering ESCP development environment"
           echo "Flutter: $(flutter --version 2>/dev/null | head -1 || echo 'Not available')"
           echo "Dart: $(dart --version 2>/dev/null || echo 'Not available')"

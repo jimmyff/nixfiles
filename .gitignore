@@ -26,5 +26,9 @@ dotfiles/vscode/**/History/
 # Built binaries
 scripts/glitter/glittering
 
+# Nix build output symlinks (from `nix build` / `darwin-rebuild build`)
+result
+result-*
+
 # Temporary files
 tmp/

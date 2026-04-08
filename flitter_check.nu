@@ -1,9 +1,9 @@
-# flitter.nu: Flutter Hot Reloader with Optional Doppler Integration
+# flitter.nu: Flutter Hot Reloader
 #
 # Author: Jimmy Forrester-Fellowes (2025)
 #
-# A Nushell script for Flutter development with hot reloading and optional
-# Doppler secrets management. Watches .dart files and sends hot reload signals.
+# A Nushell script for Flutter development with hot reloading.
+# Watches .dart files and sends hot reload signals.
 
 # ============================================================================ 
 # Configuration & Constants
@@ -22,7 +22,6 @@ const CONFIG = {
         flutter: "📱",
         hot_reload: "🔥",
         watching: "👀",
-        doppler: "🔐",
         success: "✨",
         error: "❌",
         warning: "⚠️"
