@@ -129,7 +129,7 @@
     # Build Go tools
     if [ -d "$GLOBAL_TOOLS_SOURCE/glitter" ]; then
       echo "✨ Building glittering..."
-      (cd "$GLOBAL_TOOLS_SOURCE/glitter" && go build -o "${homeDir}/.local/bin/glittering" .) && echo "✅ Built glittering" || echo "❌ Failed to build glittering"
+      (cd "$GLOBAL_TOOLS_SOURCE/glitter" && CGO_ENABLED=0 go build -o "${homeDir}/.local/bin/glittering" .) && echo "✅ Built glittering" || echo "❌ Failed to build glittering"
     fi
 
     # Link nu wrappers
