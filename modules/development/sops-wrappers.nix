@@ -163,20 +163,34 @@
     quoted_cmd=$(printf '%q ' "$@")
     case "$mode" in
       standard)
+        # The standard yaml file's keys are already named ANDROID_KEYSTORE_PASSWORD
+        # and ANDROID_KEY_PASSWORD — the names gradle reads — so no aliasing
+        # is needed. sops exec-env loads them directly.
         export ANDROID_KEYSTORE_PATH="$TMPDIR_KS/standard.jks"
         export ANDROID_KEY_ALIAS=key
         "$SOPS" exec-env "$STANDARD_ENV_SOPS" "$quoted_cmd"
         ;;
       googleplay)
+        # The googleplay yaml uses prefixed key names
+        # (ANDROID_GOOGLEPLAY_UPLOAD_KEYSTORE_PASSWORD,
+        #  ANDROID_GOOGLEPLAY_UPLOAD_KEY_PASSWORD) so two sets of consumers
+        # can coexist in `all` mode without colliding. For single-flavor
+        # googleplay invocations gradle still reads ANDROID_KEYSTORE_PASSWORD
+        # and ANDROID_KEY_PASSWORD though, so we alias the prefixed names
+        # to the unprefixed gradle names inside sops's sh -c command before
+        # exec'ing the user command.
         export ANDROID_KEYSTORE_PATH="$TMPDIR_KS/googleplay.jks"
         export ANDROID_KEY_ALIAS=upload
-        "$SOPS" exec-env "$GOOGLEPLAY_ENV_SOPS" "$quoted_cmd"
+        aliased_cmd='export ANDROID_KEYSTORE_PASSWORD="$ANDROID_GOOGLEPLAY_UPLOAD_KEYSTORE_PASSWORD"; export ANDROID_KEY_PASSWORD="$ANDROID_GOOGLEPLAY_UPLOAD_KEY_PASSWORD"; exec '"$quoted_cmd"
+        "$SOPS" exec-env "$GOOGLEPLAY_ENV_SOPS" "$aliased_cmd"
         ;;
       all)
         # Nest two sops exec-env calls: outer loads STANDARD vars and runs
         # an inner sops exec-env that loads GOOGLEPLAY vars and runs the cmd.
         # The inner invocation must itself be a single-string command for
-        # the outer's sh -c to parse correctly.
+        # the outer's sh -c to parse correctly. No aliasing here — `all`
+        # mode is for orchestration scripts that pick the right per-flavor
+        # env var name themselves.
         inner_cmd=$(printf '%q exec-env %q %q' "$SOPS" "$GOOGLEPLAY_ENV_SOPS" "$quoted_cmd")
         "$SOPS" exec-env "$STANDARD_ENV_SOPS" "$inner_cmd"
         ;;
@@ -240,11 +254,62 @@
     quoted_cmd=$(printf '%q ' "$@")
     "$SOPS" exec-env "$ENV_SOPS" "$quoted_cmd"
   '';
+
+  # Env-var-only wrapper for Apple notarization credentials. No binary
+  # keystore — notarytool talks to Apple's API with Apple ID + app-specific
+  # password + team ID. Exports:
+  #   APPLE_NOTARIZE_USERNAME    Apple ID email
+  #   APPLE_NOTARIZE_PASSWORD    app-specific password (xxxx-xxxx-xxxx-xxxx)
+  #   APPLE_NOTARIZE_TEAM_ID     Apple Developer Team ID
+  rocketware-apple-notarize = pkgs-stable.writeShellScriptBin "rocketware-apple-notarize" ''
+    set -euo pipefail
+
+    SOPS=${sopsBin}
+    VAULT=${nixfiles-vault}
+
+    ENV_SOPS="$VAULT/sops/rocketware-apple-notarize.yaml"
+
+    usage() {
+      cat >&2 <<'USAGE'
+    Usage: rocketware-apple-notarize -- <command> [args...]
+
+    Decrypts Apple notarization credentials (ephemeral env vars) from sops,
+    then runs the given command with:
+      APPLE_NOTARIZE_USERNAME    Apple ID email
+      APPLE_NOTARIZE_PASSWORD    app-specific password (xxxx-xxxx-xxxx-xxxx)
+      APPLE_NOTARIZE_TEAM_ID     Apple Developer Team ID
+
+    Example:
+      rocketware-apple-notarize -- nu package_macos.nu --flavor macos
+    USAGE
+      exit 64
+    }
+
+    [ "''${1:-}" = "--" ] || usage
+    shift
+    [ $# -ge 1 ] || usage
+
+    if [ ! -r "$HOME/.config/sops/age/keys.txt" ]; then
+      echo "ERROR: sops identity not found at ~/.config/sops/age/keys.txt" >&2
+      echo "       Run a system rebuild to bootstrap it from your SSH key." >&2
+      exit 1
+    fi
+    if [ ! -f "$ENV_SOPS" ]; then
+      echo "ERROR: sops apple-notarize env file missing: $ENV_SOPS" >&2
+      echo "       Run: nix flake update nixfiles-vault && rebuild your system" >&2
+      exit 1
+    fi
+
+    # sops exec-env takes the command as a single shell string (run via sh -c)
+    quoted_cmd=$(printf '%q ' "$@")
+    "$SOPS" exec-env "$ENV_SOPS" "$quoted_cmd"
+  '';
 in {
   config = lib.mkIf config.development.enable {
     environment.systemPackages = [
       rocketware-android-sign
       rocketware-minisign
+      rocketware-apple-notarize
     ];
 
     # Bootstrap sops age identity from the user's SSH key on first rebuild.
