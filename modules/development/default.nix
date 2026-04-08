@@ -388,6 +388,7 @@ in {
     ./rust.nix
     ./mitmproxy.nix
     ./wireshark.nix
+    ./sops-wrappers.nix
   ];
 
   options.development = {
@@ -414,10 +415,13 @@ in {
         # Development utilities
         pkgs-stable.firebase-tools # Pinned to stable due to unstable build issues
         pkgs-dev-tools.google-cloud-sdk
-        pkgs-dev-tools.doppler
         pkgs-dev-tools.entr
         pkgs-dev-tools.lnav
         pkgs-dev-tools.go
+
+        # On-demand secret decryption (sops + ssh-to-age for the age identity bootstrap)
+        pkgs-stable.sops
+        pkgs-stable.ssh-to-age
 
         # Basic CLI utilities (stable)
         pkgs-stable.curl

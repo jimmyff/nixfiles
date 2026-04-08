@@ -27,12 +27,5 @@
   },
   "privacy": {
     "usageStatisticsEnabled": false
-  },
-  "advanced": {
-    "excludeEnvVars": [
-      "IDE_ANTHROPIC_API_KEY",
-      "ANDROID_KEYSTORE_PASSWORD",
-      "ANDROID_KEY_PASSWORD"
-    ]
   }
 }
