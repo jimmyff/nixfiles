@@ -32,3 +32,6 @@ result-*
 
 # Temporary files
 tmp/
+
+# Planning documents (per-task scratchpads)
+plans/

@@ -72,7 +72,19 @@
       "Bash(glittering get:*)",
       "Bash(glittering upgrade:*)",
       "Bash(glittering stats:*)",
-      "Bash(glittering clean:*)"
+      "Bash(glittering clean:*)",
+      "Bash(nix-instantiate:*)",
+      "Bash(nix eval:*)",
+      "Bash(nix derivation show:*)",
+      "Bash(nix flake show:*)",
+      "Bash(nix flake metadata:*)",
+      "Bash(nix flake check:*)",
+      "Bash(nix-store --query:*)",
+      "Bash(nix path-info:*)",
+      "Bash(nix why-depends:*)",
+      "Bash(nix search:*)",
+      "Bash(nix-env --query:*)",
+      "Bash(nix-env -q:*)"
     ],
     "deny": [
       "Read(./.env)",
