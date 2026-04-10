@@ -304,12 +304,190 @@
     quoted_cmd=$(printf '%q ' "$@")
     "$SOPS" exec-env "$ENV_SOPS" "$quoted_cmd"
   '';
+
+  # Unified Apple signing wrapper. Materialises signing certificates
+  # (.p12 files) and the App Store Connect API key (.p8 file) into an
+  # ephemeral tempdir, then exports env vars pointing at those files plus
+  # the passwords + identity names loaded from a single shared yaml.
+  #
+  # Modes:
+  #   direct    — Developer ID Application cert only (direct macOS
+  #               distribution: DMG + notarize via chained
+  #               rocketware-apple-notarize)
+  #   appstore  — Apple Distribution (sign .app) + Mac Installer
+  #               Distribution (sign .pkg) + App Store Connect API key
+  #               (Transporter upload)
+  #   all       — Materialise everything from both modes above for
+  #               full-release builds via `nu package_macos.nu`
+  #
+  # Single shared yaml `rocketware-apple-sign.yaml` holds all passwords,
+  # identity names (e.g. "Apple Distribution: Rocketware Ltd (TEAMID)"),
+  # team ID, and App Store Connect key ID/issuer ID. This keeps sops file
+  # count down and avoids duplicating team ID across three yamls.
+  #
+  # Deviation from other wrappers — age identity resolution:
+  # Accepts SOPS_AGE_KEY (raw key) or SOPS_AGE_KEY_FILE (path) env vars
+  # in addition to the usual ~/.config/sops/age/keys.txt fallback. This
+  # enables CI contexts where the age key arrives as an injected secret
+  # rather than as a file. sops itself honours both env vars natively —
+  # we just need to avoid erroring out when the file fallback is absent.
+  rocketware-apple-sign = pkgs-stable.writeShellScriptBin "rocketware-apple-sign" ''
+    set -euo pipefail
+
+    SOPS=${sopsBin}
+    VAULT=${nixfiles-vault}
+
+    APP_DIST_P12_SOPS="$VAULT/sops/rocketware-apple-sign-app-distribution.p12.sops"
+    INSTALLER_P12_SOPS="$VAULT/sops/rocketware-apple-sign-mac-installer.p12.sops"
+    DEV_ID_APP_P12_SOPS="$VAULT/sops/rocketware-apple-sign-developer-id-app.p12.sops"
+    API_KEY_P8_SOPS="$VAULT/sops/rocketware-apple-sign-api-key.p8.sops"
+    ENV_SOPS="$VAULT/sops/rocketware-apple-sign.yaml"
+
+    usage() {
+      cat >&2 <<'USAGE'
+    Usage: rocketware-apple-sign <direct|appstore|all> -- <command> [args...]
+
+    Modes:
+      direct    Materialise the Developer ID Application .p12 into an
+                ephemeral tempfile. Exports:
+                  APPLE_DEVELOPER_ID_APP_CERT_P12_PATH
+                  APPLE_DEVELOPER_ID_APP_CERT_PASSWORD
+                  APPLE_DEVELOPER_ID_CERT_NAME
+                  APPLE_TEAM_ID
+                Use for direct macOS distribution (DMG + notarize).
+                Typically chained: `rocketware-apple-sign direct --
+                rocketware-apple-notarize -- nu package_macos.nu --flavor macos`
+
+      appstore  Materialise Apple Distribution + Mac Installer
+                Distribution .p12s and the App Store Connect API key .p8.
+                Exports:
+                  APPLE_DISTRIBUTION_CERT_P12_PATH
+                  APPLE_DISTRIBUTION_CERT_PASSWORD
+                  APPLE_DISTRIBUTION_CERT_NAME
+                  APPLE_INSTALLER_CERT_P12_PATH
+                  APPLE_INSTALLER_CERT_PASSWORD
+                  APPLE_INSTALLER_CERT_NAME
+                  APPLE_APPSTORE_API_KEY_PATH
+                  APPLE_APPSTORE_API_KEY_ID
+                  APPLE_APPSTORE_API_ISSUER_ID
+                  APPLE_TEAM_ID
+                Use for Mac App Store distribution (.pkg + Transporter).
+
+      all       Materialise everything from both modes simultaneously.
+                Use for full-release builds that touch both flavors:
+                  rocketware-apple-sign all -- rocketware-apple-notarize \
+                    -- nu package_macos.nu
+
+    All modes load passwords + identity names from the shared sops yaml
+    rocketware-apple-sign.yaml.
+    USAGE
+      exit 64
+    }
+
+    # Parse arguments
+    mode="''${1:-}"
+    case "$mode" in
+      direct|appstore|all) shift ;;
+      *) usage ;;
+    esac
+    [ "''${1:-}" = "--" ] || usage
+    shift
+    [ $# -ge 1 ] || usage
+
+    # Pre-flight: age identity must be reachable via env var OR file.
+    # sops itself honours SOPS_AGE_KEY / SOPS_AGE_KEY_FILE natively — we
+    # just need to avoid erroring out when the file fallback is absent
+    # (e.g. on a CI runner with the key injected via env).
+    if [ -n "''${SOPS_AGE_KEY:-}" ]; then
+      : # sops honours SOPS_AGE_KEY directly
+    elif [ -n "''${SOPS_AGE_KEY_FILE:-}" ]; then
+      : # sops honours SOPS_AGE_KEY_FILE directly
+    elif [ -r "$HOME/.config/sops/age/keys.txt" ]; then
+      : # sops will find this on its own
+    else
+      echo "ERROR: no sops identity found." >&2
+      echo "       Set SOPS_AGE_KEY (raw key), SOPS_AGE_KEY_FILE (path)," >&2
+      echo "       or run a system rebuild to bootstrap ~/.config/sops/age/keys.txt." >&2
+      exit 1
+    fi
+
+    # Pre-flight: encrypted files for the selected mode
+    require_file() {
+      if [ ! -f "$1" ]; then
+        echo "ERROR: required sops file missing: $1" >&2
+        echo "       The nixfiles-vault flake input may be stale." >&2
+        echo "       Run: nix flake update nixfiles-vault && rebuild your system" >&2
+        exit 1
+      fi
+    }
+    require_file "$ENV_SOPS"  # yaml is always needed
+    case "$mode" in
+      direct)
+        require_file "$DEV_ID_APP_P12_SOPS"
+        ;;
+      appstore)
+        require_file "$APP_DIST_P12_SOPS"
+        require_file "$INSTALLER_P12_SOPS"
+        require_file "$API_KEY_P8_SOPS"
+        ;;
+      all)
+        require_file "$DEV_ID_APP_P12_SOPS"
+        require_file "$APP_DIST_P12_SOPS"
+        require_file "$INSTALLER_P12_SOPS"
+        require_file "$API_KEY_P8_SOPS"
+        ;;
+    esac
+
+    # Create a secure tempdir for materialised certs + API key. Trap
+    # ensures cleanup on ANY exit path (success, error, SIGINT, SIGTERM).
+    TMPDIR_KS=$(mktemp -d -t rocketware-apple-sign-XXXXXXXX)
+    trap 'rm -rf -- "$TMPDIR_KS"' EXIT
+
+    # Materialise cert .p12s for the selected mode. Each file is chmod
+    # 600 immediately after decryption so concurrent processes on the
+    # machine can't read it.
+    if [ "$mode" = "direct" ] || [ "$mode" = "all" ]; then
+      "$SOPS" --decrypt --input-type binary --output-type binary \
+        --output "$TMPDIR_KS/developer_id_application.p12" "$DEV_ID_APP_P12_SOPS"
+      chmod 600 "$TMPDIR_KS/developer_id_application.p12"
+      export APPLE_DEVELOPER_ID_APP_CERT_P12_PATH="$TMPDIR_KS/developer_id_application.p12"
+    fi
+    if [ "$mode" = "appstore" ] || [ "$mode" = "all" ]; then
+      "$SOPS" --decrypt --input-type binary --output-type binary \
+        --output "$TMPDIR_KS/app_distribution.p12" "$APP_DIST_P12_SOPS"
+      chmod 600 "$TMPDIR_KS/app_distribution.p12"
+      export APPLE_DISTRIBUTION_CERT_P12_PATH="$TMPDIR_KS/app_distribution.p12"
+
+      "$SOPS" --decrypt --input-type binary --output-type binary \
+        --output "$TMPDIR_KS/mac_installer_distribution.p12" "$INSTALLER_P12_SOPS"
+      chmod 600 "$TMPDIR_KS/mac_installer_distribution.p12"
+      export APPLE_INSTALLER_CERT_P12_PATH="$TMPDIR_KS/mac_installer_distribution.p12"
+
+      "$SOPS" --decrypt --input-type binary --output-type binary \
+        --output "$TMPDIR_KS/AuthKey.p8" "$API_KEY_P8_SOPS"
+      chmod 600 "$TMPDIR_KS/AuthKey.p8"
+      export APPLE_APPSTORE_API_KEY_PATH="$TMPDIR_KS/AuthKey.p8"
+    fi
+
+    # `sops exec-env` takes the command as a SINGLE shell-command string
+    # (which it runs via sh -c), not as separate argv elements. Build a
+    # properly-quoted command string from "$@" via printf %q. Run as a
+    # child (not exec) so the EXIT trap fires afterwards.
+    #
+    # No mode branching here — all modes load the same shared yaml, which
+    # defines every env var that any mode could need. Unused vars for the
+    # current mode are simply present but ignored by downstream consumers.
+    quoted_cmd=$(printf '%q ' "$@")
+    "$SOPS" exec-env "$ENV_SOPS" "$quoted_cmd"
+  '';
+
 in {
   config = lib.mkIf config.development.enable {
     environment.systemPackages = [
       rocketware-android-sign
       rocketware-minisign
       rocketware-apple-notarize
+      rocketware-apple-sign
     ];
 
     # Bootstrap sops age identity from the user's SSH key on first rebuild.

@@ -134,6 +134,30 @@ Register it in `environment.systemPackages`. Key properties:
 
 For a worked example with multiple modes and two keystores, see `modules/development/sops-wrappers.nix`.
 
+## Apple certificate renewal
+
+Three signing certs in sops via `rocketware-apple-sign`. Apple Distribution and Mac Installer Distribution expire annually.
+
+```bash
+cd /tmp && mkdir apple-renew && cd apple-renew
+openssl genrsa -out cert.key 2048
+openssl req -new -key cert.key -out cert.csr \
+  -subj "/emailAddress=<APPLE_ID>/CN=Rocketware Ltd/C=GB"
+# Upload cert.csr to developer.apple.com → Certificates → + → select type → download .cer
+openssl x509 -inform DER -in downloaded.cer -out cert.pem
+openssl pkcs12 -export -inkey cert.key -in cert.pem -out cert.p12 -name "<identity name>"
+open cert.p12  # import into login keychain for Xcode
+cp cert.p12 ~/nixfiles/secrets/vault/sops/<sops-filename>
+cd ~/nixfiles/secrets/vault/sops
+sops --encrypt --in-place --input-type binary --output-type binary <sops-filename>
+file <sops-filename>  # verify: "JSON data"
+cd ~/nixfiles/secrets/vault && git add -A && git commit -m "Renew <cert>" && git push
+cd ~/nixfiles && nix flake update nixfiles-vault && darwin-rebuild switch
+rm -rf /tmp/apple-renew
+```
+
+Sops files: `rocketware-apple-sign-app-distribution.p12.sops`, `rocketware-apple-sign-mac-installer.p12.sops`, `rocketware-apple-sign-developer-id-app.p12.sops`. Passwords in `rocketware-apple-sign.yaml` — reuse on renewal.
+
 ## Managing sops recipients
 
 To add a new machine or rotate a key, update the recipient list in `.sops.yaml` and re-encrypt every file.
