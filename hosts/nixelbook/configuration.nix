@@ -36,9 +36,7 @@
   rust.enable = false;
   mitmproxy.enable = true;
   wireshark.enable = false;
-
-  # Add wireshark group for non-root packet capture
-  users.users.${username}.extraGroups = ["wireshark"];
+  docker.enable = true;
 
   # Applications
   cinny.enable = false; # 2026-02-20: temporarily disabled, nixpkgs version mismatch (cinny 4.10.3 vs cinny-desktop 4.10.2)

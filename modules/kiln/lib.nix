@@ -236,6 +236,10 @@ let
     if isDarwin then null
     else pkgs.writeShellScriptBin "kiln-${project}-${base}-load" ''
       set -euo pipefail
+      if ! command -v docker &>/dev/null; then
+        echo "ERROR: docker not found." >&2
+        exit 1
+      fi
       echo "Loading ${imageName}:${imageTag} into Docker..."
       ${dockerImage} | docker load
       echo "Done. Image: ${imageName}:${imageTag}"

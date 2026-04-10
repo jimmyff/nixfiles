@@ -388,6 +388,7 @@ in {
     ./rust.nix
     ./mitmproxy.nix
     ./wireshark.nix
+    ./docker.nix
     ./sops-wrappers.nix
   ];
 
