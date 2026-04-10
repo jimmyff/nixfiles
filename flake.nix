@@ -135,6 +135,11 @@
   in
   {
 
+    # Library functions (consumed by project flakes)
+    lib = {
+      mkKiln = import ./modules/kiln/lib.nix { inherit inputs; };
+    };
+
     # Nixos configurations
     nixosConfigurations = {
 
