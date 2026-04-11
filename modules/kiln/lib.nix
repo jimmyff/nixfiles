@@ -122,6 +122,7 @@ let
       fi
       export FLUTTER_ROOT=/tmp/flutter-writable
       export PATH="/tmp/flutter-writable/bin:$PATH"
+      flutter --disable-analytics 2>/dev/null || true
     fi
 
     # Argument handling
