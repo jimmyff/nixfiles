@@ -392,11 +392,6 @@ func GitCommit(args []string) int {
 		logf("error: --no-parent and --parent-only are mutually exclusive\n")
 		return ExitUsage
 	}
-	if *parentOnly && (*all || len(*files) > 0 || *staged) {
-		logf("error: --parent-only cannot be combined with --all, --files, or --staged\n")
-		return ExitUsage
-	}
-
 	// Staging flags mutual exclusivity
 	flagCount := 0
 	if *all {
@@ -413,7 +408,19 @@ func GitCommit(args []string) int {
 		return ExitUsage
 	}
 
+	hasStagingFlag := *all || len(*files) > 0 || *staged
+
+	if *parentOnly && hasStagingFlag && *message == "" {
+		logf("error: --message/-m is required when using staging flags with --parent-only\n")
+		return ExitUsage
+	}
+
 	subs := fs.Args()
+
+	if *parentOnly && hasStagingFlag && len(subs) > 0 {
+		logf("error: submodule arguments cannot be used with --parent-only and staging flags\n")
+		return ExitUsage
+	}
 
 	if !*parentOnly && len(subs) == 0 {
 		logf("error: submodule path(s) required (or use --parent-only)\n")
@@ -436,6 +443,94 @@ func GitCommit(args []string) int {
 
 	// Parent-only mode
 	if *parentOnly {
+		// Parent-only with staging flags: commit arbitrary parent files
+		if hasStagingFlag {
+			var stagedFiles []string
+
+			if *all {
+				if _, err := runGit(root, "add", "-A"); err != nil {
+					output := GitCommitOutput{Path: root, Error: fmt.Sprintf("stage failed: %v", err)}
+					outputJSON(output)
+					return ExitFailure
+				}
+
+				// Warn if submodule refs are being staged (bypasses remote-push verification)
+				subPaths, _ := getSubmodulePaths(root)
+				if len(subPaths) > 0 {
+					stagedNames, err := runGit(root, "diff", "--cached", "--name-only")
+					if err == nil && stagedNames != "" {
+						subSet := make(map[string]bool, len(subPaths))
+						for _, sp := range subPaths {
+							subSet[sp] = true
+						}
+						var warnSubs []string
+						for _, name := range strings.Split(stagedNames, "\n") {
+							name = strings.TrimSpace(name)
+							if subSet[name] {
+								warnSubs = append(warnSubs, name)
+							}
+						}
+						if len(warnSubs) > 0 {
+							progressf("glittering: WARNING: --all is staging submodule ref changes (%s) without verifying they are pushed to remote\n",
+								strings.Join(warnSubs, ", "))
+						}
+					}
+				}
+			} else if len(*files) > 0 {
+				for _, f := range *files {
+					if _, err := runGit(root, "add", "--", f); err != nil {
+						output := GitCommitOutput{Path: root, Error: fmt.Sprintf("stage failed for %s: %v", f, err)}
+						outputJSON(output)
+						return ExitFailure
+					}
+					stagedFiles = append(stagedFiles, f)
+				}
+			}
+			// --staged: no staging action needed (commit index as-is)
+
+			if _, err := runGit(root, "commit", "-m", *message); err != nil {
+				parentResult := GitCommitResult{Path: ".", Error: fmt.Sprintf("commit failed: %v", err)}
+				output := GitCommitOutput{Path: root, Parent: &parentResult, Submodules: []GitCommitResult{}, Error: parentResult.Error}
+				outputJSON(output)
+				return ExitFailure
+			}
+
+			ref, _ := runGit(root, "rev-parse", "HEAD")
+
+			_, pushErr := runGit(root, "push")
+			pushed := pushErr == nil
+
+			parentResult := GitCommitResult{
+				Path:    ".",
+				Success: true,
+				Ref:     ref,
+				Staged:  stagedFiles,
+				Pushed:  pushed,
+			}
+			if !pushed {
+				parentResult.Error = fmt.Sprintf("push failed: %v", pushErr)
+			}
+
+			output := GitCommitOutput{
+				Path:       root,
+				Success:    parentResult.Success && pushed,
+				Submodules: []GitCommitResult{},
+				Parent:     &parentResult,
+			}
+			if !output.Success {
+				output.Error = parentResult.Error
+			}
+
+			deleteCache(root, "git.json")
+			outputJSON(output)
+
+			if !output.Success {
+				return ExitFailure
+			}
+			return ExitOK
+		}
+
+		// Parent-only without staging flags: auto-detect out-of-sync refs
 		var targetSubs []string
 		if len(subs) > 0 {
 			for _, sub := range subs {

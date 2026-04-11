@@ -121,24 +121,45 @@ func TestGitCommit_NoSubsNotParentOnly(t *testing.T) {
 	}
 }
 
-func TestGitCommit_ParentOnlyWithAll(t *testing.T) {
+func TestGitCommit_ParentOnlyWithAll_MissingMessage(t *testing.T) {
 	got := GitCommit([]string{"--parent-only", "--all"})
 	if got != ExitUsage {
-		t.Errorf("--parent-only + --all: expected ExitUsage (%d), got %d", ExitUsage, got)
+		t.Errorf("--parent-only + --all without -m: expected ExitUsage (%d), got %d", ExitUsage, got)
 	}
 }
 
-func TestGitCommit_ParentOnlyWithFiles(t *testing.T) {
+func TestGitCommit_ParentOnlyWithFiles_MissingMessage(t *testing.T) {
 	got := GitCommit([]string{"--parent-only", "-f", "a.dart"})
 	if got != ExitUsage {
-		t.Errorf("--parent-only + --files: expected ExitUsage (%d), got %d", ExitUsage, got)
+		t.Errorf("--parent-only + --files without -m: expected ExitUsage (%d), got %d", ExitUsage, got)
 	}
 }
 
-func TestGitCommit_ParentOnlyWithStaged(t *testing.T) {
+func TestGitCommit_ParentOnlyWithStaged_MissingMessage(t *testing.T) {
 	got := GitCommit([]string{"--parent-only", "--staged"})
 	if got != ExitUsage {
-		t.Errorf("--parent-only + --staged: expected ExitUsage (%d), got %d", ExitUsage, got)
+		t.Errorf("--parent-only + --staged without -m: expected ExitUsage (%d), got %d", ExitUsage, got)
+	}
+}
+
+func TestGitCommit_ParentOnlyWithAllAndSubs(t *testing.T) {
+	got := GitCommit([]string{"--parent-only", "--all", "-m", "test", "sub1"})
+	if got != ExitUsage {
+		t.Errorf("--parent-only + --all + subs: expected ExitUsage (%d), got %d", ExitUsage, got)
+	}
+}
+
+func TestGitCommit_ParentOnlyWithFilesAndSubs(t *testing.T) {
+	got := GitCommit([]string{"--parent-only", "-f", "a.txt", "-m", "test", "sub1"})
+	if got != ExitUsage {
+		t.Errorf("--parent-only + --files + subs: expected ExitUsage (%d), got %d", ExitUsage, got)
+	}
+}
+
+func TestGitCommit_ParentOnlyWithStagedAndSubs(t *testing.T) {
+	got := GitCommit([]string{"--parent-only", "--staged", "-m", "test", "sub1"})
+	if got != ExitUsage {
+		t.Errorf("--parent-only + --staged + subs: expected ExitUsage (%d), got %d", ExitUsage, got)
 	}
 }
 
