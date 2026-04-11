@@ -40,6 +40,7 @@
 
   # Applications
   cinny.enable = false; # 2026-02-20: temporarily disabled, nixpkgs version mismatch (cinny 4.10.3 vs cinny-desktop 4.10.2)
+  little-snitch.enable = true;
   signal.enable = true;
   google-chrome.enable = false;
   playwright.enable = false;
