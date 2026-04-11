@@ -2,9 +2,7 @@
 
 Nix-flake-defined build environment for Flutter apps. Produces Docker images
 (Linux/Android CI) and dev shells (macOS) with identical invocation shape.
-
-Produces reproducible artifacts for Flutter apps across Linux, Android, and
-macOS. The same flake runs identically locally and in cloud CI.
+The same flake runs identically locally and in cloud CI.
 
 ## Usage
 
@@ -17,7 +15,7 @@ kilnLinux = nixfiles.lib.mkKiln {
   version = self.shortRev or "dev";
   targets = [ "linux" "android" ];
   androidSdkPackages = sdk: with sdk; [ cmdline-tools-latest build-tools-35-0-0 ];
-  extraPackages = with pkgsLinux; [ nfpm appimagetool ];
+  extraPackages = with pkgsLinux; [ nfpm libgit2 ];
   sopsWrappers = [ "rocketware-android-sign" "rocketware-minisign" ];
 };
 ```
@@ -41,7 +39,7 @@ Identical behavior in Docker and dev shell:
 
 1. **Workspace**: if `/workspace` exists and is non-empty, `cd` into it
 2. **Age key**: `SOPS_AGE_KEY` > `SOPS_AGE_KEY_FILE` > `~/.config/sops/age/keys.txt`
-3. **Flutter shim**: if `FLUTTER_ROOT` is in `/nix/store`, copies to `/tmp/flutter-writable`
+3. **Flutter shim**: if `FLUTTER_ROOT` is in `/nix/store`, rsyncs to `/tmp/flutter-writable` (writable copy with framework symlinks preserved)
 4. **Arguments**: strips leading `--`, then `exec "$@"` (or `defaultCommand` if no args)
 
 ## Sops wrappers

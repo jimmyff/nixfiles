@@ -5,7 +5,7 @@
   coreCliPackages = with pkgs; [
     bashInteractive coreutils findutils gnugrep gnused gawk
     gnutar gzip xz
-    curl wget cacert
+    curl wget cacert rsync
     git gh openssh
     sops age
     nushell jq which

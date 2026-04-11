@@ -115,10 +115,19 @@ let
 
     # Flutter writability shim: Nix store is read-only, some Flutter
     # commands need to write to bin/cache/. Copy on first use.
+    # rsync --copy-unsafe-links dereferences symlinks that point OUTSIDE the
+    # source tree (Nix store absolute symlinks, relative symlinks that escape)
+    # while preserving internal symlinks (macOS framework bundle structure
+    # that codesign requires: e.g. FlutterMacOS -> Versions/Current/FlutterMacOS).
     if [ -n "''${FLUTTER_ROOT:-}" ] && [[ "$FLUTTER_ROOT" == /nix/store/* ]]; then
       if [ ! -d /tmp/flutter-writable ]; then
-        cp -R "$FLUTTER_ROOT" /tmp/flutter-writable
+        rsync -a --copy-unsafe-links "$FLUTTER_ROOT/" /tmp/flutter-writable/
         chmod -R u+w /tmp/flutter-writable
+        # rsync dereferenced bin/dart (was a relative symlink escaping the tree)
+        # into a standalone binary. The dart front-end locates dartvm relative
+        # to its real path, so re-point to cache/dart-sdk/bin/ where dartvm lives.
+        rm -f /tmp/flutter-writable/bin/dart
+        ln -s cache/dart-sdk/bin/dart /tmp/flutter-writable/bin/dart
       fi
       export FLUTTER_ROOT=/tmp/flutter-writable
       export PATH="/tmp/flutter-writable/bin:$PATH"
@@ -190,8 +199,10 @@ let
     # Flutter copy-on-write shim (matches Docker entrypoint behavior)
     if [ -n "''${FLUTTER_ROOT:-}" ] && [[ "$FLUTTER_ROOT" == /nix/store/* ]]; then
       if [ ! -d /tmp/flutter-writable ]; then
-        cp -R "$FLUTTER_ROOT" /tmp/flutter-writable
+        rsync -a --copy-unsafe-links "$FLUTTER_ROOT/" /tmp/flutter-writable/
         chmod -R u+w /tmp/flutter-writable
+        rm -f /tmp/flutter-writable/bin/dart
+        ln -s cache/dart-sdk/bin/dart /tmp/flutter-writable/bin/dart
       fi
       export FLUTTER_ROOT=/tmp/flutter-writable
       export PATH="/tmp/flutter-writable/bin:$PATH"
