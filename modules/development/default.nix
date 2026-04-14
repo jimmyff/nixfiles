@@ -410,8 +410,10 @@ in {
         # Core development tools (stable)
         pkgs-stable.git
         pkgs-stable.gh
-        pkgs-stable.direnv
-        pkgs-stable.nix-direnv
+        # TODO: move direnv back to pkgs-stable once NixOS/nix#15638 lands
+        # (Mach-O code signature corruption breaks fish test on darwin)
+        pkgs-dev-tools.direnv
+        pkgs-dev-tools.nix-direnv
 
         # Development utilities
         pkgs-stable.firebase-tools # Pinned to stable due to unstable build issues
@@ -438,7 +440,7 @@ in {
     # Enable nix-direnv globally
     programs.direnv = {
       enable = true;
-      package = pkgs-stable.direnv;
+      package = pkgs-dev-tools.direnv; # TODO: move back to pkgs-stable (NixOS/nix#15638)
       silent = false;
       loadInNixShell = true;
       settings = {
@@ -446,7 +448,7 @@ in {
       };
       nix-direnv = {
         enable = true;
-        package = pkgs-stable.nix-direnv;
+        package = pkgs-dev-tools.nix-direnv; # TODO: move back to pkgs-stable (NixOS/nix#15638)
       };
     };
 

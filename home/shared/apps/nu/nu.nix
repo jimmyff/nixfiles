@@ -227,11 +227,14 @@ in {
     };
 
     # Direnv / automatic environment loading
+    # TODO: move back to default (pkgs-stable) once NixOS/nix#15638 lands
     direnv = {
       enable = true;
+      package = pkgs-dev-tools.direnv;
       enableNushellIntegration = true;
       nix-direnv = {
         enable = true;
+        package = pkgs-dev-tools.nix-direnv;
       };
     };
   };

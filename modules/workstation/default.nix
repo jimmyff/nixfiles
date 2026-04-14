@@ -3,6 +3,7 @@
   imports = [
     ./apps/cinny.nix
     ./apps/google-chrome.nix
+    ./apps/workstation-security.nix
     ./apps/little-snitch.nix
     ./apps/minisign.nix
     ./apps/nextdns.nix
