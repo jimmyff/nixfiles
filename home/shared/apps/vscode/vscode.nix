@@ -10,6 +10,10 @@
             pkgs-dev-tools.vscode
         ];
 
+        # Symlink dotfiles config
+        home.file.".config/Code/User".source = config.lib.file.mkOutOfStoreSymlink
+            "${config.home.homeDirectory}/nixfiles/dotfiles/vscode";
+
         # Darwin-specific: Create symlink from default VSCode location to dotfiles config
         # This ensures VSCode uses our managed configuration
         home.activation = lib.mkIf pkgs-dev-tools.stdenv.isDarwin {

@@ -13,5 +13,7 @@
       enable = true;
       package = pkgs-dev-tools.zed-editor;
     };
+    home.file.".config/zed".source = config.lib.file.mkOutOfStoreSymlink
+      "${config.home.homeDirectory}/nixfiles/dotfiles/zed";
   };
 }

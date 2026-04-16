@@ -1,31 +1,36 @@
-{ lib, username, ... }:
+{ lib, config, username, ... }:
 
 {
-  # import sub modules
-  imports = [
-    ../shared/apps
-
-    ./desktop/environment_cosmic
-
-    ../shared/dotfiles.nix
-  ];
-
-
-  # Home Manager needs a bit of information about you and the
-  # paths it should manage.
-  home = {
-    username = username;
-    stateVersion = "25.05";
-    homeDirectory = "/home/${username}";
-
-    # Fix SSH_AUTH_SOCK to point to gcr-ssh-agent
-    sessionVariables = {
-      SSH_AUTH_SOCK = "/run/user/1000/gcr/ssh";
-    };
+  options.desktop = {
+    enable = lib.mkEnableOption "desktop environment and GUI applications";
   };
 
-  # Let Home Manager install and manage itself.
-  programs.home-manager.enable = true;
+  imports = [
+    ../shared/apps
+    ./desktop/environment_cosmic
+  ];
 
-  
+  config = {
+    home = {
+      username = username;
+      stateVersion = "25.05";
+      homeDirectory = "/home/${username}";
+
+      sessionVariables = lib.mkIf config.desktop.enable {
+        SSH_AUTH_SOCK = "/run/user/1000/gcr/ssh";
+      };
+    };
+
+    # Disable GUI modules on headless systems
+    cosmic_module.enable = lib.mkIf (!config.desktop.enable) (lib.mkForce false);
+    kitty_module.enable = lib.mkIf (!config.desktop.enable) (lib.mkForce false);
+    rio_module.enable = lib.mkIf (!config.desktop.enable) (lib.mkForce false);
+    alacritty_module.enable = lib.mkIf (!config.desktop.enable) (lib.mkForce false);
+    thunderbird_module.enable = lib.mkIf (!config.desktop.enable) (lib.mkForce false);
+    chromium_module.enable = lib.mkIf (!config.desktop.enable) (lib.mkForce false);
+    iamb_module.enable = lib.mkIf (!config.desktop.enable) (lib.mkForce false);
+    zed_module.enable = lib.mkIf (!config.desktop.enable) (lib.mkForce false);
+
+    programs.home-manager.enable = true;
+  };
 }

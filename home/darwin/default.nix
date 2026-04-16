@@ -3,7 +3,6 @@
   # import sub modules
   imports = [
     ../shared/apps
-    ../shared/dotfiles.nix
     ./aerospace/aerospace.nix
   ];
 

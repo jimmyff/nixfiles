@@ -165,7 +165,10 @@
             home-manager.useUserPackages = true;
             home-manager.backupFileExtension = "backup";
             home-manager.extraSpecialArgs = linuxArgs;
-            home-manager.users.${username} = import ./home/linux;
+            home-manager.users.${username} = { ... }: {
+              imports = [ ./home/linux ];
+              desktop.enable = true;
+            };
           }
         ];
       };

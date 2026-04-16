@@ -1,18 +1,16 @@
 {pkgs-desktop, lib, config, ... }: {
+  options.cosmic_module.enable = lib.mkEnableOption "COSMIC desktop configuration";
 
-  # imports = [  ];
+  config = lib.mkIf config.cosmic_module.enable {
+    # Cursor
+    home.pointerCursor = {
+      package = pkgs-desktop.bibata-cursors;
+      name = "Bibata-Modern-Ice";
+      size = 22;
+      gtk.enable = true;
+    };
 
-  # Cursor
-  home.pointerCursor = {
-    package = pkgs-desktop.bibata-cursors;
-    name = "Bibata-Modern-Ice";
-    size = 22;
-    gtk.enable = true;
+    home.file.".config/cosmic".source = config.lib.file.mkOutOfStoreSymlink
+      "${config.home.homeDirectory}/nixfiles/dotfiles/cosmic";
   };
-
-  # home.packages = [
-  # ];
-
-  # Cosmic config is now handled by shared/dotfiles.nix
-
 }

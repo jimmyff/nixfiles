@@ -11,6 +11,8 @@
 
   config = lib.mkIf config.aerospace_module.enable {
     home.packages = [pkgs-desktop.aerospace];
+    home.file.".config/aerospace".source = config.lib.file.mkOutOfStoreSymlink
+      "${config.home.homeDirectory}/nixfiles/dotfiles/aerospace";
 
     services.jankyborders = {
       enable = true;
