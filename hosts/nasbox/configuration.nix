@@ -11,6 +11,7 @@
   ];
 
   networking.hostName = "nasbox";
+  qemu-guest.enable = true;
 
   # Data disk mount (second virtual disk from Proxmox)
   # TODO: Update device path after VM creation

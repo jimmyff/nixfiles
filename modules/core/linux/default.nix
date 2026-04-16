@@ -8,6 +8,7 @@
     ./ssh.nix
     ../shared/fonts.nix
     ../shared/stow.nix
+    ./qemu-guest.nix
   ];
 
  

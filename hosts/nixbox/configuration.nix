@@ -14,6 +14,7 @@
   ];
 
   networking.hostName = "nixbox";
+  qemu-guest.enable = true;
 
   # Development environment configuration
   development = {
