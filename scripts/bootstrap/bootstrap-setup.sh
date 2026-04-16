@@ -26,7 +26,8 @@ fi
 
 # Verify SSH agent forwarding
 echo ">>> Checking SSH agent forwarding..."
-if ! ssh -T git@github.com 2>&1 | grep -q "successfully authenticated"; then
+SSH_RESULT=$(ssh -T git@github.com 2>&1 || true)
+if ! echo "${SSH_RESULT}" | grep -q "successfully authenticated"; then
   echo "ERROR: SSH agent forwarding not working."
   echo "Reconnect with: ssh -A jimmyff@<ip>"
   exit 1

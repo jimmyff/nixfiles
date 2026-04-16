@@ -10,6 +10,6 @@ in {
   };
 
   config = lib.mkIf cfg.enable {
-    services.qemu-guest-agent.enable = true;
+    services.qemuGuest.enable = true;
   };
 }
