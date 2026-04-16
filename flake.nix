@@ -169,6 +169,48 @@
           }
         ];
       };
+
+      # Jimmy's Proxmox build server (headless)
+      nixbox = pkgs-stable.lib.nixosSystem {
+        specialArgs = linuxArgs;
+
+        modules = [
+          ./hosts/nixbox/configuration.nix
+
+          ./modules/core/linux
+
+          agenix.nixosModules.default
+          inputs.home-manager.nixosModules.home-manager
+          {
+            home-manager.useGlobalPkgs = true;
+            home-manager.useUserPackages = true;
+            home-manager.backupFileExtension = "backup";
+            home-manager.extraSpecialArgs = linuxArgs;
+            home-manager.users.${username} = import ./home/linux;
+          }
+        ];
+      };
+
+      # Jimmy's Proxmox NAS & media server (headless)
+      nasbox = pkgs-stable.lib.nixosSystem {
+        specialArgs = linuxArgs;
+
+        modules = [
+          ./hosts/nasbox/configuration.nix
+
+          ./modules/core/linux
+
+          agenix.nixosModules.default
+          inputs.home-manager.nixosModules.home-manager
+          {
+            home-manager.useGlobalPkgs = true;
+            home-manager.useUserPackages = true;
+            home-manager.backupFileExtension = "backup";
+            home-manager.extraSpecialArgs = linuxArgs;
+            home-manager.users.${username} = import ./home/linux;
+          }
+        ];
+      };
     };
 
     # MacOS configurations

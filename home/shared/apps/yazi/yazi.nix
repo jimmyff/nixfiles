@@ -18,7 +18,7 @@
           owner = "gosxrgxx";
           repo = "flexoki-dark.yazi";
           rev = "main";
-          sha256 = "1lxzd6kya0cfv0c1sg8qpgj9pl8q98489rm40j3kwn4yxk2q0hbw";
+          sha256 = "0rjr1qrs85877ywv1n5sva8y6s6iy9qz7376ydz3ka0na1s15ifg";
         };
         catppuccin-frappe = pkgs-apps.fetchFromGitHub {
           owner = "yazi-rs";
@@ -31,7 +31,7 @@
           owner = "dracula";
           repo = "yazi";
           rev = "main";
-          sha256 = "sha256-dFhBT9s/54jDP6ZpRkakbS5khUesk0xEtv+xtPrqHVo=";
+          sha256 = "059i9jssq8sknvv0caaax61navs87hx4z3zv7a373vj2nyvbf9y2";
         };
       };
       settings = {
