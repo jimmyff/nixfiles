@@ -43,6 +43,10 @@ in {
       # Configure Flutter to use Nix JDK 17
       sudo -u ${username} ${pkgs-dev-flutter.flutter}/bin/flutter config --jdk-dir="${pkgs-dev-flutter.zulu17}" 2>/dev/null || echo "⚠️  Warning: Could not configure Flutter JDK"
 
+      # Disable analytics/telemetry
+      sudo -u ${username} ${pkgs-dev-flutter.flutter}/bin/flutter --disable-analytics 2>/dev/null || true
+      sudo -u ${username} ${pkgs-dev-flutter.dart}/bin/dart --disable-analytics 2>/dev/null || true
+
       echo "🎯 Activated Dart/Flutter development environment (Linux)"
       echo "📦 Flutter SDK: ${pkgs-dev-flutter.flutter} (Nix store)"
     '';

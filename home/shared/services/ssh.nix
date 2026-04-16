@@ -6,7 +6,9 @@
     
     matchBlocks."*" = {
       addKeysToAgent = "yes";
-      identitiesOnly = true;
+      # Only restrict to named keys on systems that have local keys.
+      # Servers use agent forwarding, so identitiesOnly would block that.
+      identitiesOnly = pkgs.stdenv.isDarwin;
       identityFile = [
         "~/.ssh/id_ed25519"
         "~/.ssh/id_rsa"
