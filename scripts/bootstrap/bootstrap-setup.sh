@@ -52,6 +52,11 @@ if [ ! -d "${NIXFILES_DIR}/hosts/${HOSTNAME}" ]; then
   exit 1
 fi
 
+# Set user password before rebuild (sudo will require it after rebuild)
+echo ">>> Setting password for $(whoami)..."
+echo "This password is needed for sudo and Samba access after rebuild."
+sudo passwd "$(whoami)"
+
 # Rebuild system
 echo ">>> Rebuilding NixOS as ${HOSTNAME}..."
 cd "${NIXFILES_DIR}"
@@ -63,6 +68,10 @@ echo ""
 echo "System rebuilt as ${HOSTNAME}."
 echo "You may need to log out and back in for shell changes to take effect."
 echo ""
+if command -v smbpasswd &>/dev/null; then
+  echo "Samba detected. Set your Samba password with:"
+  echo "  sudo smbpasswd -a $(whoami)"
+fi
 if command -v dev-setup &>/dev/null; then
   echo "Development environment detected. Run 'dev-setup' to set up projects."
 fi
