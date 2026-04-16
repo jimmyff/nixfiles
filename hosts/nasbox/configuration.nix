@@ -13,10 +13,15 @@
   networking.hostName = "nasbox";
   qemu-guest.enable = true;
 
-  # Data disk mount (second virtual disk from Proxmox)
-  # TODO: Update device path after VM creation
-  fileSystems."/data" = {
-    device = "/dev/disk/by-label/data";
+  # Data disk mounts (Proxmox virtual disks)
+  fileSystems."/data/media" = {
+    device = "/dev/disk/by-label/data_media";
+    fsType = "ext4";
+    options = ["defaults" "nofail"];
+  };
+
+  fileSystems."/data/important" = {
+    device = "/dev/disk/by-label/data_important";
     fsType = "ext4";
     options = ["defaults" "nofail"];
   };
@@ -47,8 +52,8 @@
         "create mask" = "0644";
         "directory mask" = "0755";
       };
-      shared = {
-        path = "/data/shared";
+      important = {
+        path = "/data/important";
         "read only" = "no";
         "browseable" = "yes";
         "valid users" = username;
@@ -62,8 +67,8 @@
   services.nfs.server = {
     enable = true;
     exports = ''
-      /data/media  192.168.0.0/24(rw,sync,no_subtree_check,no_root_squash)
-      /data/shared 192.168.0.0/24(rw,sync,no_subtree_check,no_root_squash)
+      /data/media     192.168.0.0/24(rw,sync,no_subtree_check,no_root_squash)
+      /data/important 192.168.0.0/24(rw,sync,no_subtree_check,no_root_squash)
     '';
   };
   networking.firewall.allowedTCPPorts = [2049];
@@ -71,6 +76,6 @@
   # Create data directories
   systemd.tmpfiles.rules = [
     "d /data/media 0755 ${username} users -"
-    "d /data/shared 0755 ${username} users -"
+    "d /data/important 0755 ${username} users -"
   ];
 }

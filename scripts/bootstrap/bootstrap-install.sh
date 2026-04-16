@@ -81,6 +81,7 @@ if [ "${BOOT_MODE}" = "uefi" ]; then
   mkfs.ext4 -L nixos "${DISK}1"
   mkfs.fat -F 32 -n boot "${DISK}2"
 
+  udevadm settle
   mount /dev/disk/by-label/nixos /mnt
   mkdir -p /mnt/boot
   mount /dev/disk/by-label/boot /mnt/boot
@@ -91,6 +92,7 @@ else
 
   mkfs.ext4 -L nixos "${DISK}1"
 
+  udevadm settle
   mount /dev/disk/by-label/nixos /mnt
 fi
 
@@ -123,8 +125,6 @@ cat > /mnt/etc/nixos/configuration.nix << NIXCFG
     enable = true;
     settings.PermitRootLogin = "yes";
   };
-
-  services.qemu-guest-agent.enable = true;
 
   users.users.${USERNAME} = {
     isNormalUser = true;
