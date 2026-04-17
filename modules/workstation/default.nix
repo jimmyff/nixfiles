@@ -9,6 +9,7 @@
     ./apps/nextdns.nix
     ./apps/raycast.nix
     ./apps/rclone.nix
+    ./apps/picard.nix
     ./apps/signal.nix
     ./playwright.nix
   ];

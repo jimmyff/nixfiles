@@ -33,6 +33,7 @@
   nextdns.vaultFile = "nextdns_mbp14.age";
   rclone.enable = true;
   minisign.enable = true;
+  picard.enable = true;
 
   # AI tools (home-manager modules)
   home-manager.users.jimmyff.gemini-cli_module.enable = true;

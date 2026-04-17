@@ -236,9 +236,13 @@ let
       };
 
       extraCommands = ''
-        mkdir -p etc tmp workspace
+        mkdir -p etc/ssl/certs tmp workspace
         echo "root:x:0:0:root:/root:/bin/bash" > etc/passwd
         echo "root:x:0:" > etc/group
+        # Flutter's bundled dart looks for certs at /etc/ssl/certs/ (standard
+        # Linux path), not $SSL_CERT_FILE. Symlink so both paths work.
+        ln -s ${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt etc/ssl/certs/ca-certificates.crt
+        ln -s ${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt etc/ssl/certs/ca-bundle.crt
       '';
     };
 
