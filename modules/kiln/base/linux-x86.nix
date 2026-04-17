@@ -12,7 +12,7 @@ in
 
   corePackages = common.coreCliPackages ++ (with pkgs; [
     # Linux-specific
-    fontconfig tzdata sqlite
+    fontconfig tzdata
 
     # Build toolchain (Flutter Linux desktop)
     cmake ninja pkg-config gcc
@@ -22,11 +22,7 @@ in
     webkitgtk_4_1 libsoup_3 libsecret
   ]);
 
-  baseEnv = common.coreCliEnv // {
-    # Dart FFI uses dlopen("libsqlite3.so") which needs a standard library
-    # path. Nix store paths aren't searched by default.
-    LD_LIBRARY_PATH = "${pkgs.sqlite.out}/lib";
-  };
+  baseEnv = common.coreCliEnv;
 
   # Logical groupings for documentation and future layer optimization.
   # streamLayeredImage doesn't consume these directly (only maxLayers).
