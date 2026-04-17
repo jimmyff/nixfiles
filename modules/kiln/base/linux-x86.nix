@@ -12,7 +12,7 @@ in
 
   corePackages = common.coreCliPackages ++ (with pkgs; [
     # Linux-specific
-    fontconfig tzdata
+    fontconfig tzdata sqlite
 
     # Build toolchain (Flutter Linux desktop)
     cmake ninja pkg-config gcc
