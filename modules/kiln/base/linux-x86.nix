@@ -22,7 +22,11 @@ in
     webkitgtk_4_1 libsoup_3 libsecret
   ]);
 
-  baseEnv = common.coreCliEnv;
+  baseEnv = common.coreCliEnv // {
+    # Dart FFI uses dlopen("libsqlite3.so") which needs a standard library
+    # path. Nix store paths aren't searched by default.
+    LD_LIBRARY_PATH = "${pkgs.sqlite.out}/lib";
+  };
 
   # Logical groupings for documentation and future layer optimization.
   # streamLayeredImage doesn't consume these directly (only maxLayers).
