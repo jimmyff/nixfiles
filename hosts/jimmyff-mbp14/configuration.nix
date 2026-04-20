@@ -10,7 +10,7 @@
   # Development environment configuration
   development = {
     enable = true;
-    projects = [ "jimmyff-website" "rocket-kit" "osdn" "jotter" "escp" ];
+    projects = [ "jimmyff-website" "rocket-kit" "osdn" "jotter" "escp" "shed" ];
   };
 
   # Platform-specific development tools

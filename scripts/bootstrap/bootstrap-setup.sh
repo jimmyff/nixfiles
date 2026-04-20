@@ -52,6 +52,16 @@ if [ ! -d "${NIXFILES_DIR}/hosts/${HOSTNAME}" ]; then
   exit 1
 fi
 
+# Generate host SSH key (unencrypted — required by ssh-to-age for sops)
+if [ ! -f "${HOME}/.ssh/id_ed25519" ]; then
+  echo ">>> Generating SSH key..."
+  ssh-keygen -t ed25519 -N "" -f "${HOME}/.ssh/id_ed25519" -C "jimmyff@${HOSTNAME}"
+  echo ""
+  echo ">>> Add this public key to GitHub:"
+  cat "${HOME}/.ssh/id_ed25519.pub"
+  echo ""
+fi
+
 # Set user password before rebuild (sudo will require it after rebuild)
 echo ">>> Setting password for $(whoami)..."
 echo "This password is needed for sudo and Samba access after rebuild."
@@ -74,4 +84,10 @@ if command -v smbpasswd &>/dev/null; then
 fi
 if command -v dev-setup &>/dev/null; then
   echo "Development environment detected. Run 'dev-setup' to set up projects."
+fi
+if [ -f "${HOME}/.ssh/id_ed25519.pub" ]; then
+  echo ""
+  echo "To add this host as a sops recipient, run:"
+  echo "  ssh-to-age < ~/.ssh/id_ed25519.pub"
+  echo "Then add the age pubkey to secrets/vault/sops/.sops.yaml and run 'sops updatekeys'."
 fi
