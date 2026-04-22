@@ -19,7 +19,7 @@
   # Development environment configuration
   development = {
     enable = true;
-    projects = ["jotter" "jimmyff-website"];
+    projects = ["cache" "jimmyff-website"];
   };
 
   # Platform-specific development tools

@@ -3,7 +3,7 @@
   lib,
 }: {
   # Repository information
-  repo = "git@github.com:jimmyff/jotter-super.git";
+  repo = "git@github.com:jimmyff/cache-super.git";
 
   # Required packages for this project
   # Flutter and Dart are managed at the host level via dart.enable
@@ -18,5 +18,5 @@
   };
 
   # Project description
-  description = "Jotter - Note-taking and journaling application";
+  description = "Cache - Note-taking and journaling application";
 }

@@ -1,5 +1,5 @@
 # Shared devshell utilities for project flakes
-# Used by: osdn, escp, rocket-kit, jotter
+# Used by: osdn, escp, rocket-kit, cache
 rec {
   # Iterate devShells across all supported systems
   eachSystem = f:
