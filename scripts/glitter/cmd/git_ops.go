@@ -317,6 +317,31 @@ func commitParentRefs(root string, subs []string, message string) GitCommitResul
 		staged = append(staged, sub)
 	}
 
+	// Detect unstaged parent files (not part of submodule refs being committed)
+	var unstaged []string
+	if statusOut, err := runGit(root, "status", "--porcelain"); err == nil {
+		subSet := make(map[string]bool, len(subs))
+		for _, s := range subs {
+			subSet[s] = true
+		}
+		for _, line := range strings.Split(statusOut, "\n") {
+			if len(line) < 4 {
+				continue
+			}
+			// porcelain format: XY <path> — skip files already staged (X != ' ' and X != '?')
+			// We want files that are modified/untracked but NOT being staged as submodule refs
+			xy := line[:2]
+			filePath := strings.TrimSpace(line[3:])
+			if subSet[filePath] {
+				continue
+			}
+			// Unstaged modifications (Y column) or untracked (??)
+			if xy[1] != ' ' || xy == "??" {
+				unstaged = append(unstaged, filePath)
+			}
+		}
+	}
+
 	// Auto-generate message if empty
 	if message == "" {
 		names := make([]string, len(subs))
@@ -347,6 +372,12 @@ func commitParentRefs(root string, subs []string, message string) GitCommitResul
 		Ref:     ref,
 		Staged:  staged,
 		Pushed:  pushed,
+	}
+	if len(unstaged) > 0 {
+		w := fmt.Sprintf("parent has %d unstaged file(s) (%s) — use -f to include them",
+			len(unstaged), strings.Join(unstaged, ", "))
+		result.Warning = w
+		logf("warning: %s\n", w)
 	}
 	if !pushed {
 		result.Error = fmt.Sprintf("push failed: %v", pushErr)
