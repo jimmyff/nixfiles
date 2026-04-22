@@ -134,6 +134,11 @@ let
       flutter --disable-analytics 2>/dev/null || true
     fi
 
+    # Java (Android builds need java/javarsigner on PATH)
+    if [ -n "''${JAVA_HOME:-}" ] && [ -d "$JAVA_HOME/bin" ]; then
+      export PATH="$JAVA_HOME/bin:$PATH"
+    fi
+
     # Argument handling
     if [ "''${1:-}" = "--" ]; then
       shift
@@ -163,6 +168,7 @@ let
   androidEnv = lib.optionalAttrs (resolvedAndroidSdk != null) {
     ANDROID_HOME = "${resolvedAndroidSdk}/share/android-sdk";
     ANDROID_SDK_ROOT = "${resolvedAndroidSdk}/share/android-sdk";
+    JAVA_HOME = "${pkgs.jdk}";
   };
 
   kilnMetaEnv = {
@@ -185,6 +191,7 @@ let
     baseModule.corePackages
     ++ lib.optional (flutterPackage != null) flutterPackage
     ++ lib.optional (resolvedAndroidSdk != null) resolvedAndroidSdk
+    ++ lib.optional (resolvedAndroidSdk != null) pkgs.jdk
     ++ resolvedSopsWrappers
     ++ extraPackages
     ++ [ entrypoint ];
@@ -243,6 +250,9 @@ let
         # (standard Debian path), not $SSL_CERT_FILE. ca-bundle.crt already
         # exists from the cacert package in contents — just add the alias.
         ln -s ${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt etc/ssl/certs/ca-certificates.crt
+        # FHS dynamic linker for Gradle-downloaded binaries (aapt2, d8, r8, etc.)
+        mkdir -p lib64
+        ln -s ${pkgs.glibc}/lib/ld-linux-x86-64.so.2 lib64/ld-linux-x86-64.so.2
       '';
     };
 
