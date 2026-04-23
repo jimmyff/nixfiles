@@ -3,7 +3,7 @@
   lib,
 }: {
   # Repository information
-  repo = "git@github.com:jimmyff/cache-super.git";
+  repo = "git@github.com:rocketware/cache-super.git";
 
   # Required packages for this project
   # Flutter and Dart are managed at the host level via dart.enable

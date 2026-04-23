@@ -12,6 +12,9 @@ in
   corePackages = common.coreCliPackages ++ (with pkgs; [
     # iOS/macOS Flutter builds need CocoaPods
     cocoapods
+
+    # Build toolchain (native plugin compilation — parity with linux-x86 base)
+    cmake pkg-config
   ]);
 
   baseEnv = common.coreCliEnv;
