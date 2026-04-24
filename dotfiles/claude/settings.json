@@ -101,5 +101,7 @@
     "padding": 0
   },
   "alwaysThinkingEnabled": true,
-  "effortLevel": "high"
+  "effortLevel": "high",
+  "autoMemoryEnabled": false,
+  "autoDreamEnabled": false
 }
