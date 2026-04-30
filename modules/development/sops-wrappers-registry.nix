@@ -215,6 +215,7 @@ in {
       INSTALLER_P12_SOPS="$VAULT/sops/rocketware-apple-sign-mac-installer.p12.sops"
       DEV_ID_APP_P12_SOPS="$VAULT/sops/rocketware-apple-sign-developer-id-app.p12.sops"
       API_KEY_P8_SOPS="$VAULT/sops/rocketware-apple-sign-api-key.p8.sops"
+      IOS_PROV_PROFILE_SOPS="$VAULT/sops/rocketware-apple-sign-ios-provisioning-profile.mobileprovision.sops"
       ENV_SOPS="$VAULT/sops/rocketware-apple-sign.yaml"
 
       usage() {
@@ -244,6 +245,7 @@ in {
                     APPLE_APPSTORE_API_KEY_PATH
                     APPLE_APPSTORE_API_KEY_ID
                     APPLE_APPSTORE_API_ISSUER_ID
+                    APPLE_IOS_PROVISIONING_PROFILE_PATH
                     APPLE_TEAM_ID
                   Use for Mac App Store distribution (.pkg + Transporter).
 
@@ -278,12 +280,14 @@ in {
           require_file "$APP_DIST_P12_SOPS"
           require_file "$INSTALLER_P12_SOPS"
           require_file "$API_KEY_P8_SOPS"
+          require_file "$IOS_PROV_PROFILE_SOPS"
           ;;
         all)
           require_file "$DEV_ID_APP_P12_SOPS"
           require_file "$APP_DIST_P12_SOPS"
           require_file "$INSTALLER_P12_SOPS"
           require_file "$API_KEY_P8_SOPS"
+          require_file "$IOS_PROV_PROFILE_SOPS"
           ;;
       esac
 
@@ -314,6 +318,11 @@ in {
           --output "$TMPDIR_KS/AuthKey.p8" "$API_KEY_P8_SOPS"
         chmod 600 "$TMPDIR_KS/AuthKey.p8"
         export APPLE_APPSTORE_API_KEY_PATH="$TMPDIR_KS/AuthKey.p8"
+
+        "$SOPS" --decrypt --input-type binary --output-type binary \
+          --output "$TMPDIR_KS/provisioning_profile.mobileprovision" "$IOS_PROV_PROFILE_SOPS"
+        chmod 600 "$TMPDIR_KS/provisioning_profile.mobileprovision"
+        export APPLE_IOS_PROVISIONING_PROFILE_PATH="$TMPDIR_KS/provisioning_profile.mobileprovision"
       fi
 
       # `sops exec-env` takes the command as a SINGLE shell-command string
