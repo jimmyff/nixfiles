@@ -280,7 +280,7 @@ type GitCommitResult struct {
 	Ref     string   `json:"ref,omitempty"`
 	Pushed  bool     `json:"pushed"`
 	Staged  []string `json:"staged,omitempty"`
-	Warning string   `json:"warning,omitempty"`
+	Warnings []string `json:"warnings,omitempty"`
 	Error   string   `json:"error,omitempty"`
 }
 

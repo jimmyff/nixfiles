@@ -170,3 +170,105 @@ func TestGitCommit_MissingSubmoduleDir(t *testing.T) {
 		t.Errorf("missing submodule dir: expected ExitUsage (%d), got %d", ExitUsage, got)
 	}
 }
+
+// --- classifyParentFiles tests ---
+
+func TestClassifyParentFiles_Empty(t *testing.T) {
+	result := classifyParentFiles("", nil)
+	if len(result.Staged) != 0 || len(result.Unstaged) != 0 {
+		t.Errorf("empty: expected no files, got staged=%v unstaged=%v", result.Staged, result.Unstaged)
+	}
+}
+
+func TestClassifyParentFiles_UnstagedOnly(t *testing.T) {
+	input := " M README.md\n M lib/foo.dart"
+	result := classifyParentFiles(input, nil)
+	if len(result.Unstaged) != 2 {
+		t.Errorf("expected 2 unstaged, got %d: %v", len(result.Unstaged), result.Unstaged)
+	}
+	if len(result.Staged) != 0 {
+		t.Errorf("expected 0 staged, got %d: %v", len(result.Staged), result.Staged)
+	}
+}
+
+func TestClassifyParentFiles_StagedOnly(t *testing.T) {
+	input := "M  .github/workflows/kiln-firing.yml\nA  new-file.txt"
+	result := classifyParentFiles(input, nil)
+	if len(result.Staged) != 2 {
+		t.Errorf("expected 2 staged, got %d: %v", len(result.Staged), result.Staged)
+	}
+	if len(result.Unstaged) != 0 {
+		t.Errorf("expected 0 unstaged, got %d: %v", len(result.Unstaged), result.Unstaged)
+	}
+}
+
+func TestClassifyParentFiles_DotDirectoryFiles(t *testing.T) {
+	input := "M  .github/workflows/kiln-firing.yml\n M kiln/README.md"
+	result := classifyParentFiles(input, nil)
+	if len(result.Staged) != 1 || result.Staged[0] != ".github/workflows/kiln-firing.yml" {
+		t.Errorf("staged: expected [.github/workflows/kiln-firing.yml], got %v", result.Staged)
+	}
+	if len(result.Unstaged) != 1 || result.Unstaged[0] != "kiln/README.md" {
+		t.Errorf("unstaged: expected [kiln/README.md], got %v", result.Unstaged)
+	}
+}
+
+func TestClassifyParentFiles_MixedStates(t *testing.T) {
+	input := "MM both.dart\nM  staged-only.dart\n M unstaged-only.dart\nA  added.txt\n?? untracked.log"
+	result := classifyParentFiles(input, nil)
+	// MM=unstaged (working-tree change), " M"=unstaged, "??"=unstaged
+	if len(result.Unstaged) != 3 {
+		t.Errorf("expected 3 unstaged, got %d: %v", len(result.Unstaged), result.Unstaged)
+	}
+	// "M "=staged, "A "=staged
+	if len(result.Staged) != 2 {
+		t.Errorf("expected 2 staged, got %d: %v", len(result.Staged), result.Staged)
+	}
+}
+
+func TestClassifyParentFiles_SubmodulesFiltered(t *testing.T) {
+	input := " M kiln\n M editor\n M README.md"
+	subs := []string{"kiln", "editor"}
+	result := classifyParentFiles(input, subs)
+	if len(result.Unstaged) != 1 || result.Unstaged[0] != "README.md" {
+		t.Errorf("expected only README.md unstaged, got %v", result.Unstaged)
+	}
+	if len(result.Staged) != 0 {
+		t.Errorf("expected 0 staged, got %v", result.Staged)
+	}
+}
+
+func TestClassifyParentFiles_Renamed(t *testing.T) {
+	input := "R  old.txt -> new.txt"
+	result := classifyParentFiles(input, nil)
+	if len(result.Staged) != 1 || result.Staged[0] != "new.txt" {
+		t.Errorf("rename: expected staged=[new.txt], got %v", result.Staged)
+	}
+}
+
+func TestClassifyParentFiles_DeletedStaged(t *testing.T) {
+	input := "D  removed-file.txt"
+	result := classifyParentFiles(input, nil)
+	if len(result.Staged) != 1 || result.Staged[0] != "removed-file.txt" {
+		t.Errorf("delete: expected staged=[removed-file.txt], got %v", result.Staged)
+	}
+}
+
+func TestClassifyParentFiles_ShortLines(t *testing.T) {
+	input := "ab\n M valid.txt\nx"
+	result := classifyParentFiles(input, nil)
+	if len(result.Unstaged) != 1 || result.Unstaged[0] != "valid.txt" {
+		t.Errorf("short lines: expected unstaged=[valid.txt], got %v", result.Unstaged)
+	}
+}
+
+func TestClassifyParentFiles_Untracked(t *testing.T) {
+	input := "?? .github/\n?? new-dir/file.txt"
+	result := classifyParentFiles(input, nil)
+	if len(result.Unstaged) != 2 {
+		t.Errorf("expected 2 unstaged, got %d: %v", len(result.Unstaged), result.Unstaged)
+	}
+	if len(result.Staged) != 0 {
+		t.Errorf("expected 0 staged, got %v", result.Staged)
+	}
+}

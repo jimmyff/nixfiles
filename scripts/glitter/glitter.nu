@@ -196,6 +196,12 @@ def "main git commit" [
     let push_str = if ($parent.pushed? | default false) { " pushed" } else { "" }
     let err_str = if ($parent.error? | default "") != "" { $" (ansi red)($parent.error)(ansi reset)" } else { "" }
     print $"  ($icon) (parent)($staged_str)($ref_str)($push_str)($err_str)"
+    let warnings = ($parent.warnings? | default [])
+    if (not ($warnings | is-empty)) {
+      for w in $warnings {
+        print $"    (ansi yellow)warning:(ansi reset) ($w)"
+      }
+    }
   }
 
   $result

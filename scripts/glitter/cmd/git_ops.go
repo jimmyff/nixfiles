@@ -282,6 +282,55 @@ func getOutOfSyncSubmodules(root string) ([]string, error) {
 	return outOfSync, nil
 }
 
+// parentFileClassification holds the results of classifying parent repo
+// files from git status porcelain output.
+type parentFileClassification struct {
+	Staged   []string // non-submodule files already in the index
+	Unstaged []string // non-submodule files with working-tree changes or untracked
+}
+
+// classifyParentFiles parses `git status --porcelain` output and separates
+// non-submodule files into staged (index-only) and unstaged (working-tree
+// changes or untracked) categories.
+func classifyParentFiles(porcelainOutput string, submodulePaths []string) parentFileClassification {
+	subSet := make(map[string]bool, len(submodulePaths))
+	for _, s := range submodulePaths {
+		subSet[s] = true
+	}
+
+	var result parentFileClassification
+	for _, line := range strings.Split(porcelainOutput, "\n") {
+		if len(line) < 4 {
+			continue
+		}
+		x := line[0] // index status
+		y := line[1] // working-tree status
+
+		// Extract file path, handling renames/copies: "R  old.txt -> new.txt"
+		raw := line[3:]
+		filePath := raw
+		if x == 'R' || x == 'C' || y == 'R' || y == 'C' {
+			if arrowIdx := strings.Index(raw, " -> "); arrowIdx >= 0 {
+				filePath = raw[arrowIdx+4:]
+			}
+		}
+		filePath = strings.TrimSpace(filePath)
+
+		if subSet[filePath] {
+			continue
+		}
+
+		if x == '?' && y == '?' {
+			result.Unstaged = append(result.Unstaged, filePath)
+		} else if y != ' ' {
+			result.Unstaged = append(result.Unstaged, filePath)
+		} else if x != ' ' {
+			result.Staged = append(result.Staged, filePath)
+		}
+	}
+	return result
+}
+
 // commitParentRefs verifies sub HEADs are on remote, stages refs, commits and pushes parent.
 // Returns GitCommitResult with Path=".".
 func commitParentRefs(root string, subs []string, message string) GitCommitResult {
@@ -317,28 +366,21 @@ func commitParentRefs(root string, subs []string, message string) GitCommitResul
 		staged = append(staged, sub)
 	}
 
-	// Detect unstaged parent files (not part of submodule refs being committed)
-	var unstaged []string
+	// Detect non-submodule parent files (staged or unstaged)
+	var parentWarnings []string
 	if statusOut, err := runGit(root, "status", "--porcelain"); err == nil {
-		subSet := make(map[string]bool, len(subs))
-		for _, s := range subs {
-			subSet[s] = true
+		classification := classifyParentFiles(statusOut, subs)
+		if len(classification.Unstaged) > 0 {
+			w := fmt.Sprintf("parent has %d unstaged file(s) (%s) — use -f to include them",
+				len(classification.Unstaged), strings.Join(classification.Unstaged, ", "))
+			parentWarnings = append(parentWarnings, w)
+			logf("warning: %s\n", w)
 		}
-		for _, line := range strings.Split(statusOut, "\n") {
-			if len(line) < 4 {
-				continue
-			}
-			// porcelain format: XY <path> — skip files already staged (X != ' ' and X != '?')
-			// We want files that are modified/untracked but NOT being staged as submodule refs
-			xy := line[:2]
-			filePath := strings.TrimSpace(line[3:])
-			if subSet[filePath] {
-				continue
-			}
-			// Unstaged modifications (Y column) or untracked (??)
-			if xy[1] != ' ' || xy == "??" {
-				unstaged = append(unstaged, filePath)
-			}
+		if len(classification.Staged) > 0 {
+			w := fmt.Sprintf("parent has %d staged file(s) that will be included in this commit: %s",
+				len(classification.Staged), strings.Join(classification.Staged, ", "))
+			parentWarnings = append(parentWarnings, w)
+			logf("warning: %s\n", w)
 		}
 	}
 
@@ -367,17 +409,12 @@ func commitParentRefs(root string, subs []string, message string) GitCommitResul
 	pushed := pushErr == nil
 
 	result := GitCommitResult{
-		Path:    ".",
-		Success: true,
-		Ref:     ref,
-		Staged:  staged,
-		Pushed:  pushed,
-	}
-	if len(unstaged) > 0 {
-		w := fmt.Sprintf("parent has %d unstaged file(s) (%s) — use -f to include them",
-			len(unstaged), strings.Join(unstaged, ", "))
-		result.Warning = w
-		logf("warning: %s\n", w)
+		Path:     ".",
+		Success:  true,
+		Ref:      ref,
+		Staged:   staged,
+		Pushed:   pushed,
+		Warnings: parentWarnings,
 	}
 	if !pushed {
 		result.Error = fmt.Sprintf("push failed: %v", pushErr)
