@@ -17,7 +17,6 @@ in {
         # Objective-See security tools
         "lulu" # app firewall
         "blockblock" # persistence monitor
-        "do-not-disturb" # physical access alerts
         "dhs" # dylib hijack scanner
         "kextviewr" # kernel extension viewer
         "knockknock" # persistent software scanner

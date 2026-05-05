@@ -103,5 +103,7 @@
   "alwaysThinkingEnabled": true,
   "effortLevel": "high",
   "autoMemoryEnabled": false,
-  "autoDreamEnabled": false
+  "autoDreamEnabled": false,
+  "theme": "dark-daltonized",
+  "autoCompactEnabled": false
 }

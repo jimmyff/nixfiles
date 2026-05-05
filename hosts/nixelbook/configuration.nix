@@ -27,7 +27,7 @@
   # Development environment configuration
   development = {
     enable = true;
-    projects = ["jimmyff-website" "rocket-kit" "osdn" "cache"];
+    projects = ["jimmyff-website" "rocket-kit" "osdn" "cache" "libram"];
   };
 
   # Platform-specific development tools

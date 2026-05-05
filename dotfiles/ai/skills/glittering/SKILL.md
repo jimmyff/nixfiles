@@ -52,7 +52,7 @@ glittering git pull --path <root> [--filter <names>]              # pull parent 
 - **git**: `{ repo: { branch, dirty, ahead_remote, ... }, submodules: [{ ..., ahead_parent, behind_parent }] }`
 - **git check**: `{ clean: bool, issues: [{ repo, severity, type, message, fix }], summary }`
 - **git diff**: `{ repos: [{ path, staged, unstaged, untracked_files, details_file }], summary }`
-- **commit**: `{ success, submodules: [{ path, ref, pushed }], parent: { ref, staged, pushed } }`
+- **commit**: `{ success, submodules: [{ path, ref, pushed }], parent: { ref, staged, pushed, warnings } }`
 - **git pull**: `{ branch, submodules: [{ path, new_commits, was_dirty }], warnings }`
 
 ## When to use raw commands instead
