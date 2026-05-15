@@ -166,6 +166,11 @@ in {
     environment.variables = {
       ANDROID_HOME = "${androidSdk}/share/android-sdk";
       ANDROID_SDK_ROOT = "${androidSdk}/share/android-sdk";
+      # Pin Android tools to ~/.android so they find the agenix-managed
+      # debug keystore. Without this, XDG_CONFIG_HOME sends modern AGP/Gradle
+      # to ~/.config/.android and they auto-generate a stock keystore there,
+      # ignoring the Rocketware one and producing a non-registered SHA1.
+      ANDROID_USER_HOME = "${homeDir}/.android";
       # FLUTTER_ROOT and PUB_CACHE now handled by dart.nix module
     };
 
