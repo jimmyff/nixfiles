@@ -31,6 +31,9 @@ glittering git check --path <root> [--cached] [--filter <names>]  # verify commi
 glittering git push --path <root> [--filter <names>]              # push repos with unpushed
 glittering git diff --path <root> [--staged] [--filter <names>]   # diff summary
 glittering git commit <sub>... -m "msg" --path <root> [--all | -f file | --staged] [--no-parent] [--parent-only] [--parent-message "msg"]
+  # Stage with --all (all changes), -f <file> (specific files), or --staged (use the index as-is).
+  # One of these is required unless something is already staged — a bare commit with no flag
+  # and an empty index errors with "nothing staged in <sub>".
 glittering git pull --path <root> [--filter <names>]              # pull parent + subs
 ```
 
@@ -41,6 +44,8 @@ glittering git pull --path <root> [--filter <names>]              # pull parent 
 - `git commit` auto-resolves short names: `git_dart` → `packages/git_dart`
 - Prefer `git commit` over raw `git commit` / `git push` — it auto-pushes and keeps parent refs in sync
 - Use `--no-parent` to skip parent update, `--parent-only` for parent-only mode
+- After a manual commit inside a submodule, push it with `git push --filter <sub>` and bump the parent ref with `git commit --parent-only`. `--filter` skips the parent-dirty pre-flight, so a pending parent ref bump won't block the submodule push
+- Commit messages: no attribution lines, keep succinct
 - Use `--cached` for instant reads from last live run
 - Never pipe through `head`/`tail`/truncate glittering output — it's already summarised JSON; truncating breaks parsing
 - Run `glittering <command> --help` for flag details

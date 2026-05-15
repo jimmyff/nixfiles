@@ -32,9 +32,11 @@ func GitPush(args []string) int {
 		data.Submodules = filterGitSubmodules(data.Submodules, filters)
 	}
 
-	// Pre-flight: abort if any repo is dirty or any submodule is detached
+	// Pre-flight: abort if any repo is dirty or any submodule is detached.
+	// Skip the parent dirty check when --filter is active — the parent isn't
+	// pushed in that mode, so its dirty state is irrelevant.
 	var preflight []string
-	if data.Repo.Dirty {
+	if data.Repo.Dirty && len(filters) == 0 {
 		preflight = append(preflight, "parent repo has uncommitted changes")
 	}
 	for _, sub := range data.Submodules {

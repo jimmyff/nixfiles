@@ -1,6 +1,51 @@
 package cmd
 
-import "testing"
+import (
+	"encoding/json"
+	"io"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"strings"
+	"testing"
+)
+
+// initRepo creates a git repo at dir with user config so commits work.
+func initRepo(t *testing.T, dir string) {
+	t.Helper()
+	for _, args := range [][]string{
+		{"init", "--quiet", "--initial-branch=main"},
+		{"config", "user.email", "test@example.com"},
+		{"config", "user.name", "test"},
+		{"commit", "--quiet", "--allow-empty", "-m", "init"},
+	} {
+		cmd := exec.Command("git", args...)
+		cmd.Dir = dir
+		if out, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("git %v in %s failed: %v: %s", args, dir, err, out)
+		}
+	}
+}
+
+// captureStdout redirects os.Stdout for the duration of fn and returns what was written.
+func captureStdout(t *testing.T, fn func()) string {
+	t.Helper()
+	old := os.Stdout
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("pipe: %v", err)
+	}
+	os.Stdout = w
+	done := make(chan string)
+	go func() {
+		b, _ := io.ReadAll(r)
+		done <- string(b)
+	}()
+	fn()
+	w.Close()
+	os.Stdout = old
+	return <-done
+}
 
 func TestGitCommitSub_MutualExclusivity_AllAndStaged(t *testing.T) {
 	got := GitCommitSub([]string{"-m", "test", "--all", "--staged", "sub"})
@@ -168,6 +213,35 @@ func TestGitCommit_MissingSubmoduleDir(t *testing.T) {
 	got := GitCommit([]string{"-m", "test", "--path", tmp, "nonexistent/sub"})
 	if got != ExitUsage {
 		t.Errorf("missing submodule dir: expected ExitUsage (%d), got %d", ExitUsage, got)
+	}
+}
+
+// Regression: passing no staging flag with nothing already staged used to
+// surface as "commit failed: exit status 1: " (empty). Now produces a clear
+// "nothing staged" error before invoking git commit.
+func TestGitCommit_EmptyStageProducesClearError(t *testing.T) {
+	tmp := t.TempDir()
+	initRepo(t, tmp)
+	subDir := filepath.Join(tmp, "sub")
+	if err := os.MkdirAll(subDir, 0755); err != nil {
+		t.Fatalf("mkdir: %v", err)
+	}
+	initRepo(t, subDir)
+
+	var got int
+	stdout := captureStdout(t, func() {
+		got = GitCommit([]string{"-m", "test", "--path", tmp, "sub"})
+	})
+
+	if got != ExitFailure {
+		t.Fatalf("expected ExitFailure (%d), got %d", ExitFailure, got)
+	}
+	var output GitCommitOutput
+	if err := json.Unmarshal([]byte(stdout), &output); err != nil {
+		t.Fatalf("output is not valid JSON: %v\noutput: %s", err, stdout)
+	}
+	if !strings.Contains(output.Error, "nothing staged") {
+		t.Errorf("expected error to contain 'nothing staged', got: %q", output.Error)
 	}
 }
 

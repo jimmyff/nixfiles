@@ -556,6 +556,16 @@ func GitCommit(args []string) int {
 			}
 			// --staged: no staging action needed (commit index as-is)
 
+			// Empty-stage check: produce a clear error rather than letting git commit
+			// fall through with "nothing to commit" on stdout.
+			if _, diffErr := runGit(root, "diff", "--cached", "--quiet"); diffErr == nil {
+				msg := "nothing staged in parent; pass --all, -f <file>, --staged, or stage manually first"
+				parentResult := GitCommitResult{Path: ".", Error: msg}
+				output := GitCommitOutput{Path: root, Parent: &parentResult, Submodules: []GitCommitResult{}, Error: msg}
+				outputJSON(output)
+				return ExitFailure
+			}
+
 			if _, err := runGit(root, "commit", "-m", *message); err != nil {
 				parentResult := GitCommitResult{Path: ".", Error: fmt.Sprintf("commit failed: %v", err)}
 				output := GitCommitOutput{Path: root, Parent: &parentResult, Submodules: []GitCommitResult{}, Error: parentResult.Error}
@@ -683,6 +693,17 @@ func GitCommit(args []string) int {
 					return ExitFailure
 				}
 			}
+		}
+		// --staged or no flag: no-op (commit index as-is)
+
+		// Empty-stage check: catch the common "forgot --all/-f" mistake before
+		// git commit fails with an unhelpful "nothing to commit" on stdout.
+		if _, diffErr := runGit(subDir, "diff", "--cached", "--quiet"); diffErr == nil {
+			msg := fmt.Sprintf("nothing staged in %s; pass --all, -f <file>, --staged, or stage manually first", subPath)
+			subResults = append(subResults, GitCommitResult{Path: subPath, Error: msg})
+			output := GitCommitOutput{Path: root, Submodules: subResults, Error: msg}
+			outputJSON(output)
+			return ExitFailure
 		}
 
 		// Commit

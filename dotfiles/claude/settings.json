@@ -63,6 +63,8 @@
       "Bash(git add:*)",
       "Bash(git checkout:*)",
       "Bash(git pull:*)",
+      "Bash(keytool:*)",
+      "Bash(which:*)",
       "Read(~/.cache/glitter/**)",
       "Bash(glittering git:*)",
       "Bash(glittering git diff:*)",
@@ -101,7 +103,7 @@
     "padding": 0
   },
   "alwaysThinkingEnabled": true,
-  "effortLevel": "high",
+  "effortLevel": "medium",
   "autoMemoryEnabled": false,
   "autoDreamEnabled": false,
   "theme": "dark-daltonized",

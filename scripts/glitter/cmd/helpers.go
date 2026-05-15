@@ -75,11 +75,20 @@ func runCommand(dir string, timeout time.Duration, name string, args ...string) 
 	return stdout.String(), stderr.String(), err
 }
 
-// runGit runs a git command in the given directory.
+// runGit runs a git command in the given directory. On error, prefers stderr
+// for the diagnostic detail but falls back to stdout — git commit, for example,
+// writes "nothing to commit, working tree clean" to stdout, not stderr.
 func runGit(dir string, args ...string) (string, error) {
 	stdout, stderr, err := runCommand(dir, 30*time.Second, "git", args...)
 	if err != nil {
-		return strings.TrimSpace(stdout), fmt.Errorf("%w: %s", err, strings.TrimSpace(stderr))
+		details := strings.TrimSpace(stderr)
+		if details == "" {
+			details = strings.TrimSpace(stdout)
+		}
+		if details == "" {
+			return strings.TrimSpace(stdout), err
+		}
+		return strings.TrimSpace(stdout), fmt.Errorf("%w: %s", err, details)
 	}
 	return strings.TrimSpace(stdout), nil
 }

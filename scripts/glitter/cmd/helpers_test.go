@@ -2,9 +2,38 @@ package cmd
 
 import (
 	"os"
+	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 )
+
+// Regression: git commit on a clean repo writes "nothing to commit, working
+// tree clean" to stdout (not stderr). runGit used to drop stdout on error,
+// leaving callers with an empty diagnostic. Now it falls back to stdout.
+func TestRunGit_FallsBackToStdoutOnEmptyStderr(t *testing.T) {
+	tmp := t.TempDir()
+	for _, args := range [][]string{
+		{"init", "--quiet", "--initial-branch=main"},
+		{"config", "user.email", "test@example.com"},
+		{"config", "user.name", "test"},
+		{"commit", "--quiet", "--allow-empty", "-m", "init"},
+	} {
+		cmd := exec.Command("git", args...)
+		cmd.Dir = tmp
+		if out, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("git %v failed: %v: %s", args, err, out)
+		}
+	}
+
+	_, err := runGit(tmp, "commit", "-m", "test")
+	if err == nil {
+		t.Fatal("expected commit on clean repo to fail")
+	}
+	if !strings.Contains(err.Error(), "nothing to commit") {
+		t.Errorf("expected error to surface stdout 'nothing to commit', got: %q", err.Error())
+	}
+}
 
 func TestFilterSubmodulePaths_NoFilters(t *testing.T) {
 	paths := []string{"packages/foo", "packages/bar", "lib/baz"}
