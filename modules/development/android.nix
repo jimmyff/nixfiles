@@ -142,7 +142,7 @@ in {
     enable = lib.mkEnableOption "Android development environment";
   };
 
-  config = lib.mkIf cfg.enable {
+  config = lib.mkIf cfg.enable ({
     # Configure agenix identity paths for Darwin only
     # NixOS will use default system host keys via OpenSSH service
     age.identityPaths = lib.mkIf pkgs-dev-android.stdenv.isDarwin [
@@ -210,5 +210,8 @@ in {
     } // lib.optionalAttrs (!pkgs-dev-android.stdenv.isDarwin) {
       deps = ["users" "groups"];
     };
-  };
+  } // lib.optionalAttrs pkgs-dev-android.stdenv.isDarwin {
+    # scrcpy via Homebrew on Darwin (no maintained Nix package for macOS aarch64)
+    homebrew.brews = ["scrcpy"];
+  });
 }

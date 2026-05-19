@@ -63,6 +63,7 @@ in {
         $env.PATH ++= [
           "~/.local/bin"
           "${config.xdg.cacheHome}/dart-pub/bin"
+          "/opt/homebrew/bin"
         ]
 
         def --env y [...args] {
