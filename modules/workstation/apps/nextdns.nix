@@ -41,6 +41,13 @@ in {
         dnsovertls = "true";
       };
 
+      # Stop NetworkManager pushing DHCP-supplied DNS to resolved as per-link
+      # DNS — otherwise the router's nameserver overrides our global NextDNS.
+      networking.networkmanager.connectionConfig = {
+        "ipv4.ignore-auto-dns" = true;
+        "ipv6.ignore-auto-dns" = true;
+      };
+
       system.activationScripts.nextdnsResolved = {
         text = ''
           CONFIG_ID=$(cat /run/agenix/nextdns-config 2>/dev/null || echo "")

@@ -29,10 +29,13 @@ in {
       ];
     }
     else {
-      services.opensnitch.enable = true;
-      environment.systemPackages = [
-        pkgs-stable.opensnitch-ui
-      ];
+      # TODO: OpenSnitch disabled — broke networking on first enable.
+      # Needs proper config (DefaultAction, InterceptUnknown, rules for
+      # systemd-resolved/NetworkManager) before re-enabling.
+      # services.opensnitch.enable = true;
+      # environment.systemPackages = [
+      #   pkgs-stable.opensnitch-ui
+      # ];
     }
   );
 }
