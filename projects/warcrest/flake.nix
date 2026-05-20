@@ -1,5 +1,5 @@
 {
-  description = "Development environment for libram";
+  description = "Development environment for warcrest";
   # Flutter and Dart are provided by system-level Nix configuration (~/nixfiles)
   # The system config handles platform-specific setup automatically:
   # - macOS: Writable Flutter at ~/.local/share/flutter (iOS-compatible)
@@ -22,7 +22,7 @@
       pkgs-stable.mkShellNoCC {
         shellHook = ''
           ${utils.darwinPathHook pkgs-stable}
-          echo "📚 Entering libram development environment"
+          echo "📚 Entering warcrest development environment"
           echo "Flutter: $(flutter --version 2>/dev/null | head -1 || echo 'Not available')"
           echo "Dart: $(dart --version 2>/dev/null || echo 'Not available')"
           echo "☕ JDK: ${pkgs-stable.jdk}"

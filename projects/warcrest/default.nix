@@ -3,7 +3,7 @@
   lib,
 }: {
   # Repository information
-  repo = "git@github.com:jimmyff/libram.git";
+  repo = "git@github.com:jimmyff/warcrest.git";
 
   # Required packages for this project
   # Flutter and Dart are managed at the host level via dart.enable
@@ -18,5 +18,5 @@
   };
 
   # Project description
-  description = "Libram - Flutter/Dart library";
+  description = "Warcrest - Flutter/Dart library";
 }
