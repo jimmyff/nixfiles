@@ -4,13 +4,8 @@
   inputs = {
     # Specialized nixpkgs inputs for different update cadences
     pkgs-stable.url = "github:nixos/nixpkgs/nixos-25.11";           # Core system, stable packages
-    pkgs-desktop.url = "github:nixos/nixpkgs/nixos-unstable";       # Desktop environments
-    pkgs-apps.url = "github:nixos/nixpkgs/nixos-unstable";          # User applications
+    pkgs-unstable.url = "github:nixos/nixpkgs/nixos-unstable";      # Desktop, apps, dev tools
     pkgs-ai.url = "github:nixos/nixpkgs/nixpkgs-unstable";          # AI tools, bleeding edge
-    pkgs-dev-tools.url = "github:nixos/nixpkgs/nixos-unstable";     # Dev tools (editors, LSPs, formatters)
-    pkgs-dev-flutter.url = "github:nixos/nixpkgs/nixos-unstable";   # Flutter/Dart development
-    pkgs-dev-rust.url = "github:nixos/nixpkgs/nixos-unstable";      # Rust development
-    pkgs-dev-android.url = "github:nixos/nixpkgs/nixos-unstable";   # Android development
 
     # macOS (nix-darwin-25.11 matches pkgs-stable/home-manager)
     nix-darwin.url = "github:nix-darwin/nix-darwin/nix-darwin-25.11";
@@ -64,13 +59,8 @@
   outputs = inputs @ {
     self,
     pkgs-stable,
-    pkgs-desktop,
-    pkgs-apps,
+    pkgs-unstable,
     pkgs-ai,
-    pkgs-dev-tools,
-    pkgs-dev-flutter,
-    pkgs-dev-rust,
-    pkgs-dev-android,
     nix-darwin,
     home-manager,
     nixos-hardware,
@@ -84,46 +74,24 @@
     username = "jimmyff";
 
     # Helper to create specialized packages for a system
-    mkSpecialArgs = system: {
+    mkSpecialArgs = system: let
+      unstable = import pkgs-unstable {
+        inherit system;
+        config.allowUnfree = true;
+      };
+    in {
       inherit inputs username nixfiles-vault self;
       pkgs-stable = import pkgs-stable {
         inherit system;
         config.allowUnfree = true;
       };
-      pkgs-desktop = import pkgs-desktop {
-        inherit system;
-        config.allowUnfree = true;
-      };
-      pkgs-apps = import pkgs-apps {
-        inherit system;
-        config.allowUnfree = true;
-      };
+      pkgs-desktop = unstable;
+      pkgs-apps = unstable;
+      pkgs-dev-tools = unstable;
+      pkgs-dev-flutter = unstable;
+      pkgs-dev-rust = unstable;
+      pkgs-dev-android = unstable;
       pkgs-ai = import pkgs-ai {
-        inherit system;
-        config.allowUnfree = true;
-      };
-      # TODO: TEMPORARY (2026-02-02) - nushell 0.110.0 has a failing test on macOS
-      # due to sandbox permissions. Skip tests until upstream fix lands.
-      # Track: https://github.com/NixOS/nixpkgs/issues/XXXXX
-      # COMMENTED OUT: This forces a rebuild from source. Re-enable only if needed on macOS.
-      pkgs-dev-tools = import pkgs-dev-tools {
-        inherit system;
-        config.allowUnfree = true;
-        # overlays = lib.optionals pkgs-stable.stdenv.isDarwin [
-        #   (final: prev: {
-        #     nushell = prev.nushell.overrideAttrs (old: { doCheck = false; });
-        #   })
-        # ];
-      };
-      pkgs-dev-flutter = import pkgs-dev-flutter {
-        inherit system;
-        config.allowUnfree = true;
-      };
-      pkgs-dev-rust = import pkgs-dev-rust {
-        inherit system;
-        config.allowUnfree = true;
-      };
-      pkgs-dev-android = import pkgs-dev-android {
         inherit system;
         config.allowUnfree = true;
       };

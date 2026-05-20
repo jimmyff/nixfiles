@@ -11,38 +11,21 @@
 # Core stable packages (CLI utilities)
 pkgs-stable = ["rclone"]
 
-# Development Tools (editors, LSPs, formatters, shell)
-pkgs-dev-tools = ["helix", "zed-editor", "vscode", "nushell", "go"]
+# Unstable packages (desktop, apps, dev tools, Flutter, Rust, Android)
+pkgs-unstable = [
+  # Dev tools (editors, LSPs, formatters, shell)
+  "helix", "zed-editor", "vscode", "nushell", "go",
+  # Flutter/Dart
+  "flutter", "dart",
+  # Rust
+  "rustc", "cargo", "rust-analyzer",
+  # Desktop (COSMIC)
+  "aerospace",
+  "cosmic-session", "cosmic-comp", "cosmic-greeter", "cosmic-panel",
+  "cosmic-settings", "cosmic-files", "cosmic-edit", "cosmic-launcher",
+  # User applications
+  "cinny-desktop", "thunderbird", "signal-desktop-bin", "google-chrome",
+]
 
 # AI Tools (bleeding edge)
 pkgs-ai = ["claude-code", "gemini-cli"]
-
-
-# Flutter/Dart Development
-pkgs-dev-flutter = ["flutter", "dart"]
-
-# Rust Development
-pkgs-dev-rust = ["rustc", "cargo", "rust-analyzer"]
-
-# Android Development
-pkgs-dev-android = [
-  # "android-studio"
-]
-
-# Desktop Environments
-pkgs-desktop = [
-  # macOS
-  "aerospace",
-  # Core COSMIC components
-  "cosmic-session",
-  "cosmic-comp",
-  "cosmic-greeter",
-  "cosmic-panel",
-  "cosmic-settings",
-  "cosmic-files",
-  "cosmic-edit",
-  "cosmic-launcher",
-]
-
-# User Applications
-pkgs-apps = ["cinny-desktop", "thunderbird", "signal-desktop-bin", "google-chrome"]
