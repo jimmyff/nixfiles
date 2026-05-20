@@ -4,6 +4,16 @@
     enable = true;
     enableDefaultConfig = false;
     
+    matchBlocks.nixbox = {
+      hostname = "192.168.86.60";
+      user = "jimmyff";
+    };
+
+    matchBlocks.nasbox = {
+      hostname = "192.168.86.65";
+      user = "jimmyff";
+    };
+
     matchBlocks."*" = {
       addKeysToAgent = "yes";
       # Only restrict to named keys on systems that have local keys.
