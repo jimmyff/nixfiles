@@ -395,6 +395,9 @@ in {
   options.development = {
     enable = lib.mkEnableOption "development environment";
 
+    google-cloud-sdk = lib.mkEnableOption "Google Cloud SDK" // { default = true; };
+    firebase-tools = lib.mkEnableOption "Firebase CLI tools" // { default = true; };
+
     projects = lib.mkOption {
       type = lib.types.listOf lib.types.str;
       default = [];
@@ -416,8 +419,6 @@ in {
         pkgs-dev-tools.nix-direnv
 
         # Development utilities
-        pkgs-stable.firebase-tools # Pinned to stable due to unstable build issues
-        pkgs-dev-tools.google-cloud-sdk
         pkgs-dev-tools.entr
         pkgs-dev-tools.lnav
         pkgs-dev-tools.go
@@ -435,6 +436,8 @@ in {
         # Project setup helper
         devSetupScript
       ]
+      ++ (lib.optional cfg.google-cloud-sdk pkgs-dev-tools.google-cloud-sdk)
+      ++ (lib.optional cfg.firebase-tools pkgs-stable.firebase-tools) # Pinned to stable due to unstable build issues
       ++ projectPackages;
 
     # Enable nix-direnv globally
