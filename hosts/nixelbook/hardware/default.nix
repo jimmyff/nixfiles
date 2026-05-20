@@ -60,6 +60,16 @@ in
     # Chromebook-specific suspend/resume fixes
     "button.lid_init_state=open"  # Fix lid switch state detection
 
+    # Force s2idle: this hardware has no working S3 firmware path.
+    # systemd's old `SuspendMode=` option (sleep.conf) is silently ignored
+    # in current systemd, so this kernel param is the only working mechanism.
+    "mem_sleep_default=s2idle"
+
+    # `systemctl poweroff` has been observed to hang in kernel_power_off()
+    # on this device, producing an unresponsive lit screen. Force ACPI
+    # shutdown semantics, which the EC seems to honor more cleanly.
+    "reboot=acpi"
+
     # Logging
     "loglevel=4"
   ];
@@ -104,11 +114,11 @@ in
     ACTION=="add", SUBSYSTEM=="pci", ATTR{vendor}=="0x8086", ATTR{class}=="0x0c03*", ATTR{power/control}="on"
   '';
 
-  # Force s2idle sleep mode (systemd approach is more reliable than kernel param)
-  # This prevents the system from using problematic S3 "deep" sleep on Chromebooks
+  # s2idle is forced via the `mem_sleep_default=s2idle` kernel param (see
+  # boot.kernelParams above). systemd removed `SuspendMode=` from sleep.conf,
+  # so only the kernel param has effect now.
   systemd.sleep.extraConfig = ''
     [Sleep]
-    SuspendMode=s2idle
     HibernateMode=platform shutdown
     SuspendState=freeze
   '';

@@ -56,7 +56,6 @@
   minisign.enable = true;
   insertcoin = {
     enable = true;
-    kanata.enable = true;
     touchpad.enable = true;
   };
 
@@ -68,6 +67,11 @@
   # the i915/sleep/wakeup workarounds in hardware/default.nix. Lock instead —
   # the system stays running so opening the lid resumes reliably.
   services.logind.settings.Login.HandleLidSwitch = "lock";
+
+  # Watchdog escape hatch: `systemctl poweroff` has been observed to hang in
+  # kernel_power_off() on this device (lit-but-frozen screen). If shutdown
+  # doesn't complete in 2 minutes, the hardware watchdog forces a reboot.
+  systemd.watchdog.rebootTime = "2min";
 
   # Pixelbook keyboard issue:
   # `sudo libinput debug-events` failed to show chromos key press

@@ -1,31 +1,91 @@
-{ lib, config, pkgs, username, ... }:
+{ lib, config, pkgs, ... }:
 let
   cfg = config.insertcoin;
-  kanataService = "kanata-internalKeyboard.service";
 
   insertcoinScript = pkgs.writeShellScriptBin "insertcoin" ''
-    set -euo pipefail
+    set -uo pipefail
 
-    if [ $# -eq 0 ]; then
-      echo "usage: insertcoin <cmd...>" >&2
-      exit 64
-    fi
+    PORT=${toString cfg.port}
+    LOCKDIR="''${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
+    LOCKFILE="$LOCKDIR/insertcoin.lock"
+    COUNTFILE="$LOCKDIR/insertcoin.count"
 
-    ${lib.optionalString cfg.kanata.enable ''
-      KANATA_STOPPED=0
-      cleanup() {
-        if [ "$KANATA_STOPPED" = "1" ]; then
-          ${pkgs.systemd}/bin/systemctl --no-ask-password start ${kanataService} >/dev/null 2>&1 || true
+    send_layer() {
+      local layer="$1"
+      local msg='{"ChangeLayer":{"new":"'"$layer"'"}}'
+      local attempt
+      for attempt in 1 2 3 4 5; do
+        # Drain a bounded chunk of server output before closing. Kanata 1.9.0
+        # panics in tcp_server.rs:99 (getpeername) if the client disconnects
+        # too quickly, so this keeps the connection open long enough for the
+        # server to register the client.
+        if {
+          printf '%s\n' "$msg" >&3
+          ${pkgs.coreutils}/bin/timeout 0.3 ${pkgs.coreutils}/bin/head -c 256 <&3 >/dev/null 2>&1 || true
+        } 3<>/dev/tcp/127.0.0.1/"$PORT" 2>/dev/null; then
+          return 0
         fi
-      }
-      trap cleanup EXIT INT TERM HUP
+        sleep 0.1
+      done
+      echo "insertcoin: warning - could not reach kanata on 127.0.0.1:$PORT" >&2
+      return 1
+    }
 
-      if ${pkgs.systemd}/bin/systemctl --no-ask-password stop ${kanataService} 2>/dev/null; then
-        KANATA_STOPPED=1
-      else
-        echo "insertcoin: could not stop ${kanataService} (polkit rule missing?)" >&2
+    case "''${1:-}" in
+      --reset)
+        send_layer base
+        rm -f "$COUNTFILE"
+        exit 0
+        ;;
+      "")
+        echo "usage: insertcoin <cmd...>" >&2
+        echo "       insertcoin --reset    (force layer back to base)" >&2
+        exit 64
+        ;;
+    esac
+
+    mkdir -p "$LOCKDIR"
+
+    # Refcount nested invocations: only outermost wrapper restores base.
+    nest_enter() {
+      (
+        ${pkgs.util-linux}/bin/flock 9
+        local n=0
+        [ -f "$COUNTFILE" ] && n=$(cat "$COUNTFILE")
+        echo $((n + 1)) > "$COUNTFILE"
+        echo "$n"
+      ) 9>"$LOCKFILE"
+    }
+
+    nest_exit() {
+      (
+        ${pkgs.util-linux}/bin/flock 9
+        local n=1
+        [ -f "$COUNTFILE" ] && n=$(cat "$COUNTFILE")
+        n=$((n - 1))
+        if [ "$n" -le 0 ]; then
+          rm -f "$COUNTFILE"
+          echo "0"
+        else
+          echo "$n" > "$COUNTFILE"
+          echo "$n"
+        fi
+      ) 9>"$LOCKFILE"
+    }
+
+    cleanup() {
+      local remaining
+      remaining=$(nest_exit)
+      if [ "$remaining" = "0" ]; then
+        send_layer base
       fi
-    ''}
+    }
+    trap cleanup EXIT INT TERM HUP
+
+    prev=$(nest_enter)
+    if [ "$prev" = "0" ]; then
+      send_layer gamemode
+    fi
 
     ${lib.optionalString cfg.touchpad.enable ''
       case "''${XDG_CURRENT_DESKTOP:-}" in
@@ -44,21 +104,15 @@ let
 in {
   options.insertcoin = {
     enable = lib.mkEnableOption "insertcoin gaming wrapper";
-    kanata.enable = lib.mkEnableOption "stop ${kanataService} while the wrapped command runs";
+    port = lib.mkOption {
+      type = lib.types.port;
+      default = 5829;
+      description = "TCP port on which kanata's IPC server is listening on 127.0.0.1.";
+    };
     touchpad.enable = lib.mkEnableOption "remind to disable the compositor's 'disable while typing' if it would block the trackpad during gameplay";
   };
 
   config = lib.mkIf cfg.enable {
     environment.systemPackages = [ insertcoinScript ];
-
-    security.polkit.extraConfig = lib.mkIf cfg.kanata.enable ''
-      polkit.addRule(function(action, subject) {
-        if (action.id == "org.freedesktop.systemd1.manage-units" &&
-            action.lookup("unit") == "${kanataService}" &&
-            subject.user == "${username}") {
-          return polkit.Result.YES;
-        }
-      });
-    '';
   };
 }

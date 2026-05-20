@@ -1,7 +1,6 @@
 ;; defsrc is still necessary
 (defcfg
   process-unmapped-keys yes
-  danger-enable-cmd yes
 )
 
 ;; Brightness:  f5 (down) f6 (up)
@@ -48,8 +47,18 @@
 
 (deflayer base
 ;;   @escfn2
-  @a @s @d @f @j @k @l @; 
-  @f5 @f6 
+  @a @s @d @f @j @k @l @;
+  @f5 @f6
+  @f7
+  @f8 @f9 @f10
+)
+
+;; gamemode: alphas passthrough (no homerow mods); fn-row aliases preserved
+;; so brightness/media/volume keys still work in-game. Switched via TCP IPC
+;; from the `insertcoin` wrapper.
+(deflayer gamemode
+  a   s   d   f   j   k   l   ;
+  @f5 @f6
   @f7
   @f8 @f9 @f10
 )
