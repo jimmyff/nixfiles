@@ -69,8 +69,28 @@ in
     # Intel AVS driver configuration for Chromebooks
     options snd-intel-dspcfg dsp_driver=4
     options snd-soc-avs ignore_fw_version=1
-    options snd-soc-avs obsolete_card_names=1
   '';
+
+  # da7219 (headphone codec) jack detection is broken: ACPI exposes the
+  # codec's DAAD subnode without its _DSD properties ("Invalid jack detect
+  # rate" in dmesg), so the HiFi UCM profile is never marked available and
+  # only an unusable Pro Audio fallback remains. Hide the card to keep the
+  # output picker clean — use a USB-C dongle for wired audio. A proper fix
+  # would need an SSDT override to inject the missing _DSD properties.
+  services.pipewire.wireplumber.extraConfig."51-disable-broken-da7219" = {
+    "monitor.alsa.rules" = [
+      {
+        matches = [
+          { "device.name" = "~alsa_card\\.platform-avs_da7219.*"; }
+        ];
+        actions = {
+          update-props = {
+            "device.disabled" = true;
+          };
+        };
+      }
+    ];
+  };
 
   # Additional udev rules for Chromebook audio and power management
   services.udev.extraRules = ''
