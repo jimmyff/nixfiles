@@ -18,6 +18,9 @@
     # desktop audio support
     ../../modules/workstation/desktop/sound.nix
 
+    # gaming wrapper (suspends kanata + touchpad dwt while running)
+    ../../modules/workstation/insertcoin.nix
+
     # development environment
     ../../modules/development
   ];
@@ -27,16 +30,18 @@
   # Development environment configuration
   development = {
     enable = true;
-    projects = ["jimmyff-website" "rocket-kit" "osdn" "cache" "libram"];
+    projects = ["jimmyff-website" "rocket-kit" "osdn" "cache" "warcrest" "shed"];
   };
 
   # Platform-specific development tools
   android.enable = false;
   dart.enable = true;
   rust.enable = false;
-  mitmproxy.enable = true;
+  mitmproxy.enable = false;
   wireshark.enable = false;
-  docker.enable = true;
+  docker.enable = false;
+  development.google-cloud-sdk = false;
+  development.firebase-tools = false;
 
   # Applications
   cinny.enable = false; # 2026-02-20: temporarily disabled, nixpkgs version mismatch (cinny 4.10.3 vs cinny-desktop 4.10.2)
@@ -49,9 +54,20 @@
   nextdns.vaultFile = "nextdns_nixelbook.age";
   rclone.enable = true;
   minisign.enable = true;
+  insertcoin = {
+    enable = true;
+    kanata.enable = true;
+    touchpad.enable = true;
+  };
 
   # Editors (home-manager modules)
   home-manager.users.jimmyff.zed_module.enable = false; # Disable Zed to save disk space
+  home-manager.users.jimmyff.thunderbird_module.enable = false; # Disable to save disk space
+
+  # Suspend-on-lid-close intermittently fails to resume (black screen) despite
+  # the i915/sleep/wakeup workarounds in hardware/default.nix. Lock instead —
+  # the system stays running so opening the lid resumes reliably.
+  services.logind.settings.Login.HandleLidSwitch = "lock";
 
   # Pixelbook keyboard issue:
   # `sudo libinput debug-events` failed to show chromos key press
