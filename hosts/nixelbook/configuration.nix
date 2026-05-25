@@ -63,15 +63,11 @@
   home-manager.users.jimmyff.zed_module.enable = false; # Disable Zed to save disk space
   home-manager.users.jimmyff.thunderbird_module.enable = false; # Disable to save disk space
 
-  # Suspend-on-lid-close intermittently fails to resume (black screen) despite
-  # the i915/sleep/wakeup workarounds in hardware/default.nix. Lock instead —
-  # the system stays running so opening the lid resumes reliably.
-  services.logind.settings.Login.HandleLidSwitch = "lock";
-
-  # Watchdog escape hatch: `systemctl poweroff` has been observed to hang in
-  # kernel_power_off() on this device (lit-but-frozen screen). If shutdown
-  # doesn't complete in 2 minutes, the hardware watchdog forces a reboot.
-  systemd.watchdog.rebootTime = "2min";
+  # Suspend on lid close. The i915/sleep workarounds in hardware/default.nix
+  # (PSR/FBC/GuC/DC disabled + mem_sleep_default=s2idle) now make s2idle
+  # resume reliable on this hardware. If black-screen-on-resume returns,
+  # switch to "lock" — system stays running so opening the lid is trivial.
+  services.logind.settings.Login.HandleLidSwitch = "suspend";
 
   # Pixelbook keyboard issue:
   # `sudo libinput debug-events` failed to show chromos key press
