@@ -354,7 +354,7 @@ def "main git diff" [--path: string = "." --staged --filter: string = ""] {
   null
 }
 
-def "main overview" [--path: string = "." --refresh --force] {
+def "main overview" [--path: string = "." --refresh --force --compact] {
   # Refresh caches if requested (--force implies --refresh, ignores freshness)
   if $refresh or $force {
     if $force or (not (cache-fresh "git" $path 60)) {
@@ -413,34 +413,28 @@ def "main overview" [--path: string = "." --refresh --force] {
     ($subs | where { |s| $s.ahead_parent != $s.ahead_remote or $s.behind_parent != $s.behind_remote } | is-not-empty)
   }
 
-  # Repo row
+  # Repo row (workspace = packages under no submodule)
   let repo = ($git.repo | update path $git.path)
-  let repo_base = (format-git-row $repo $fetched true $has_parent)
-  mut repo_row = $repo_base
-  if $has_tests {
-    $repo_row = ($repo_row | insert tests (aggregate-tests-repo $sub_paths $test_data.packages))
-  }
-  if $has_analyze {
-    $repo_row = ($repo_row | insert analyze (aggregate-analyze-repo $sub_paths $analyze_data.packages))
-  }
-  if $has_stats {
-    $repo_row = ($repo_row | insert stats (aggregate-stats-repo $sub_paths $stats_data.packages))
-  }
+  let repo_row = (with-metric-cells (format-git-row $repo $fetched true $has_parent)
+    (packages-outside $sub_paths $test_data.packages)
+    (packages-outside $sub_paths $analyze_data.packages)
+    (packages-outside $sub_paths $stats_data.packages)
+    $has_tests $has_analyze $has_stats)
 
-  # Submodule rows
+  # Submodule rows (+ indented per-package child rows for multi-package submodules)
   let sub_rows = ($subs | each { |r|
-    mut row = (format-git-row $r $fetched false $has_parent)
-    if $has_tests {
-      $row = ($row | insert tests (aggregate-tests $r.path $test_data.packages))
+    let rollup = (with-metric-cells (format-git-row $r $fetched false $has_parent)
+      (packages-under $r.path $test_data.packages)
+      (packages-under $r.path $analyze_data.packages)
+      (packages-under $r.path $stats_data.packages)
+      $has_tests $has_analyze $has_stats)
+
+    let sub_pkgs = (packages-under $r.path $status.packages | sort-by path)
+    let children = if $compact or (($sub_pkgs | length) <= 1) { [] } else {
+      build-child-rows $r.path $sub_pkgs $test_data.packages $analyze_data.packages $stats_data.packages $has_parent $has_tests $has_analyze $has_stats
     }
-    if $has_analyze {
-      $row = ($row | insert analyze (aggregate-analyze $r.path $analyze_data.packages))
-    }
-    if $has_stats {
-      $row = ($row | insert stats (aggregate-stats $r.path $stats_data.packages))
-    }
-    $row
-  })
+    [$rollup] | append $children
+  } | flatten)
 
   let rows = ([$repo_row] | append $sub_rows)
 
@@ -479,7 +473,7 @@ Commands:
   git diff       Structured diff summary (staged/unstaged/untracked)
   git commit    Commit submodules and auto-update parent ref
   git pull       Pull parent, checkout branches, pull all submodules
-  overview       Combined dashboard: git + test + analyze + stats (--refresh to update)
+  overview       Combined dashboard: git + test + analyze + stats (--refresh to update, --compact for rollup rows)
   clean          Remove old session directories
 
 Common flags: --path <dir> --filter <name>"
@@ -525,9 +519,18 @@ def format-tracking [ahead: int, behind: int, show_behind: bool]: nothing -> str
   $parts | str join " "
 }
 
-# Aggregate test results for a submodule path
-def aggregate-tests [sub_path: string, packages: list<record>]: nothing -> string {
-  let matched = ($packages | where { |p| ($p.path | str starts-with $sub_path) })
+# Packages at or under a base path (segment-aware: avoids osdn_core swallowing osdn_core_flutter)
+def packages-under [base: string, packages: list<record>]: nothing -> list<record> {
+  $packages | where { |p| $p.path == $base or ($p.path | str starts-with $"($base)/") }
+}
+
+# Packages NOT under ANY of the given base paths (for the parent/workspace row)
+def packages-outside [bases: list<string>, packages: list<record>]: nothing -> list<record> {
+  $packages | where { |p| not ($bases | any { |b| $p.path == $b or ($p.path | str starts-with $"($b)/") }) }
+}
+
+# Render a tests cell from an already-matched package list (rollup passes many; child passes one)
+def format-tests-cell [matched: list<record>]: nothing -> string {
   if ($matched | is-empty) { return "" }
   let cmd_errors = ($matched | where status == "error" | length)
   if $cmd_errors > 0 {
@@ -542,26 +545,8 @@ def aggregate-tests [sub_path: string, packages: list<record>]: nothing -> strin
   }
 }
 
-# Aggregate test results for packages NOT under any submodule
-def aggregate-tests-repo [sub_paths: list<string>, packages: list<record>]: nothing -> string {
-  let matched = ($packages | where { |p| not ($sub_paths | any { |sp| ($p.path | str starts-with $sp) }) })
-  if ($matched | is-empty) { return "" }
-  let cmd_errors = ($matched | where status == "error" | length)
-  if $cmd_errors > 0 {
-    return $"(ansi red)err(ansi reset)"
-  }
-  let total = ($matched | get total | math sum)
-  let failed = ($matched | get failed | math sum)
-  if $failed > 0 {
-    $"(ansi red)\u{2717} ($failed)(ansi reset)"
-  } else {
-    $"(ansi green)\u{2713} ($total)(ansi reset)"
-  }
-}
-
-# Aggregate analyze results for a submodule path
-def aggregate-analyze [sub_path: string, packages: list<record>]: nothing -> string {
-  let matched = ($packages | where { |p| ($p.path | str starts-with $sub_path) })
+# Render an analyze cell from an already-matched package list
+def format-analyze-cell [matched: list<record>]: nothing -> string {
   if ($matched | is-empty) { return "" }
   let cmd_errors = ($matched | where status == "error" | length)
   let errors = ($matched | get errors | math sum)
@@ -581,26 +566,98 @@ def aggregate-analyze [sub_path: string, packages: list<record>]: nothing -> str
   }
 }
 
-# Aggregate analyze results for packages NOT under any submodule
-def aggregate-analyze-repo [sub_paths: list<string>, packages: list<record>]: nothing -> string {
-  let matched = ($packages | where { |p| not ($sub_paths | any { |sp| ($p.path | str starts-with $sp) }) })
+# Render a stats cell from an already-matched package list
+def format-stats-cell [matched: list<record>]: nothing -> string {
   if ($matched | is-empty) { return "" }
-  let cmd_errors = ($matched | where status == "error" | length)
-  let errors = ($matched | get errors | math sum)
-  let warnings = ($matched | get warnings | math sum)
-  let infos = ($matched | get infos | math sum)
-  if $cmd_errors > 0 {
-    $"(ansi red)err(ansi reset)"
-  } else if $errors > 0 or $warnings > 0 {
-    mut parts = []
-    if $errors > 0 { $parts = ($parts | append $"(ansi red)($errors)e(ansi reset)") }
-    if $warnings > 0 { $parts = ($parts | append $"(ansi yellow)($warnings)w(ansi reset)") }
-    $parts | str join " "
-  } else if $infos > 0 {
-    $"(ansi dark_gray)($infos)i(ansi reset)"
-  } else {
-    $"(ansi green)\u{2713}(ansi reset)"
+  let files = ($matched | get source_files | math sum)
+  let lines = ($matched | get source_lines | math sum)
+  let oversized = ($matched | get oversized_count | math sum)
+  mut result = $"(format-loc $lines) \u{00b7} ($files)f"
+  if $oversized > 0 {
+    $result = $"($result) (ansi yellow)($oversized)XL(ansi reset)"
   }
+  $result
+}
+
+# One table row for a package leaf: indented tree label + its own metric cells.
+# Plain-quote any "(self)" label: in an interpolated string `(self)` would be a subexpression.
+def leaf-row [indent: string, glyph: string, label: string, pkg_path: string, ctx: record]: nothing -> record {
+  mut base = { package: $"($indent)($glyph) ($label)", git: "" }
+  if $ctx.has_parent { $base = ($base | insert parent "") }
+  with-metric-cells $base ($ctx.test | where path == $pkg_path) ($ctx.analyze | where path == $pkg_path) ($ctx.stats | where path == $pkg_path) $ctx.has_tests $ctx.has_analyze $ctx.has_stats
+}
+
+# One table row for a directory/group node: indented label + blank metric cells.
+def folder-row [indent: string, glyph: string, label: string, ctx: record]: nothing -> record {
+  mut base = { package: $"($indent)($glyph) ($label)", git: "" }
+  if $ctx.has_parent { $base = ($base | insert parent "") }
+  with-metric-cells $base [] [] [] $ctx.has_tests $ctx.has_analyze $ctx.has_stats
+}
+
+# Recursively render a directory tree of packages as indented rows. `items` are
+# { segs: list<string>, pkg_path: string } where `segs` is the path relative to
+# the current node (empty = a package AT this node → shown as `· (self)`).
+# Packages arrive pre-sorted by path, so first-segment groups stay ordered.
+def render-pkg-tree [items: list<record>, indent: string, ctx: record]: nothing -> list<record> {
+  let selfs = ($items | where { |x| ($x.segs | length) == 0 })
+  let keyed = ($items | where { |x| ($x.segs | length) > 0 } | each { |x| $x | insert k0 ($x.segs | first) })
+  let keys = ($keyed | each { |x| $x.k0 } | uniq)
+  let entries = (
+    ($selfs | each { |x| { kind: "self", key: "", pkg_path: $x.pkg_path } })
+    | append ($keys | each { |k| { kind: "dir", key: $k, pkg_path: "" } })
+  )
+  let n = ($entries | length)
+  $entries | enumerate | each { |ee|
+    let glyph = if ($ee.index == ($n - 1)) { "\u{2514}" } else { "\u{251c}" }
+    let e = $ee.item
+    if $e.kind == "self" {
+      [ (leaf-row $indent $glyph "\u{00b7} (self)" $e.pkg_path $ctx) ]
+    } else {
+      let k = $e.key
+      let rest = ($keyed | where k0 == $k | each { |x| { segs: ($x.segs | skip 1), pkg_path: $x.pkg_path } })
+      let deeper = ($rest | where { |x| ($x.segs | length) > 0 })
+      if ($deeper | is-empty) {
+        [ (leaf-row $indent $glyph $k ($rest | first | get pkg_path) $ctx) ]
+      } else {
+        let frow = (folder-row $indent $glyph $"($k)/" $ctx)
+        let crows = (render-pkg-tree $rest ($indent + " ") $ctx)
+        [$frow] | append $crows
+      }
+    }
+  } | flatten
+}
+
+# Insert the conditional tests/analyze/stats cells onto a base row. One ladder
+# shared by repo, submodule-rollup, and child rows so every row carries an
+# identical column set (required by `select ...$cols`).
+def with-metric-cells [
+  base: record, tests: list<record>, analyze: list<record>, stats: list<record>,
+  has_tests: bool, has_analyze: bool, has_stats: bool
+]: nothing -> record {
+  mut row = $base
+  if $has_tests { $row = ($row | insert tests (format-tests-cell $tests)) }
+  if $has_analyze { $row = ($row | insert analyze (format-analyze-cell $analyze)) }
+  if $has_stats { $row = ($row | insert stats (format-stats-cell $stats)) }
+  $row
+}
+
+# Build indented per-package child rows (directory tree) for a multi-package
+# submodule. Splits each package's submodule-relative path into segments and
+# renders folders as blank group rows with leaves showing the basename.
+def build-child-rows [
+  sub_path: string, pkgs: list<record>,
+  test_data: list<record>, analyze_data: list<record>, stats_data: list<record>,
+  has_parent: bool, has_tests: bool, has_analyze: bool, has_stats: bool
+]: nothing -> list<record> {
+  let ctx = {
+    test: $test_data, analyze: $analyze_data, stats: $stats_data,
+    has_parent: $has_parent, has_tests: $has_tests, has_analyze: $has_analyze, has_stats: $has_stats
+  }
+  let items = ($pkgs | each { |p|
+    let rel = if $p.path == $sub_path { "" } else { ($p.path | str replace $"($sub_path)/" "") }
+    { segs: (if $rel == "" { [] } else { $rel | split row "/" }), pkg_path: $p.path }
+  })
+  render-pkg-tree $items "" $ctx
 }
 
 # Format stats line count as compact string (rounds to nearest 1k for 1000+)
@@ -611,34 +668,6 @@ def format-loc [lines: int]: nothing -> string {
   } else {
     $"($lines)"
   }
-}
-
-# Aggregate stats for a submodule path
-def aggregate-stats [sub_path: string, packages: list<record>]: nothing -> string {
-  let matched = ($packages | where { |p| ($p.path | str starts-with $sub_path) })
-  if ($matched | is-empty) { return "" }
-  let files = ($matched | get source_files | math sum)
-  let lines = ($matched | get source_lines | math sum)
-  let oversized = ($matched | get oversized_count | math sum)
-  mut result = $"(format-loc $lines) \u{00b7} ($files)f"
-  if $oversized > 0 {
-    $result = $"($result) (ansi yellow)($oversized)XL(ansi reset)"
-  }
-  $result
-}
-
-# Aggregate stats for packages NOT under any submodule
-def aggregate-stats-repo [sub_paths: list<string>, packages: list<record>]: nothing -> string {
-  let matched = ($packages | where { |p| not ($sub_paths | any { |sp| ($p.path | str starts-with $sp) }) })
-  if ($matched | is-empty) { return "" }
-  let files = ($matched | get source_files | math sum)
-  let lines = ($matched | get source_lines | math sum)
-  let oversized = ($matched | get oversized_count | math sum)
-  mut result = $"(format-loc $lines) \u{00b7} ($files)f"
-  if $oversized > 0 {
-    $result = $"($result) (ansi yellow)($oversized)XL(ansi reset)"
-  }
-  $result
 }
 
 # Format age as human-readable string
