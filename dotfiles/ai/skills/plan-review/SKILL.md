@@ -1,6 +1,6 @@
 ---
 name: plan-review
-description: Comprehensively review an implementation plan or design doc — grounds every claim against the real codebase, critiques across correctness/architecture/risk/completeness lenses, adversarially verifies flaws, and returns a prioritized verdict with concrete fixes. Use when the user asks to review, critique, sanity-check, or find flaws in a plan file (e.g. "review this plan", "critique my plan at <path>", "is this plan sound?"). After reporting, it asks which items to apply and revises the plan on request. SKIP for authoring a new plan (that's plan mode) or reviewing code/PRs (use code-review).
+description: Comprehensively review an implementation plan or design doc — grounds every claim against the real codebase, critiques across correctness/architecture/risk/completeness lenses, adversarially verifies flaws, and returns a prioritized verdict with concrete fixes. Use when the user asks to review, critique, sanity-check, or find flaws in a plan file (e.g. "review this plan", "critique my plan at <path>", "is this plan sound?"). After reporting, it asks which items to apply, revises the plan, and emits a cold-start handoff brief to implement the revised plan in a fresh session. SKIP for authoring a new plan (that's plan mode) or reviewing code/PRs (use code-review).
 ---
 
 # plan-review
@@ -93,9 +93,43 @@ After the report, run two quick interactions:
 
 Then rewrite the plan file, folding in the chosen fixes and the answers. Preserve the plan's structure, voice, and intent; if a chosen fix conflicts with the stated goal, raise it rather than overriding silently. Show a short summary of what changed. If nothing is selected and no questions answered, leave the file untouched.
 
+### 7. Handoff brief
+
+Finish by emitting a **cold-start brief** so implementation starts in a fresh,
+plan-shaped session — by now the review context is full of rejected branches and
+refuted findings, a poor place to build from.
+
+- **When.** Always emit it after step 6 (even if no edits were applied) — *unless*
+  the verdict is **Reconsider** or the plan needs another round; an implementation
+  handoff is premature there, so say so and skip.
+- **Recommend, don't decide.** Tune one line to how much the plan changed:
+  heavy/structural → "this session is desynced from the revised plan — recommend
+  implementing in a fresh session"; light/none → "optional — continue here, or use
+  the brief for a clean start."
+- **Pointer, not payload.** The brief points at the plan; the plan is the single
+  source of truth. If you're tempted to put substantive context in the brief, it
+  belongs *in the plan* — fold it into step 6 instead. (Writing the brief is a
+  self-sufficiency test: a cold agent must be able to execute from the plan file
+  alone.)
+- **Form.** A copy-paste fenced block written as the user's opening message to the
+  new session — never appended to the plan file. It marks the design as settled
+  (already reviewed and grounded — don't re-review) and asks for a concrete,
+  ordered implementation plan re-grounded against current code (which may have
+  drifted since the review):
+
+  ```
+  Implement the plan at <plan-file>.
+
+  It's an approved design — already reviewed and grounded against the codebase.
+  Treat the approach as settled; don't re-review it. Read it in full, load repo
+  conventions (AGENTS.md/CLAUDE.md), then enter plan mode and produce a concrete,
+  ordered implementation plan, grounding each step against the current code.
+  ```
+
 ## Rules
 
 - Read the code before asserting a flaw; cite `file:line`.
 - Distinguish flaw vs. preference vs. idea — don't inflate severity.
 - Never edit the plan during review/report — only after the user chooses what to apply.
 - If the plan's goal is genuinely unclear, ask one focused question before reviewing rather than guessing.
+- The handoff brief is chat-only and points at the plan — fold session-only context into the plan (step 6), never into the brief.

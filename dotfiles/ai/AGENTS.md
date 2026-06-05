@@ -55,6 +55,13 @@
 - Read URLs when shared
 - My systems are entirely managed by Nix, system configuration is in `~/nixfiles/`. If working in `~/Project/...` you are in a project with its own devshell configured by the project flake.
 
+## Shell & tools
+
+Prefer these to cut approval prompts — a compound command is fine when genuinely needed:
+
+- Prefer built-in read/search/list tools over shelling out to `cat`/`grep`/`find`/`ls`
+- Prefer absolute paths over `cd`, and avoid pairing `cd` with redirection (`>`, `2>`, incl. `2>/dev/null`) in one command — that combo forces a manual prompt
+
 ## Research
 
 - Prioritise official documentation and source repositories over web searches
