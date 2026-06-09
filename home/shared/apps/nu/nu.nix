@@ -87,6 +87,7 @@ in {
       # append /usr/bin/env
       # )
       shellAliases = {
+        x = "mux";
         # vi = "hx";
         # vim = "hx";
         # nano = "hx";

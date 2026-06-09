@@ -47,14 +47,16 @@
         "ctrl+k" = "no_op";
         "ctrl+l" = "no_op";
 
-        "ctrl+n" = "new_tab";
-        "ctrl+w" = "close_tab";
+        # Tab actions also passed through to zellij (no_op, immune to kitty defaults
+        # like ctrl+shift+h=show_scrollback). ⌘⌃h/l tab-switch is restored in zellij.
+        "ctrl+n" = "no_op";
+        "ctrl+w" = "no_op";
         "cmd+w" = "close_os_window";
-        "cmd+ctrl+h" = "previous_tab";
-        "cmd+ctrl+l" = "next_tab";
-        "ctrl+shift+h" = "move_tab_backward";
-        "ctrl+shift+j" = "move_tab_forward";
-        "cmd+ctrl+t" = "set_tab_title";
+        "cmd+ctrl+h" = "no_op";
+        "cmd+ctrl+l" = "no_op";
+        "ctrl+shift+h" = "no_op";
+        "ctrl+shift+j" = "no_op";
+        "cmd+ctrl+t" = "no_op";
       };
 
       settings = {

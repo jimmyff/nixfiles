@@ -11,6 +11,7 @@
     ./rio/rio.nix
     ./alacritty/alacritty.nix
     ./zellij/zellij.nix
+    ./mux/mux.nix
     ./chromium/chromium.nix
     ./librewolf/librewolf.nix
     ./vscode/vscode.nix
@@ -43,6 +44,7 @@
   rio_module.enable = lib.mkDefault true;
   alacritty_module.enable = lib.mkDefault true;
   zellij_module.enable = lib.mkDefault true;
+  mux_module.enable = lib.mkDefault true;
 
   # Default terminal
   home.sessionVariables.TERMINAL = lib.mkDefault "kitty";

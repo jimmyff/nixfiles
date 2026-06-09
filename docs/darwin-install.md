@@ -7,23 +7,16 @@
 5. Setup SSH keys from Bitwarden
 6. Disable system shortcuts: System Settings → Keyboard → Shortcuts
 7. Launch Raycast, bind to ⌘+Space
-8. Configure browser keyboard shortcuts in System Settings → Keyboard → Shortcuts → App Shortcuts: → All Applications
+8. **Chromium ⌃-shortcuts** are codified in `modules/core/darwin/system-defaults.nix`
+   (applied on `darwin-rebuild switch`; then `killall cfprefsd` + relaunch Chromium).
+   Edit that file — not System Settings (a rebuild overwrites manual changes). See
+   `docs/multiplexing.md` for the keyboard-layering model.
+
+   Still set manually in System Settings → Keyboard → Shortcuts → App Shortcuts →
+   All Applications (these are global, not codified):
 
 | Menu Title              | Keybind  |
 | ----------------------- | -------- |
-| Close Tab               | ^W       |
-| New tab                 | ^T       |
-| Focus Address Bar       | ^L       |
-| New Tab                 | ^T       |
-| Select Next Tab         | ^⌘L      |
-| Select Previous Tab     | ^⌘H      |
-| New Window              | ^N       |
-| New window              | ^N       |
-| New Incognito window    | ^⇧N      |
-| New Private Window      | ^⇧N      |
-| Reload This Page        | ^R       |
-| Back                    | ^K       |
-| Forward                 | ^J       |
 | Hide Visual Studio Code | `random` |
 | Hide Others             | `random` |
 

@@ -156,6 +156,8 @@ keybinds clear-defaults=true {
         bind "Alt Super l" { MoveFocusOrTab "right"; }
         bind "Alt Super n" { NewPane; }
         bind "Alt Super o" { MoveTab "right"; }
+        bind "Super Ctrl h" { GoToPreviousTab; }
+        bind "Super Ctrl l" { GoToNextTab; }
     }
     shared_except "locked" {
         bind "Ctrl g" { SwitchToMode "locked"; }
@@ -312,7 +314,7 @@ theme "ayu_dark"
 // Choose the base input mode of zellij.
 // Default: normal
 // 
-// default_mode "locked"
+default_mode "locked"
  
 // Choose the path to the default shell that zellij will use for opening new panes
 // Default: $SHELL
@@ -326,7 +328,7 @@ default_shell "nu"
 // The name of the default layout to load on startup
 // Default: "default"
 // 
-// default_layout "compact"
+default_layout "compact"
  
 // The folder in which Zellij will look for layouts
 // (Requires restart)
@@ -442,7 +444,7 @@ scrollback_editor "hx"
 //   - true
 //   - false (default)
 // 
-// serialize_pane_viewport false
+serialize_pane_viewport true
  
 // Scrollback lines to serialize along with the pane viewport when serializing sessions, 0
 // defaults to the scrollback size. If this number is higher than the scrollback size, it will

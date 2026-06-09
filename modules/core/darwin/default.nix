@@ -29,6 +29,7 @@ in {
     ../shared/fonts.nix
     ../shared/stow.nix
     ./homebrew.nix
+    ./system-defaults.nix
   ];
 
   nixpkgs.hostPlatform = "aarch64-darwin";
