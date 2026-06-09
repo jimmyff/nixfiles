@@ -158,6 +158,7 @@ keybinds clear-defaults=true {
         bind "Alt Super o" { MoveTab "right"; }
         bind "Super Ctrl h" { GoToPreviousTab; }
         bind "Super Ctrl l" { GoToNextTab; }
+        bind "Alt Super d" { Detach; }
     }
     shared_except "locked" {
         bind "Ctrl g" { SwitchToMode "locked"; }

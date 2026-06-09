@@ -42,6 +42,7 @@
         "cmd+alt+j" = "no_op";
         "cmd+alt+k" = "no_op";
         "cmd+alt+l" = "no_op";
+        "cmd+alt+d" = "no_op"; # → zellij Detach
         "ctrl+h" = "no_op";
         "ctrl+j" = "no_op";
         "ctrl+k" = "no_op";

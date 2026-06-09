@@ -13,9 +13,12 @@
 
 const SCAFFOLD = 'layout {
     default_tab_template {
+        pane size=1 borderless=true {
+            plugin location="zellij:tab-bar"
+        }
         children
         pane size=1 borderless=true {
-            plugin location="zellij:compact-bar"
+            plugin location="zellij:status-bar"
         }
     }
     tab name="edit" {

@@ -1,79 +1,56 @@
 # Multiplexing — kitty + zellij + mux
 
 One kitty window, zellij as the only multiplexer, one named session per project
-(**session = workspace**). Launch with `mux` (alias `x`); switch via zellij's
-native session-manager.
+(**session = workspace**). Launch with `mux` (alias `x`).
 
-## Keyboard layering (bottom → top)
+## Keyboard layering
 
-| Layer | Owner | Role |
-| ----- | ----- | ---- |
-| 0 | kanata (`dotfiles/kanata/kanata.kbd`) | Home-row mods *produce* the modifiers |
-| 1 | aerospace | ⌘ / ⌥ → windows & spaces |
-| 1 | macOS App Shortcuts | ⌃ → **Chromium menus only** (`modules/core/darwin/system-defaults.nix`) |
-| 1 | zellij | **Locked by default** — all ⌃ reach the focused TUI; ⌘⌥ → zellij nav |
-| 1 | kitty | Passes ⌃ through (tab keys are `no_op`) |
+| Keys | Go to |
+| ---- | ----- |
+| ⌃ (anything) | the focused TUI — zellij is **locked by default** (Claude, Helix) |
+| ⌘⌥ + home row / symbols / arrows | **zellij** — nav, resize, detach (works while locked) |
+| ⌘ / ⌘⇧ + `hjkl` | aerospace — window focus / move |
+| ⌥ / ⌘⌥ + top·bottom-row letter | aerospace — switch / move to workspace |
+| ⌃ in Chromium | menu shortcuts — tabs, address bar |
 
-### Home-row mods (kanata, layer 0)
+kanata makes the modifiers from home-row holds: `a`/`;`=⌘, `s`/`l`=⌥, `d`/`k`=⌃, `f`/`j`=⇧.
+So `Ctrl+s` = hold `d` + tap `s`.
 
-Hold a home-row key for its modifier; tap for the letter. Physical modifier keys
-still work (`process-unmapped-keys yes`).
+## zellij keys
 
-| Modifier | Left | Right |
-| -------- | ---- | ----- |
-| ⌃ Ctrl  | `d` | `k` |
-| ⌘ Cmd   | `a` | `;` |
-| ⌥ Alt   | `s` | `l` |
-| ⇧ Shift | `f` | `j` |
+Sessions start **locked**, so every `Ctrl` reaches the TUI. To drive zellij:
 
-Chord ergonomics: `Ctrl+s` (→ TUI) = hold `d` + tap `s`; `Ctrl+g` (toggle) =
-hold `d` + tap `g`.
+| Key | Action |
+| --- | ------ |
+| `Ctrl+g` | toggle locked ↔ normal (then `Ctrl+t` tabs, `Ctrl+p` panes, …) |
+| ⌘⌥ `hjkl` / arrows | move focus, or switch tab at the edge |
+| ⌘⌥ `+ − =` / `[ ]` | resize / swap layout |
+| ⌘⌃ `h` `l` | previous / next tab |
+| ⌘⌥ `d` | detach |
+| `Ctrl+g` → `Ctrl+o` `w` | session-manager (switch sessions) |
 
-## zellij: locked by default
+`Ctrl+g` shadows Claude's external-editor, so that's rebound to `Ctrl+E`
+(`dotfiles/claude/keybindings.json`).
 
-Sessions start **locked** so every `Ctrl` passes straight to the focused TUI
-(Claude Code, Helix), which are `Ctrl`-heavy. To drive zellij itself:
+## mux
 
-- **`Ctrl+g`** — toggle locked ↔ normal (then `Ctrl+t` tabs, `Ctrl+p` panes, …).
-- **⌘⌥ hjkl / arrows** — focus + tab-edge switch (works **locked**; dodges aerospace).
-- **⌘⌥ +/− / =** — resize. **⌘⌥ [ / ]** — swap layout. (Both work locked.)
-- **⌘⌃h / ⌘⌃l** — previous / next tab (restored from kitty; works locked).
-- **`Ctrl+g`, then `Ctrl+o` `w`** — open the session-manager to switch sessions.
-
-Trade-off: Claude's external-editor on `Ctrl+g` is shadowed by the toggle, so it's
-rebound to **`Ctrl+E`** (`dotfiles/claude/keybindings.json`); the `Ctrl+X Ctrl+E`
-chord still works.
-
-## mux — workspace launcher
-
-`mux` (alias `x`) resolves a session name + private layout from the cwd, then
-attaches to or creates the matching zellij session.
+`mux` resolves a session name + layout from the cwd, then attaches or creates it.
 
 | Command | Action |
 | ------- | ------ |
-| `mux` / `x` | Launch/attach the workspace for the cwd |
-| `mux reset` | Delete the session, then relaunch (escape a bad resurrection) |
-| `mux init`  | Scaffold a `.zellij.kdl` here (won't clobber an existing one) |
+| `mux` / `x` | launch or attach the workspace for the cwd |
+| `mux reset` | delete the session, then relaunch (escape a bad resurrection) |
+| `mux init` | scaffold a `.zellij.kdl` here |
 
-Session name (first match wins): `$env.ZJ_SESSION` → `~/Projects/<name>/workspace`
-→ git repo basename → cwd basename. Layout: `$env.ZJ_LAYOUT` → nearest `.zellij.kdl`
-walking up to the root → none (falls back to `default_layout "compact"`).
+- **Session name:** `$ZJ_SESSION` → `~/Projects/<name>/workspace` → git repo → cwd basename.
+- **Layout:** `$ZJ_LAYOUT` → nearest `.zellij.kdl` → the `compact` default.
 
-### Layout convention — `.zellij.kdl`
+A project's `.zellij.kdl` lives at its repo root, in the **private** repo (layouts hold launch
+commands; nixfiles is public). `~/nixfiles/.zellij.kdl` is the committed scaffold `mux init` writes.
 
-Per-project layout at the repo root. Project layouts hold launch commands, so they
-live in the **private** project repo (nixfiles is public). `~/nixfiles/.zellij.kdl`
-is the committed scaffold (`edit` + `git` tabs, compact bar) and is exactly what
-`mux init` writes.
+## Applying changes
 
-## Persistence & applying changes
-
-- **Persistence is on** (`session_serialization` default + `serialize_pane_viewport
-  true`). Sessions survive restarts; resurrecting **re-runs pane commands** — keep
-  heavy commands (e.g. `flutter run`) out of auto-resurrected layouts, or `mux reset`.
-- **zellij config is a live symlink** (`dotfiles/zellij/config.kdl`): edits apply on
-  the next zellij **restart**, not `darwin-rebuild`; `darwin-rebuild rollback` won't
-  revert it — back out via git. zellij's config UI writes *through* the symlink, so
-  keep manual edits minimal.
-- **kitty / mux / Chromium defaults** apply on `darwin-rebuild switch` (Chromium also
-  needs `killall cfprefsd` + relaunch).
+- **Live symlinks** — `dotfiles/zellij`, `dotfiles/aerospace`, `.zellij.kdl`: apply on the next
+  zellij start / `aerospace reload-config`, not `darwin-rebuild`. Revert via git.
+- **kitty / mux / Chromium** — `darwin-rebuild switch` (Chromium also needs `killall cfprefsd`).
+- Persistence is on; resurrecting **re-runs pane commands** — `mux reset` to start clean.

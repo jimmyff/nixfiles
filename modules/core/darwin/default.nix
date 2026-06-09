@@ -30,6 +30,7 @@ in {
     ../shared/stow.nix
     ./homebrew.nix
     ./system-defaults.nix
+    ./symbolic-hotkeys.nix
   ];
 
   nixpkgs.hostPlatform = "aarch64-darwin";

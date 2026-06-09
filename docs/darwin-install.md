@@ -5,20 +5,12 @@
 3. Set hostname: `sudo scutil --set HostName jimmyff-mbp14`
 4. Install Darwin: `sudo nix run --extra-experimental-features nix-command --extra-experimental-features flakes nix-darwin/master#darwin-rebuild -- switch --flake ~/nixfiles/flake.nix`
 5. Setup SSH keys from Bitwarden
-6. Disable system shortcuts: System Settings → Keyboard → Shortcuts
+6. System keyboard shortcuts are disabled declaratively in `modules/core/darwin/symbolic-hotkeys.nix` (applied on `darwin-rebuild switch`; a logout/restart may be needed to take full effect)
 7. Launch Raycast, bind to ⌘+Space
 8. **Chromium ⌃-shortcuts** are codified in `modules/core/darwin/system-defaults.nix`
    (applied on `darwin-rebuild switch`; then `killall cfprefsd` + relaunch Chromium).
    Edit that file — not System Settings (a rebuild overwrites manual changes). See
    `docs/multiplexing.md` for the keyboard-layering model.
-
-   Still set manually in System Settings → Keyboard → Shortcuts → App Shortcuts →
-   All Applications (these are global, not codified):
-
-| Menu Title              | Keybind  |
-| ----------------------- | -------- |
-| Hide Visual Studio Code | `random` |
-| Hide Others             | `random` |
 
 ## Vimium keymaps
 
