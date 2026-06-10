@@ -11,9 +11,24 @@
     programs.git = {
       enable = true;
       lfs.enable = true;
-      settings.user = {
-        name = "jimmyff";
-        email = "code@rocketware.co.uk";
+      settings = {
+        user = {
+          name = "jimmyff";
+          email = "code@rocketware.co.uk";
+        };
+        # `git sdiff` for on-demand side-by-side view
+        alias.sdiff = "!git -c delta.side-by-side=true diff";
+      };
+    };
+
+    # Diff pager (wired into git via enableGitIntegration)
+    programs.delta = {
+      enable = true;
+      enableGitIntegration = true;
+      options = {
+        line-numbers = true;
+        navigate = true; # n/N to move between diff sections
+        syntax-theme = "gruvbox-dark";
       };
     };
 

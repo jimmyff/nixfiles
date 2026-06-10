@@ -307,10 +307,128 @@ web_client {
 // 
 // simplified_ui true
  
+// Custom theme — built with https://rosmur.github.io/zellij-theme-configurator/
+themes {
+    jimmyff {
+        ribbon_unselected {
+            base 192 192 192
+            background 30 30 46
+            emphasis_0 139 190 244
+            emphasis_1 249 226 175
+            emphasis_2 145 173 217
+            emphasis_3 203 166 247
+        }
+        ribbon_selected {
+            base 30 30 46
+            background 255 226 122
+            emphasis_0 139 190 244
+            emphasis_1 249 226 175
+            emphasis_2 145 173 217
+            emphasis_3 203 166 247
+        }
+        text_unselected {
+            base 192 192 192
+            background 30 30 46
+            emphasis_0 139 190 244
+            emphasis_1 249 226 175
+            emphasis_2 145 173 217
+            emphasis_3 203 166 247
+        }
+        text_selected {
+            base 216 219 223
+            background 30 30 46
+            emphasis_0 139 190 244
+            emphasis_1 249 226 175
+            emphasis_2 145 173 217
+            emphasis_3 203 166 247
+        }
+        table_title {
+            base 192 192 192
+            background 30 30 46
+            emphasis_0 139 190 244
+            emphasis_1 249 226 175
+            emphasis_2 145 173 217
+            emphasis_3 203 166 247
+        }
+        table_cell_unselected {
+            base 192 192 192
+            background 30 30 46
+            emphasis_0 139 190 244
+            emphasis_1 249 226 175
+            emphasis_2 145 173 217
+            emphasis_3 203 166 247
+        }
+        table_cell_selected {
+            base 192 192 192
+            background 30 30 46
+            emphasis_0 139 190 244
+            emphasis_1 249 226 175
+            emphasis_2 145 173 217
+            emphasis_3 203 166 247
+        }
+        list_unselected {
+            base 192 192 192
+            background 30 30 46
+            emphasis_0 139 190 244
+            emphasis_1 249 226 175
+            emphasis_2 145 173 217
+            emphasis_3 203 166 247
+        }
+        list_selected {
+            base 192 192 192
+            background 30 30 46
+            emphasis_0 139 190 244
+            emphasis_1 249 226 175
+            emphasis_2 145 173 217
+            emphasis_3 203 166 247
+        }
+        frame_unselected {
+            base 84 84 115
+            background 30 30 56
+            emphasis_0 139 190 244
+            emphasis_1 249 226 175
+            emphasis_2 145 173 217
+            emphasis_3 203 166 247
+        }
+        frame_selected {
+            base 255 226 122
+            background 30 30 46
+            emphasis_0 139 190 244
+            emphasis_1 249 226 175
+            emphasis_2 145 173 217
+            emphasis_3 203 166 247
+        }
+        frame_highlight {
+            base 139 190 244
+            background 30 30 46
+            emphasis_0 139 190 244
+            emphasis_1 249 226 175
+            emphasis_2 145 173 217
+            emphasis_3 203 166 247
+        }
+        exit_code_success {
+            base 166 227 161
+            background 30 30 46
+            emphasis_0 139 190 244
+            emphasis_1 249 226 175
+            emphasis_2 145 173 217
+            emphasis_3 203 166 247
+        }
+        exit_code_error {
+            base 243 139 168
+            background 30 30 46
+            emphasis_0 139 190 244
+            emphasis_1 249 226 175
+            emphasis_2 145 173 217
+            emphasis_3 203 166 247
+        }
+    }
+}
+
 // Choose the theme that is specified in the themes section.
 // Default: default
-// 
-theme "ayu_dark"
+//
+theme "jimmyff"
  
 // Choose the base input mode of zellij.
 // Default: normal
