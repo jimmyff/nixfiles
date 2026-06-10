@@ -311,8 +311,9 @@ web_client {
 themes {
     jimmyff {
         ribbon_unselected {
-            base 192 192 192
-            background 30 30 46
+
+            base 160 160 220
+            background 60 60 96
             emphasis_0 139 190 244
             emphasis_1 249 226 175
             emphasis_2 145 173 217
@@ -327,7 +328,8 @@ themes {
             emphasis_3 203 166 247
         }
         text_unselected {
-            base 192 192 192
+
+            base 125 125 180
             background 30 30 46
             emphasis_0 139 190 244
             emphasis_1 249 226 175
@@ -383,7 +385,7 @@ themes {
             emphasis_3 203 166 247
         }
         frame_unselected {
-            base 84 84 115
+            base 125 125 180
             background 30 30 56
             emphasis_0 139 190 244
             emphasis_1 249 226 175
