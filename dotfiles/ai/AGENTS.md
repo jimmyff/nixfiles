@@ -11,6 +11,7 @@
 ## Tone
 
 - Simple, succinct, objective, and efficient (especially in documentation, markdown, notes, comments)
+- Explain plainly: favor common words; briefly explain obscure jargon.
 
 ## Coding
 
