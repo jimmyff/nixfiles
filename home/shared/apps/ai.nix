@@ -7,7 +7,7 @@
   claude-cfg = config.claude-code_module;
   antigravity-cfg = config.antigravity-cli_module;
 in {
-  options.claude-code_module.enable = lib.mkEnableOption "Claude Code" // {default = true;};
+  options.claude-code_module.enable = lib.mkEnableOption "Claude Code";
   options.antigravity-cli_module.enable = lib.mkEnableOption "Antigravity CLI";
 
   config = lib.mkMerge [

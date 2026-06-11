@@ -26,6 +26,7 @@
   ];
 
   networking.hostName = "nixelbook";
+  mdns.resolve = true; # reach nasbox.local; don't advertise self while roaming
 
   # Development environment configuration
   development = {

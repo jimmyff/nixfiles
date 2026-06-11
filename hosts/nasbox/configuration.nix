@@ -12,6 +12,7 @@
 
   networking.hostName = "nasbox";
   qemu-guest.enable = true;
+  mdns.publish = true; # reachable as nasbox.local regardless of DHCP IP
 
   # Data disk mounts (Proxmox virtual disks)
   fileSystems."/data/media" = {

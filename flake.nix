@@ -136,6 +136,7 @@
             home-manager.users.${username} = { ... }: {
               imports = [ ./home/linux ];
               desktop.enable = true;
+              claude-code_module.enable = true;
             };
           }
         ];
@@ -157,7 +158,10 @@
             home-manager.useUserPackages = true;
             home-manager.backupFileExtension = "backup";
             home-manager.extraSpecialArgs = linuxArgs;
-            home-manager.users.${username} = import ./home/linux;
+            home-manager.users.${username} = { ... }: {
+              imports = [ ./home/linux ];
+              claude-code_module.enable = true;
+            };
           }
         ];
       };
@@ -178,7 +182,33 @@
             home-manager.useUserPackages = true;
             home-manager.backupFileExtension = "backup";
             home-manager.extraSpecialArgs = linuxArgs;
-            home-manager.users.${username} = import ./home/linux;
+            home-manager.users.${username} = { ... }: {
+              imports = [ ./home/linux ];
+              claude-code_module.enable = true;
+            };
+          }
+        ];
+      };
+
+      # Rocketware self-hosted ntfy push host (GCE e2-micro) — first cloud host; deployed from nixbox
+      gcp-beacon = pkgs-stable.lib.nixosSystem {
+        specialArgs = linuxArgs;
+
+        modules = [
+          ./hosts/gcp-beacon/configuration.nix
+
+          ./modules/core/linux
+
+          agenix.nixosModules.default
+          inputs.home-manager.nixosModules.home-manager
+          {
+            home-manager.useGlobalPkgs = true;
+            home-manager.useUserPackages = true;
+            home-manager.backupFileExtension = "backup";
+            home-manager.extraSpecialArgs = linuxArgs;
+            home-manager.users.${username} = { ... }: {
+              imports = [ ./home/linux ]; # desktop.enable + claude-code default off
+            };
           }
         ];
       };
@@ -200,7 +230,10 @@
           home-manager.useUserPackages = true;
           home-manager.backupFileExtension = "backup";
           home-manager.extraSpecialArgs = darwinArgs;
-          home-manager.users.${username} = import ./home/darwin;
+          home-manager.users.${username} = { ... }: {
+            imports = [ ./home/darwin ];
+            claude-code_module.enable = true;
+          };
         }
       ];
 

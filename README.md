@@ -16,6 +16,7 @@
 ```text
 
  nixfiles/
+  ├── docs/             # Setup & ops runbooks
   ├── dotfiles/         # configs (managed by stow)
   ├── home/             # Home Manager modules
   ├── hosts/            # Host config
@@ -60,6 +61,10 @@
 sudo nixos-rebuild dry-run|switch --flake /etc/nixos#nixelbook
 sudo darwin-rebuild check|switch --flake ~/nixfiles/#jimmyff-mbp14
 home-manager switch --flake ~/nixfiles
+
+# gcp-beacon (cloud push host) — run on nixbox:
+./scripts/gcp-beacon/build-image.sh   # build GCE image (first-time / DR)
+./scripts/gcp-beacon/deploy.sh        # push config to the running host
 
 # Development projects (see projects/)
 dev-setup && cd ~/Projects/<project> && direnv allow

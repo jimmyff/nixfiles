@@ -15,6 +15,7 @@
 
   networking.hostName = "nixbox";
   qemu-guest.enable = true;
+  mdns.publish = true; # reachable as nixbox.local regardless of DHCP IP
 
   # Development environment configuration
   development = {
