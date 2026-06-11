@@ -1,4 +1,4 @@
-{ ... }:
+{ lib, ... }:
 {
   imports = [ ./hardware-configuration.nix ];
 
@@ -7,6 +7,9 @@
   # Baked image locks jimmyff's password; wheel needs passwordless sudo to stay administratable.
   # Key-only SSH (core/linux) is the gate.
   security.sudo.wheelNeedsPassword = false;
+
+  # GCE OS Login's PAM module rejects our declarative jimmyff user (breaks SSH); we use baked keys.
+  security.googleOsLogin.enable = lib.mkForce false;
 
   zramSwap.enable = true; # 1 GB RAM, no GCE swap — absorbs deploy-time memory spikes
 
