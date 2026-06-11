@@ -65,7 +65,7 @@ The `freshness.toml` file groups packages by their nixpkgs input:
 
 pkgs-ai = [
     "claude-code",
-    "gemini-cli"
+    "antigravity-cli"
 ]
 
 pkgs-dev-tools = [

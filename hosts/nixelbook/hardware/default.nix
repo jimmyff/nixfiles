@@ -8,6 +8,9 @@ let
   '';
 in
 {
+  # Internal keyboard: kanata home-row mods + Pixelbook function-row layout.
+  kanata.platformKeys = import ./kanata-fn.nix;
+
   # PIXELBOOK GO AUDIO CONFIGURATION
   # ================================
   # 

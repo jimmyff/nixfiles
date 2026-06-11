@@ -31,6 +31,7 @@ in {
     ./homebrew.nix
     ./system-defaults.nix
     ./symbolic-hotkeys.nix
+    ./kanata.nix
   ];
 
   nixpkgs.hostPlatform = "aarch64-darwin";

@@ -9,7 +9,6 @@
     }
   },
   "general": {
-    "disableAutoUpdate": true,
     "preferredEditor": "hx",
     "vimMode": true,
     "previewFeatures": true,

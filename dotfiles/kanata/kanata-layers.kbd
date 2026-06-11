@@ -1,0 +1,47 @@
+;; Shared home-row mods (HRM). Tap = letter, hold = modifier:
+;;   a/; = lmet/rmet (Cmd)   s/l = lalt/ralt (Alt/Opt)
+;;   d/k = lctl/rctl (Ctrl)  f/j = lsft/rsft (Shift)
+;;
+;; Per-host keys (function row, caps, ...) are injected at the @@MARKERS@@ by
+;; mkConfig.nix from each host's hardware/kanata-fn.nix. Keep defsrc and both
+;; deflayers column-aligned: each marker expands to the same key count.
+;;
+;; The (multi f24 ...) wrapper is a Pixelbook wake-from-suspend hack; harmless
+;; elsewhere.
+
+(defvar
+  tap-time 200
+  hold-time 200
+)
+
+(defalias
+  a (multi f24 (tap-hold $tap-time $hold-time a lmet))
+  s (multi f24 (tap-hold $tap-time $hold-time s lalt))
+  d (multi f24 (tap-hold $tap-time $hold-time d lctl))
+  f (multi f24 (tap-hold $tap-time $hold-time f lsft))
+  j (multi f24 (tap-hold $tap-time $hold-time j rsft))
+  k (multi f24 (tap-hold $tap-time $hold-time k rctl))
+  l (multi f24 (tap-hold $tap-time $hold-time l ralt))
+  ; (multi f24 (tap-hold $tap-time $hold-time ; rmet))
+)
+
+;; Per-host aliases (function row, etc.)
+@@ALIASES@@
+
+(defsrc
+  a s d f j k l ;
+@@DEFSRC@@
+)
+
+(deflayer base
+  @a @s @d @f @j @k @l @;
+@@BASE@@
+)
+
+;; gamemode: alphas passthrough (no HRM); per-host keys stay active so
+;; brightness/media/volume keep working in-game. Switched via TCP IPC from
+;; the `insertcoin` wrapper.
+(deflayer gamemode
+  a   s   d   f   j   k   l   ;
+@@GAMEMODE@@
+)

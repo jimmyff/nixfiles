@@ -28,4 +28,4 @@ pkgs-unstable = [
 ]
 
 # AI Tools (bleeding edge)
-pkgs-ai = ["claude-code", "gemini-cli"]
+pkgs-ai = ["claude-code", "antigravity-cli"]

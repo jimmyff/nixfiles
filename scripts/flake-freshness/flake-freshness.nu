@@ -133,7 +133,7 @@ def load_packages [config_path: string] {
         error make {msg: "freshness.toml must contain a [packages] section"}
     }
 
-    # New format: pkgs-ai = ["claude-code", "gemini-cli"]
+    # New format: pkgs-ai = ["claude-code", "antigravity-cli"]
     # Transform to list of {package, input} records
     $config.packages
     | transpose input packages

@@ -14,7 +14,8 @@ One kitty window, zellij as the only multiplexer, one named session per project
 | ⌃ in Chromium | menu shortcuts — tabs, address bar |
 
 kanata makes the modifiers from home-row holds: `a`/`;`=⌘, `s`/`l`=⌥, `d`/`k`=⌃, `f`/`j`=⇧.
-So `Ctrl+s` = hold `d` + tap `s`.
+So `Ctrl+s` = hold `d` + tap `s`. The **internal keyboard** gets these from the kanata daemon
+(see `docs/darwin-install.md`); the **Moonlander** has the same mods baked into its QMK firmware.
 
 ## zellij keys
 
@@ -53,4 +54,6 @@ commands; nixfiles is public). `~/nixfiles/.zellij.kdl` is the committed scaffol
 - **Live symlinks** — `dotfiles/zellij`, `dotfiles/aerospace`, `.zellij.kdl`: apply on the next
   zellij start / `aerospace reload-config`, not `darwin-rebuild`. Revert via git.
 - **kitty / mux / Chromium** — `darwin-rebuild switch` (Chromium also needs `killall cfprefsd`).
+- **kanata home-row mods** — edit `dotfiles/kanata/kanata-layers.kbd`, then `darwin-rebuild switch`
+  (macOS) / `nixos-rebuild switch` (Linux); the daemon restarts automatically.
 - Persistence is on; resurrecting **re-runs pane commands** — `mux reset` to start clean.

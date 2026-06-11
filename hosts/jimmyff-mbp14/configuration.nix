@@ -28,6 +28,8 @@
   workstation-security.enable = true;
   signal.enable = true;
   raycast.enable = true;
+  kanata.enable = true; # home-row mods on the internal keyboard (see docs/darwin-install.md)
+  kanata.platformKeys = import ./hardware/kanata-fn.nix; # MacBook function-row + caps layout
   playwright.enable = true;
   nextdns.enable = true;
   nextdns.vaultFile = "nextdns_mbp14.age";
@@ -36,5 +38,5 @@
   picard.enable = true;
 
   # AI tools (home-manager modules)
-  home-manager.users.jimmyff.gemini-cli_module.enable = true;
+  home-manager.users.jimmyff.antigravity-cli_module.enable = true;
 }
