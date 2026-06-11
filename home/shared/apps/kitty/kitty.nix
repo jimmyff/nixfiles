@@ -63,6 +63,7 @@
       settings = {
         copy_on_select = true;
         macos_quit_when_last_window_closed = true;
+        hide_window_decorations = "titlebar-only";
         cursor_trail = 3;
         cursor_trail_decay = "0.1 0.4";
         adjust_line_height = "125%";

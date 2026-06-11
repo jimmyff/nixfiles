@@ -11,15 +11,16 @@
 
   config = lib.mkIf config.aerospace_module.enable {
     home.packages = [pkgs-desktop.aerospace];
-    home.file.".config/aerospace".source = config.lib.file.mkOutOfStoreSymlink
+    home.file.".config/aerospace".source =
+      config.lib.file.mkOutOfStoreSymlink
       "${config.home.homeDirectory}/nixfiles/dotfiles/aerospace";
 
     services.jankyborders = {
       enable = true;
       settings = {
-        active_color = "0xfffff98c";
-        inactive_color = "0xff494d64";
-        width = 8;
+        active_color = "0xffffe27a";
+        inactive_color = "0xff7d7db4";
+        width = 2;
       };
     };
   };
