@@ -24,7 +24,7 @@ dotfiles/vscode/**/*Storage/
 dotfiles/vscode/**/History/
 
 # Built binaries
-scripts/glitter/glittering
+scripts/glittering/glittering
 
 # Nix build output symlinks (from `nix build` / `darwin-rebuild build`)
 result

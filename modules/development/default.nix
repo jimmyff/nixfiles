@@ -127,14 +127,14 @@
     GLOBAL_TOOLS_SOURCE="${homeDir}/nixfiles/scripts"
 
     # Build Go tools
-    if [ -d "$GLOBAL_TOOLS_SOURCE/glitter" ]; then
+    if [ -d "$GLOBAL_TOOLS_SOURCE/glittering" ]; then
       echo "✨ Building glittering..."
-      (cd "$GLOBAL_TOOLS_SOURCE/glitter" && CGO_ENABLED=0 go build -o "${homeDir}/.local/bin/glittering" .) && echo "✅ Built glittering" || echo "❌ Failed to build glittering"
+      (cd "$GLOBAL_TOOLS_SOURCE/glittering" && CGO_ENABLED=0 go build -o "${homeDir}/.local/bin/glittering" .) && echo "✅ Built glittering" || echo "❌ Failed to build glittering"
     fi
 
     # Link nu wrappers
-    if [ -f "$GLOBAL_TOOLS_SOURCE/glitter/glitter.nu" ]; then
-      ln -sf "$GLOBAL_TOOLS_SOURCE/glitter/glitter.nu" "${homeDir}/.local/bin/glitter" && echo "🔗 Linked glitter" || echo "❌ Failed to link glitter"
+    if [ -f "$GLOBAL_TOOLS_SOURCE/glittering/glitter.nu" ]; then
+      ln -sf "$GLOBAL_TOOLS_SOURCE/glittering/glitter.nu" "${homeDir}/.local/bin/glitter" && echo "🔗 Linked glitter" || echo "❌ Failed to link glitter"
     fi
     nu -c 'print $"(ansi dark_gray_dimmed)────────────────────────────────────────(ansi reset)"'
 

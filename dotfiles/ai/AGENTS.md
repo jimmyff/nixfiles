@@ -70,7 +70,7 @@ Prefer these to cut approval prompts — a compound command is fine when genuine
 
 ## Dart & Flutter
 
-- Use `glittering` for test, analyze, git status/commit/push/pull/diff/check in Dart/Flutter workspaces — handles submodules, parallelism, and caching. Use `/glittering` skill for command reference. Fall back to raw commands for operations glittering doesn't cover. Source: ~/nixfiles/scripts/glitter/
+- Use `glittering` for test, analyze, git status/commit/push/pull/diff/check in Dart/Flutter workspaces — handles submodules, parallelism, and caching. Use `/glittering` skill for command reference. Fall back to raw commands for operations glittering doesn't cover. Source: ~/nixfiles/scripts/glittering/
 - Use package:mockito for mocked integration tests
 - Package docs: https://pub.dev/packages/$package_id
 - [Flutter API](https://api.flutter.dev/) | [Dart API](https://api.dart.dev/)

@@ -7,8 +7,8 @@ import (
 	"time"
 )
 
-// getSessionBase returns the base directory for glitter sessions.
-// Uses $XDG_CACHE_HOME/glitter/ if set, otherwise ~/.cache/glitter/.
+// getSessionBase returns the base directory for glittering sessions.
+// Uses $XDG_CACHE_HOME/glittering/ if set, otherwise ~/.cache/glittering/.
 func getSessionBase() (string, error) {
 	base := os.Getenv("XDG_CACHE_HOME")
 	if base == "" {
@@ -18,7 +18,7 @@ func getSessionBase() (string, error) {
 		}
 		base = filepath.Join(home, ".cache")
 	}
-	return filepath.Join(base, "glitter"), nil
+	return filepath.Join(base, "glittering"), nil
 }
 
 // createSession creates a new session directory and returns its absolute path.

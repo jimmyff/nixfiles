@@ -65,7 +65,7 @@
       "Bash(git pull:*)",
       "Bash(keytool:*)",
       "Bash(which:*)",
-      "Read(~/.cache/glitter/**)",
+      "Read(~/.cache/glittering/**)",
       "Bash(glittering git:*)",
       "Bash(glittering git diff:*)",
       "Bash(glittering status:*)",
@@ -103,7 +103,7 @@
     "padding": 0
   },
   "alwaysThinkingEnabled": true,
-  "effortLevel": "medium",
+  "effortLevel": "high",
   "autoMemoryEnabled": false,
   "autoDreamEnabled": false,
   "theme": "dark-daltonized",

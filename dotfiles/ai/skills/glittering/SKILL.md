@@ -9,7 +9,7 @@ Go binary for multi-package Dart/Flutter workspaces — git operations across pa
 
 Exit codes: `0` ok · `1` failure · `2` usage error · `3` partial (commit succeeded but parent files were left behind — see `parent.left_uncommitted`).
 
-Source: `~/nixfiles/scripts/glitter/`
+Source: `~/nixfiles/scripts/glittering/`
 
 ## Commands
 

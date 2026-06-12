@@ -1,4 +1,4 @@
-# ✨glitter
+# ✨glittering
 
 > *glittering* (n.) — a flock of hummingbirds. See also: [Dash](https://docs.flutter.dev/dash).
 
@@ -60,8 +60,8 @@ Git 7min ago · Tests 2hr ago · Analysis 2hr ago · Stats 2hr ago
 ## Architecture
 
 - **`glittering`** (Go binary) — discovery, runners, git ops. JSON to stdout, logs to stderr.
-- **`glitter`** (Nushell wrapper) — parses JSON, formats tables with styled indicators.
-- **Cache** at `~/.cache/glitter/cache/<workspace>/` — written on live runs, read instantly with `--cached`.
+- **`glitter`** (Nushell wrapper, convenience alias) — parses JSON, formats tables with styled indicators.
+- **Cache** at `~/.cache/glittering/cache/<workspace>/` — written on live runs, read instantly with `--cached`.
 
 ## Requirements
 
