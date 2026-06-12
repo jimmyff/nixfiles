@@ -22,8 +22,10 @@ In a multi-package workspace (cue: `.gitmodules` and/or multiple `pubspec.yaml` 
 | commit and/or push work | `glittering git commit` |
 | "is everything committed/pushed?" (end of session) | `glittering git check` |
 | pull latest / sync repos | `glittering git pull` |
-| review what changed | `glittering git diff` |
+| review changes / file-level detail | `glittering git diff` — per-file staged/unstaged/untracked + patch `details_file` |
 | understand package layout / size | `glittering status`, `glittering stats` |
+
+`glittering git` reports at repo level (dirty, ahead/behind); for which *files* changed, use `glittering git diff` — not raw `git status`.
 
 ## When NOT to use it — and why
 
@@ -74,6 +76,7 @@ glittering git pull --path <root> [--filter <names>]              # pull parent 
 
 - `--filter` uses substring matching: `--filter blog` matches `packages/blog`
 - `git commit` auto-resolves short names: `git_dart` → `packages/git_dart`
+- Surgical commit (sub also contains unrelated WIP): `glittering git commit <sub> -m "msg" -f a.dart -f b.dart` stages only those files (relative to sub root) and leaves the rest dirty — prefer this over hand-staging with raw `git add` + `--staged`
 - Use `--no-parent` to skip parent update, `--parent-only` for parent-only mode
 - To land parent-repo files (docs, plans) in the same commit as the ref bumps, name them with `-F/--parent-files` — only include files related to your change, not unrelated WIP
 - After a manual commit inside a submodule, push it with `git push --filter <sub>` and bump the parent ref with `git commit --parent-only`. `--filter` skips the parent-dirty pre-flight, so a pending parent ref bump won't block the submodule push

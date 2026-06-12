@@ -60,10 +60,7 @@
 
 ## Shell & tools
 
-Prefer these to cut approval prompts — a compound command is fine when genuinely needed:
-
-- Prefer built-in read/search/list tools over shelling out to `cat`/`grep`/`find`/`ls`
-- Prefer absolute paths over `cd`, and avoid pairing `cd` with redirection (`>`, `2>`, incl. `2>/dev/null`) in one command — that combo forces a manual prompt
+- Prefer built-in read/search/list tools, or allowlisted tools like `glittering`, over shelling out to `cat`/`grep`/`find`/`ls`/`git status`; prefer absolute paths over `cd` — compound commands usually require manual approval
 
 ## Research
 
