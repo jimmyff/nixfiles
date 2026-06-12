@@ -11,24 +11,9 @@
 #
 # Only `const`/`def` at top level — so `nu -c 'source mux.nu'` parse-checks without running.
 
-const SCAFFOLD = 'layout {
-    default_tab_template {
-        pane size=1 borderless=true {
-            plugin location="zellij:tab-bar"
-        }
-        children
-        pane size=1 borderless=true {
-            plugin location="zellij:status-bar"
-        }
-    }
-    tab name="edit" {
-        pane
-    }
-    tab name="git" {
-        pane
-    }
-}
-'
+# `mux init` seeds a project's .zellij.kdl from this canonical layout (single source of
+# truth — see dotfiles/zellij/layouts/jimmyff.kdl and docs/multiplexing.md).
+const DEFAULT_LAYOUT = '~/.config/zellij/layouts/jimmyff.kdl'
 
 # --- resolution -------------------------------------------------------------
 
@@ -179,6 +164,10 @@ def "main init" [] {
     if ($target | path exists) {
         error make { msg: $"mux init: ($target) already exists — refusing to overwrite." }
     }
-    $SCAFFOLD | save $target
-    print $"Wrote ($target)"
+    let source = ($DEFAULT_LAYOUT | path expand)
+    if not ($source | path exists) {
+        error make { msg: $"mux init: source layout ($source) not found." }
+    }
+    open --raw $source | save $target
+    print $"Wrote ($target) — seeded from ($source)"
 }

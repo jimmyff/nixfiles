@@ -44,7 +44,13 @@ Sessions start **locked**, so every `Ctrl` reaches the TUI. To drive zellij:
 | `mux init` | scaffold a `.zellij.kdl` here |
 
 - **Session name:** `$ZJ_SESSION` → `~/Projects/<name>/workspace` → git repo → cwd basename.
-- **Layout:** `$ZJ_LAYOUT` → nearest `.zellij.kdl` → the `compact` default.
+- **Layout:** `$ZJ_LAYOUT` → nearest `.zellij.kdl` → the `default_layout` fallback. That
+  fallback is `jimmyff` (`dotfiles/zellij/layouts/jimmyff.kdl`, classic tab + status bar),
+  used *only* when no `.zellij.kdl` is found — project layouts bypass it.
+
+`jimmyff.kdl` is the single source of truth for the default layout: it's both the bare-session
+fallback and what `mux init` copies to seed a project's `.zellij.kdl`. (Zellij has no cross-file
+template inheritance, so a copy is a snapshot — re-run `mux init` to re-seed after editing it.)
 
 A project's `.zellij.kdl` lives at its repo root, in the **private** repo (layouts hold launch
 commands; nixfiles is public). `~/nixfiles/.zellij.kdl` is the committed scaffold `mux init` writes.
