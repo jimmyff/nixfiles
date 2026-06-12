@@ -109,4 +109,4 @@ For each package with failures, spawn a parallel Agent (one per package) with th
 
 ## Final
 
-- Do NOT commit — inform the user they can review changes and use `/submodules commit`
+- Do NOT commit — inform the user they can review the changes and commit with `glittering git commit`

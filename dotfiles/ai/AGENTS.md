@@ -45,6 +45,7 @@
 ## Security
 
 - Never commit secrets; validate and sanitize all inputs
+- Before staging: flag secrets/keys/.env, large binaries/build artifacts, OS/IDE junk — never stage without explicit approval
 
 ## Workflow
 
@@ -53,6 +54,7 @@
 - I value your input - proactively share ideas on architecture and better approaches. Let's collaborate to find the best solutions
 - Challenge my direction if you see issues or better alternatives - explain your reasoning
 - Commit messages: keep succinct & simple
+- Always confirm before committing or pushing; if a push fails or conflicts, stop and ask
 - Read URLs when shared
 - My systems are entirely managed by Nix, system configuration is in `~/nixfiles/`. If working in `~/Project/...` you are in a project with its own devshell configured by the project flake.
 
@@ -71,6 +73,8 @@ Prefer these to cut approval prompts — a compound command is fine when genuine
 ## Dart & Flutter
 
 - Use `glittering` for test, analyze, git status/commit/push/pull/diff/check in Dart/Flutter workspaces — handles submodules, parallelism, and caching. Use `/glittering` skill for command reference. Fall back to raw commands for operations glittering doesn't cover. Source: ~/nixfiles/scripts/glittering/
+- Before committing workspace changes: run analyze on the affected packages; warn on errors
+- Never leave a repo (parent or submodule) in detached HEAD — reattach to the tracking branch after operations that detach
 - Use package:mockito for mocked integration tests
 - Package docs: https://pub.dev/packages/$package_id
 - [Flutter API](https://api.flutter.dev/) | [Dart API](https://api.dart.dev/)
