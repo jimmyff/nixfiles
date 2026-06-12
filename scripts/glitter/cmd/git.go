@@ -18,8 +18,6 @@ Subcommands:
   check          Verify everything is committed, pushed, and refs are in sync
   push           Push all repos with unpushed commits
   commit         Commit submodules and auto-update parent ref
-  commit-sub     (deprecated) Commit and push a single submodule
-  commit-parent  (deprecated) Stage submodule refs, commit and push parent repo
   pull           Pull parent, checkout branches, pull all submodules
   diff           Structured diff summary across all repos
 
@@ -43,11 +41,11 @@ func Git(args []string) int {
 	case "commit":
 		return GitCommit(args[1:])
 	case "commit-sub":
-		logf("hint: commit-sub is deprecated, use: glittering git commit\n")
-		return GitCommitSub(args[1:])
+		logf("error: 'git commit-sub' has been removed — use: glittering git commit <sub> -m \"msg\" [--all|-f <file>|--staged]\n")
+		return ExitUsage
 	case "commit-parent":
-		logf("hint: commit-parent is deprecated, use: glittering git commit --parent-only\n")
-		return GitCommitParent(args[1:])
+		logf("error: 'git commit-parent' has been removed — use: glittering git commit --parent-only [sub...]\n")
+		return ExitUsage
 	case "pull":
 		return GitPull(args[1:])
 	case "diff":
@@ -85,7 +83,7 @@ func collectGitData(root string, fetch bool) (GitOutput, error) {
 
 	// Phase 1: Parallel fetch
 	if fetch {
-		if _, err := runGit(root, "fetch", "origin"); err != nil {
+		if _, err := runGitNet(root, "fetch", "origin"); err != nil {
 			progressf("  warning: fetch failed for parent: %v\n", err)
 		}
 		sem := make(chan struct{}, maxJobs)
@@ -98,7 +96,7 @@ func collectGitData(root string, fetch bool) (GitOutput, error) {
 				defer wg.Done()
 				defer func() { <-sem }()
 				subDir := filepath.Join(root, sp)
-				if _, err := runGit(subDir, "fetch", "origin"); err != nil {
+				if _, err := runGitNet(subDir, "fetch", "origin"); err != nil {
 					mu.Lock()
 					progressf("  warning: fetch failed for %s: %v\n", sp, err)
 					mu.Unlock()
@@ -225,17 +223,10 @@ func getRepoStatus(root string) (GitRepoStatus, error) {
 		status.Ref = ref
 	}
 
-	porcelain, err := runGit(root, "status", "--porcelain")
+	entries, err := statusEntries(root)
 	if err == nil {
-		status.Dirty = porcelain != ""
-		if porcelain != "" {
-			for _, line := range strings.Split(porcelain, "\n") {
-				if strings.HasPrefix(line, "??") {
-					file := strings.TrimSpace(strings.TrimPrefix(line, "??"))
-					status.UntrackedFiles = append(status.UntrackedFiles, file)
-				}
-			}
-		}
+		status.Dirty = len(entries) > 0
+		status.UntrackedFiles = untrackedPaths(entries)
 	}
 
 	status.Detached = status.Branch == ""
@@ -307,10 +298,10 @@ func getSubmoduleStatus(root, subPath string) GitSubmoduleStatus {
 	}
 
 	// Check dirty + count untracked
-	porcelain, err := runGit(subDir, "status", "--porcelain")
+	entries, err := statusEntries(subDir)
 	if err == nil {
-		sub.Dirty = porcelain != ""
-		sub.UntrackedCount = countUntracked(porcelain)
+		sub.Dirty = len(entries) > 0
+		sub.UntrackedCount = countUntracked(entries)
 	}
 
 	// Ahead/behind remote (uses real upstream, not hardcoded origin/<branch>)
@@ -422,20 +413,6 @@ func getStashCount(dir string) int {
 		return 0
 	}
 	return len(strings.Split(output, "\n"))
-}
-
-// countUntracked counts lines starting with "??" in porcelain output.
-func countUntracked(porcelain string) int {
-	if porcelain == "" {
-		return 0
-	}
-	count := 0
-	for _, line := range strings.Split(porcelain, "\n") {
-		if strings.HasPrefix(line, "??") {
-			count++
-		}
-	}
-	return count
 }
 
 func getRevListCount(dir, base, head string) (int, int) {

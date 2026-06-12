@@ -7,6 +7,8 @@ description: Multi-package project orchestrator — git (status, diff, commit, p
 
 Go binary for multi-package Dart/Flutter workspaces — git operations across parent + submodules, test/analyze, dependency management. JSON to stdout, logs to stderr. Quiet by default; add `--verbose`/`-v` for progress output.
 
+Exit codes: `0` ok · `1` failure · `2` usage error · `3` partial (commit succeeded but parent files were left behind — see `parent.left_uncommitted`).
+
 Source: `~/nixfiles/scripts/glitter/`
 
 ## Commands
@@ -30,10 +32,14 @@ glittering git --path <root> --cached [--filter <names>]          # read cached 
 glittering git check --path <root> [--cached] [--filter <names>]  # verify committed/pushed
 glittering git push --path <root> [--filter <names>]              # push repos with unpushed
 glittering git diff --path <root> [--staged] [--filter <names>]   # diff summary
-glittering git commit <sub>... -m "msg" --path <root> [--all | -f file | --staged] [--no-parent] [--parent-only] [--parent-message "msg"]
+glittering git commit <sub>... -m "msg" --path <root> [--all | -f file | --staged] [-F parent-file] [--no-parent] [--parent-only] [--parent-message "msg"]
   # Stage with --all (all changes), -f <file> (specific files), or --staged (use the index as-is).
   # One of these is required unless something is already staged — a bare commit with no flag
   # and an empty index errors with "nothing staged in <sub>".
+  # IMPORTANT: --all/-f/--staged scope to the named SUBMODULES only — parent repo files are
+  # never swept. The parent commit contains the ref bumps, files named with --parent-files/-F,
+  # and anything already staged in the parent. Other dirty parent files are left behind and
+  # reported via partial: true + parent.left_uncommitted — check both before claiming done.
 glittering git pull --path <root> [--filter <names>]              # pull parent + subs
 ```
 
@@ -44,7 +50,9 @@ glittering git pull --path <root> [--filter <names>]              # pull parent 
 - `git commit` auto-resolves short names: `git_dart` → `packages/git_dart`
 - Prefer `git commit` over raw `git commit` / `git push` — it auto-pushes and keeps parent refs in sync
 - Use `--no-parent` to skip parent update, `--parent-only` for parent-only mode
+- To land parent-repo files (docs, plans) in the same commit as the ref bumps, name them with `-F/--parent-files` — only include files related to your change, not unrelated WIP
 - After a manual commit inside a submodule, push it with `git push --filter <sub>` and bump the parent ref with `git commit --parent-only`. `--filter` skips the parent-dirty pre-flight, so a pending parent ref bump won't block the submodule push
+- If a multi-submodule commit fails partway, the result's `hint` field gives the exact recovery command (e.g. already-pushed subs needing a `--parent-only` ref bump) — follow it rather than re-running the whole commit
 - Commit messages: no attribution lines, keep succinct
 - Use `--cached` for instant reads from last live run
 - Never pipe through `head`/`tail`/truncate glittering output — it's already summarised JSON; truncating breaks parsing
@@ -57,7 +65,7 @@ glittering git pull --path <root> [--filter <names>]              # pull parent 
 - **git**: `{ repo: { branch, dirty, ahead_remote, ... }, submodules: [{ ..., ahead_parent, behind_parent }] }`
 - **git check**: `{ clean: bool, issues: [{ repo, severity, type, message, fix }], summary }`
 - **git diff**: `{ repos: [{ path, staged, unstaged, untracked_files, details_file }], summary }`
-- **commit**: `{ success, submodules: [{ path, ref, pushed }], parent: { ref, staged, pushed, warnings } }`
+- **commit**: `{ success, partial, hint, submodules: [{ path, ref, pushed }], parent: { ref, staged, left_uncommitted, pushed, warnings } }` — `partial: true` means the commit succeeded but parent files listed in `parent.left_uncommitted` were NOT committed
 - **git pull**: `{ branch, submodules: [{ path, new_commits, was_dirty }], warnings }`
 
 ## When to use raw commands instead

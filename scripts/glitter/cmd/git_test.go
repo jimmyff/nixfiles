@@ -45,17 +45,17 @@ func TestParseLeftRight_WrongFieldCount(t *testing.T) {
 func TestCountUntracked(t *testing.T) {
 	tests := []struct {
 		name     string
-		input    string
+		input    string // git status --porcelain -z output
 		expected int
 	}{
 		{"empty", "", 0},
-		{"no untracked", " M file.go\nA  new.go", 0},
-		{"one untracked", "?? foo.txt", 1},
-		{"mixed", " M file.go\n?? bar.txt\n?? baz.txt", 2},
+		{"no untracked", " M file.go\x00A  new.go\x00", 0},
+		{"one untracked", "?? foo.txt\x00", 1},
+		{"mixed", " M file.go\x00?? bar.txt\x00?? baz.txt\x00", 2},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			got := countUntracked(tc.input)
+			got := countUntracked(parsePorcelainZ(tc.input))
 			if got != tc.expected {
 				t.Errorf("countUntracked(%q) = %d, want %d", tc.input, got, tc.expected)
 			}

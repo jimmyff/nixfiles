@@ -75,11 +75,22 @@ func runCommand(dir string, timeout time.Duration, name string, args ...string) 
 	return stdout.String(), stderr.String(), err
 }
 
-// runGit runs a git command in the given directory. On error, prefers stderr
-// for the diagnostic detail but falls back to stdout — git commit, for example,
-// writes "nothing to commit, working tree clean" to stdout, not stderr.
-func runGit(dir string, args ...string) (string, error) {
-	stdout, stderr, err := runCommand(dir, 30*time.Second, "git", args...)
+const (
+	// gitTimeout bounds local git operations (status, add, commit, rev-parse).
+	gitTimeout = 30 * time.Second
+	// gitNetTimeout bounds network git operations (fetch, push, pull, clone).
+	// Generous for slow links and large repos; a huge submodule clone may
+	// still exceed it.
+	gitNetTimeout = 120 * time.Second
+)
+
+// runGitCore runs a git command in the given directory with the given
+// timeout. On error, prefers stderr for the diagnostic detail but falls back
+// to stdout — git commit, for example, writes "nothing to commit, working
+// tree clean" to stdout, not stderr. When trim is false, stdout is returned
+// untouched on success (error-path output is always trimmed).
+func runGitCore(dir string, timeout time.Duration, trim bool, args ...string) (string, error) {
+	stdout, stderr, err := runCommand(dir, timeout, "git", args...)
 	if err != nil {
 		details := strings.TrimSpace(stderr)
 		if details == "" {
@@ -90,7 +101,44 @@ func runGit(dir string, args ...string) (string, error) {
 		}
 		return strings.TrimSpace(stdout), fmt.Errorf("%w: %s", err, details)
 	}
-	return strings.TrimSpace(stdout), nil
+	if trim {
+		return strings.TrimSpace(stdout), nil
+	}
+	return stdout, nil
+}
+
+// runGit runs a local git command, returning trimmed stdout.
+func runGit(dir string, args ...string) (string, error) {
+	return runGitCore(dir, gitTimeout, true, args...)
+}
+
+// runGitNet runs a network git command (fetch/push/pull/clone) with a longer
+// timeout, returning trimmed stdout.
+func runGitNet(dir string, args ...string) (string, error) {
+	return runGitCore(dir, gitNetTimeout, true, args...)
+}
+
+// runGitRaw is runGit without trimming stdout on success. Required for
+// column-sensitive output like `git status --porcelain`, where the first
+// character of the first line may be a meaningful space — trimming it shifts
+// the status columns and corrupts the parsed path.
+func runGitRaw(dir string, args ...string) (string, error) {
+	return runGitCore(dir, gitTimeout, false, args...)
+}
+
+// expandCommaList splits comma-separated values within a flag list, so both
+// `-f a -f b` and `-f "a,b"` are accepted.
+func expandCommaList(items []string) []string {
+	var expanded []string
+	for _, item := range items {
+		for _, part := range strings.Split(item, ",") {
+			part = strings.TrimSpace(part)
+			if part != "" {
+				expanded = append(expanded, part)
+			}
+		}
+	}
+	return expanded
 }
 
 // parseFilter splits a comma-separated filter string into a slice.

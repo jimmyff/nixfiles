@@ -5,257 +5,8 @@ import (
 	"fmt"
 	"path/filepath"
 	"strings"
+	"sync"
 )
-
-// GitCommitSub commits and pushes a single submodule.
-func GitCommitSub(args []string) int {
-	fs := flag.NewFlagSet("git commit-sub", flag.ExitOnError)
-	fs.Usage = func() {
-		logf("Usage: glittering git commit-sub <submodule> [flags]\n\n")
-		logf("Example: glittering git commit-sub notes -m \"fix bug\" -f file1.dart -f file2.dart\n\n")
-		fs.PrintDefaults()
-	}
-	path := fs.String("path", ".", "repository root path")
-	message := fs.StringP("message", "m", "", "commit message (required)")
-	all := fs.Bool("all", false, "stage all changes (including untracked) before committing")
-	files := fs.StringArrayP("files", "f", nil, "specific files to stage (relative to submodule root)")
-	staged := fs.Bool("staged", false, "commit whatever is already staged (skip staging)")
-	fs.BoolVarP(&verbose, "verbose", "v", false, "show progress logs")
-	fs.Parse(args)
-
-	// Expand comma-separated --files values (accept both -f a -f b and -f "a,b")
-	if len(*files) > 0 {
-		var expanded []string
-		for _, f := range *files {
-			for _, part := range strings.Split(f, ",") {
-				part = strings.TrimSpace(part)
-				if part != "" {
-					expanded = append(expanded, part)
-				}
-			}
-		}
-		*files = expanded
-	}
-
-	if *message == "" {
-		logf("error: --message/-m (commit message) is required\n")
-		return ExitUsage
-	}
-
-	// Validate mutual exclusivity of staging flags
-	flagCount := 0
-	if *all {
-		flagCount++
-	}
-	if len(*files) > 0 {
-		flagCount++
-	}
-	if *staged {
-		flagCount++
-	}
-	if flagCount > 1 {
-		logf("error: --all, --files, and --staged are mutually exclusive\n")
-		return ExitUsage
-	}
-
-	remaining := fs.Args()
-	if len(remaining) == 0 {
-		logf("error: submodule path is required\nUsage: glittering git commit-sub <submodule> -m \"msg\" [-f file ...]\n")
-		return ExitUsage
-	}
-	subPath := remaining[0]
-
-	root, err := resolveRoot(*path)
-	if err != nil {
-		logf("error: %v\n", err)
-		return ExitUsage
-	}
-
-	resolvedPath, resolveErr := resolveSubmodulePath(root, subPath)
-	if resolveErr != nil {
-		logf("error: %v\n", resolveErr)
-		return ExitUsage
-	}
-	subPath = resolvedPath
-	subDir := filepath.Join(root, subPath)
-
-	// Stage based on flags
-	if *all {
-		if _, err := runGit(subDir, "add", "-A"); err != nil {
-			result := GitCommitResult{Path: root, Error: fmt.Sprintf("stage failed: %v", err)}
-			outputJSON(result)
-			return ExitFailure
-		}
-	} else if len(*files) > 0 {
-		for _, f := range *files {
-			if _, err := runGit(subDir, "add", "--", f); err != nil {
-				result := GitCommitResult{Path: root, Error: fmt.Sprintf("stage failed for %s: %v", f, err)}
-				outputJSON(result)
-				return ExitFailure
-			}
-		}
-	}
-	// --staged or no flag: no-op (commit index as-is)
-
-	// Commit
-	if _, err := runGit(subDir, "commit", "-m", *message); err != nil {
-		result := GitCommitResult{Path: root, Error: fmt.Sprintf("commit failed: %v", err)}
-		outputJSON(result)
-		return ExitFailure
-	}
-
-	// Get new ref
-	ref, _ := runGit(subDir, "rev-parse", "HEAD")
-
-	// Push
-	_, pushErr := runGit(subDir, "push", "--set-upstream", "origin", "HEAD")
-	pushed := pushErr == nil
-
-	result := GitCommitResult{
-		Path:    root,
-		Success: true,
-		Ref:     ref,
-		Pushed:  pushed,
-	}
-	if !pushed {
-		result.Error = fmt.Sprintf("push failed: %v", pushErr)
-	}
-
-	deleteCache(root, "git.json")
-
-	outputJSON(result)
-	if result.Success {
-		logf("hint: commit-sub is deprecated, use: glittering git commit %s -m \"msg\" --path %s\n", subPath, root)
-	}
-	if !pushed {
-		return ExitFailure
-	}
-	return ExitOK
-}
-
-// GitCommitParent verifies submodule refs are on remote, stages them, commits and pushes parent.
-func GitCommitParent(args []string) int {
-	fs := flag.NewFlagSet("git commit-parent", flag.ExitOnError)
-	fs.Usage = func() {
-		logf("Usage: glittering git commit-parent <sub>... [flags]\n\n")
-		logf("Example: glittering git commit-parent notes editor -m \"update submodule refs\"\n\n")
-		fs.PrintDefaults()
-	}
-	path := fs.String("path", ".", "repository root path")
-	message := fs.StringP("message", "m", "", "commit message (required)")
-	all := fs.Bool("all", false, "stage all parent changes (including untracked) before committing")
-	fs.BoolVarP(&verbose, "verbose", "v", false, "show progress logs")
-	fs.Parse(args)
-
-	if *message == "" {
-		logf("error: --message/-m (commit message) is required\n")
-		return ExitUsage
-	}
-
-	rawSubs := fs.Args()
-	if len(rawSubs) == 0 {
-		logf("error: specify submodule paths to stage\nUsage: glittering git commit-parent <sub>... -m \"msg\"\n")
-		return ExitUsage
-	}
-
-	root, err := resolveRoot(*path)
-	if err != nil {
-		logf("error: %v\n", err)
-		return ExitUsage
-	}
-
-	// Resolve each submodule path
-	submodules := make([]string, len(rawSubs))
-	copy(submodules, rawSubs)
-	for i, sub := range submodules {
-		resolved, resolveErr := resolveSubmodulePath(root, sub)
-		if resolveErr != nil {
-			logf("error: %v\n", resolveErr)
-			return ExitUsage
-		}
-		submodules[i] = resolved
-	}
-
-	// Verify each submodule's HEAD exists on its remote
-	for _, sub := range submodules {
-		subDir := filepath.Join(root, sub)
-
-		// Fetch latest from remote
-		if _, err := runGit(subDir, "fetch", "origin"); err != nil {
-			result := GitCommitResult{Path: root, Error: fmt.Sprintf("fetch failed for %s: %v", sub, err)}
-			outputJSON(result)
-			return ExitFailure
-		}
-
-		// Get HEAD
-		head, err := runGit(subDir, "rev-parse", "HEAD")
-		if err != nil {
-			result := GitCommitResult{Path: root, Error: fmt.Sprintf("cannot get HEAD for %s: %v", sub, err)}
-			outputJSON(result)
-			return ExitFailure
-		}
-
-		// Check if HEAD is on any remote branch
-		branches, err := runGit(subDir, "branch", "-r", "--contains", head)
-		if err != nil || strings.TrimSpace(branches) == "" {
-			result := GitCommitResult{Path: root, Error: fmt.Sprintf("%s HEAD %s is not pushed to remote", sub, head[:12])}
-			outputJSON(result)
-			return ExitFailure
-		}
-	}
-
-	// Stage all tracked parent changes if --all
-	if *all {
-		if _, err := runGit(root, "add", "-A"); err != nil {
-			result := GitCommitResult{Path: root, Error: fmt.Sprintf("stage all failed: %v", err)}
-			outputJSON(result)
-			return ExitFailure
-		}
-	}
-
-	// Stage submodule refs
-	var staged []string
-	for _, sub := range submodules {
-		if _, err := runGit(root, "add", sub); err != nil {
-			result := GitCommitResult{Path: root, Error: fmt.Sprintf("stage failed for %s: %v", sub, err)}
-			outputJSON(result)
-			return ExitFailure
-		}
-		staged = append(staged, sub)
-	}
-
-	// Commit
-	if _, err := runGit(root, "commit", "-m", *message); err != nil {
-		result := GitCommitResult{Path: root, Error: fmt.Sprintf("commit failed: %v", err)}
-		outputJSON(result)
-		return ExitFailure
-	}
-
-	ref, _ := runGit(root, "rev-parse", "HEAD")
-
-	// Push
-	_, pushErr := runGit(root, "push")
-	pushed := pushErr == nil
-
-	result := GitCommitResult{
-		Path:    root,
-		Success: true,
-		Ref:     ref,
-		Staged:  staged,
-		Pushed:  pushed,
-	}
-	if !pushed {
-		result.Error = fmt.Sprintf("push failed: %v", pushErr)
-	}
-
-	deleteCache(root, "git.json")
-
-	outputJSON(result)
-	if !pushed {
-		return ExitFailure
-	}
-	return ExitOK
-}
 
 // getOutOfSyncSubmodules returns submodule paths where HEAD differs from the parent's recorded ref.
 func getOutOfSyncSubmodules(root string) ([]string, error) {
@@ -289,71 +40,79 @@ type parentFileClassification struct {
 	Unstaged []string // non-submodule files with working-tree changes or untracked
 }
 
-// classifyParentFiles parses `git status --porcelain` output and separates
-// non-submodule files into staged (index-only) and unstaged (working-tree
-// changes or untracked) categories.
-func classifyParentFiles(porcelainOutput string, submodulePaths []string) parentFileClassification {
+// classifyParentFiles separates non-submodule status entries into staged
+// (index-only — these ride along with the next commit) and unstaged
+// (working-tree changes or untracked — these get left behind).
+func classifyParentFiles(entries []porcelainEntry, submodulePaths []string) parentFileClassification {
 	subSet := make(map[string]bool, len(submodulePaths))
 	for _, s := range submodulePaths {
 		subSet[s] = true
 	}
 
 	var result parentFileClassification
-	for _, line := range strings.Split(porcelainOutput, "\n") {
-		if len(line) < 4 {
+	for _, e := range entries {
+		if subSet[e.Path] {
 			continue
 		}
-		x := line[0] // index status
-		y := line[1] // working-tree status
-
-		// Extract file path, handling renames/copies: "R  old.txt -> new.txt"
-		raw := line[3:]
-		filePath := raw
-		if x == 'R' || x == 'C' || y == 'R' || y == 'C' {
-			if arrowIdx := strings.Index(raw, " -> "); arrowIdx >= 0 {
-				filePath = raw[arrowIdx+4:]
-			}
-		}
-		filePath = strings.TrimSpace(filePath)
-
-		if subSet[filePath] {
-			continue
-		}
-
-		if x == '?' && y == '?' {
-			result.Unstaged = append(result.Unstaged, filePath)
-		} else if y != ' ' {
-			result.Unstaged = append(result.Unstaged, filePath)
-		} else if x != ' ' {
-			result.Staged = append(result.Staged, filePath)
+		switch {
+		case e.X == '?' && e.Y == '?':
+			result.Unstaged = append(result.Unstaged, e.Path)
+		case e.Y != ' ':
+			result.Unstaged = append(result.Unstaged, e.Path)
+		case e.X != ' ':
+			result.Staged = append(result.Staged, e.Path)
 		}
 	}
 	return result
 }
 
-// commitParentRefs verifies sub HEADs are on remote, stages refs, commits and pushes parent.
+// verifySubHeadOnRemote fetches origin and confirms the submodule's HEAD
+// exists on a remote branch.
+func verifySubHeadOnRemote(subDir, sub string) error {
+	if _, err := runGitNet(subDir, "fetch", "origin"); err != nil {
+		return fmt.Errorf("fetch failed for %s: %v", sub, err)
+	}
+
+	head, err := runGit(subDir, "rev-parse", "HEAD")
+	if err != nil {
+		return fmt.Errorf("cannot get HEAD for %s: %v", sub, err)
+	}
+
+	branches, err := runGit(subDir, "branch", "-r", "--contains", head)
+	if err != nil || strings.TrimSpace(branches) == "" {
+		short := head
+		if len(short) > 12 {
+			short = short[:12]
+		}
+		return fmt.Errorf("%s HEAD %s is not pushed to remote", sub, short)
+	}
+	return nil
+}
+
+// commitParentRefs verifies sub HEADs are on remote, stages refs (plus any
+// explicitly requested parentFiles), commits and pushes parent.
 // Returns GitCommitResult with Path=".".
-func commitParentRefs(root string, subs []string, message string) GitCommitResult {
-	// Fetch + verify each sub HEAD on remote
-	for _, sub := range subs {
-		subDir := filepath.Join(root, sub)
-
-		if _, err := runGit(subDir, "fetch", "origin"); err != nil {
-			return GitCommitResult{Path: ".", Error: fmt.Sprintf("fetch failed for %s: %v", sub, err)}
-		}
-
-		head, err := runGit(subDir, "rev-parse", "HEAD")
+func commitParentRefs(root string, subs []string, message string, parentFiles []string) GitCommitResult {
+	// Fetch + verify each sub HEAD on remote — network-bound, so run in
+	// parallel. Errors land in an indexed slice (race-free) and the first
+	// failing sub is reported deterministically.
+	const maxJobs = 8
+	verifyErrs := make([]error, len(subs))
+	sem := make(chan struct{}, maxJobs)
+	var wg sync.WaitGroup
+	for i, sub := range subs {
+		wg.Add(1)
+		sem <- struct{}{}
+		go func(i int, sub string) {
+			defer wg.Done()
+			defer func() { <-sem }()
+			verifyErrs[i] = verifySubHeadOnRemote(filepath.Join(root, sub), sub)
+		}(i, sub)
+	}
+	wg.Wait()
+	for _, err := range verifyErrs {
 		if err != nil {
-			return GitCommitResult{Path: ".", Error: fmt.Sprintf("cannot get HEAD for %s: %v", sub, err)}
-		}
-
-		branches, err := runGit(subDir, "branch", "-r", "--contains", head)
-		if err != nil || strings.TrimSpace(branches) == "" {
-			short := head
-			if len(short) > 12 {
-				short = short[:12]
-			}
-			return GitCommitResult{Path: ".", Error: fmt.Sprintf("%s HEAD %s is not pushed to remote", sub, short)}
+			return GitCommitResult{Path: ".", Error: err.Error()}
 		}
 	}
 
@@ -366,19 +125,42 @@ func commitParentRefs(root string, subs []string, message string) GitCommitResul
 		staged = append(staged, sub)
 	}
 
-	// Detect non-submodule parent files (staged or unstaged)
+	// Stage explicitly requested parent files
+	requested := make(map[string]bool, len(parentFiles))
+	for _, f := range parentFiles {
+		if _, err := runGit(root, "add", "--", f); err != nil {
+			return GitCommitResult{Path: ".", Error: fmt.Sprintf("stage failed for parent file %s: %v", f, err)}
+		}
+		staged = append(staged, f)
+		requested[f] = true
+	}
+
+	// Classify remaining parent files: staged ones ride along with this
+	// commit; unstaged/untracked ones are left behind and must be reported —
+	// a refs-only commit that silently omits dirty parent files reads as
+	// "everything committed" when it isn't.
 	var parentWarnings []string
-	if statusOut, err := runGit(root, "status", "--porcelain"); err == nil {
-		classification := classifyParentFiles(statusOut, subs)
+	var leftUncommitted []string
+	if entries, err := statusEntries(root); err == nil {
+		classification := classifyParentFiles(entries, subs)
 		if len(classification.Unstaged) > 0 {
-			w := fmt.Sprintf("parent has %d unstaged file(s) (%s) — use -f to include them",
+			leftUncommitted = classification.Unstaged
+			w := fmt.Sprintf("parent has %d file(s) NOT included in this commit (%s) — include them with --parent-files/-F, or commit separately with --parent-only -f",
 				len(classification.Unstaged), strings.Join(classification.Unstaged, ", "))
 			parentWarnings = append(parentWarnings, w)
 			logf("warning: %s\n", w)
 		}
-		if len(classification.Staged) > 0 {
-			w := fmt.Sprintf("parent has %d staged file(s) that will be included in this commit: %s",
-				len(classification.Staged), strings.Join(classification.Staged, ", "))
+		// Warn about pre-staged files riding along (excluding the ones the
+		// caller just requested via --parent-files — those are intentional).
+		var preStaged []string
+		for _, f := range classification.Staged {
+			if !requested[f] {
+				preStaged = append(preStaged, f)
+			}
+		}
+		if len(preStaged) > 0 {
+			w := fmt.Sprintf("parent has %d previously staged file(s) that will be included in this commit: %s",
+				len(preStaged), strings.Join(preStaged, ", "))
 			parentWarnings = append(parentWarnings, w)
 			logf("warning: %s\n", w)
 		}
@@ -405,21 +187,39 @@ func commitParentRefs(root string, subs []string, message string) GitCommitResul
 	ref, _ := runGit(root, "rev-parse", "HEAD")
 
 	// Push
-	_, pushErr := runGit(root, "push")
+	_, pushErr := runGitNet(root, "push")
 	pushed := pushErr == nil
 
 	result := GitCommitResult{
-		Path:     ".",
-		Success:  true,
-		Ref:      ref,
-		Staged:   staged,
-		Pushed:   pushed,
-		Warnings: parentWarnings,
+		Path:            ".",
+		Success:         true,
+		Ref:             ref,
+		Staged:          staged,
+		Pushed:          pushed,
+		LeftUncommitted: leftUncommitted,
+		Warnings:        parentWarnings,
 	}
 	if !pushed {
 		result.Error = fmt.Sprintf("push failed: %v", pushErr)
 	}
 	return result
+}
+
+// recoveryHint returns guidance when some submodules were already
+// committed+pushed but the run failed before the parent ref bump — without
+// it, those refs silently stay stale in the parent.
+func recoveryHint(subResults []GitCommitResult, root string) string {
+	var done []string
+	for _, r := range subResults {
+		if r.Success && r.Pushed {
+			done = append(done, r.Path)
+		}
+	}
+	if len(done) == 0 {
+		return ""
+	}
+	return fmt.Sprintf("%d submodule(s) already committed+pushed (%s); after fixing, bump parent refs with: glittering git commit --parent-only --path %s",
+		len(done), strings.Join(done, ", "), root)
 }
 
 // GitCommit is the unified commit command: commits submodules and auto-updates parent ref.
@@ -432,32 +232,27 @@ func GitCommit(args []string) int {
 	}
 	path := fs.String("path", ".", "repository root path")
 	message := fs.StringP("message", "m", "", "commit message (required for sub commits)")
-	all := fs.Bool("all", false, "stage all changes (including untracked) before committing")
+	all := fs.Bool("all", false, "stage all changes in each named submodule (parent repo files are NOT staged; see --parent-files)")
 	files := fs.StringArrayP("files", "f", nil, "specific files to stage (relative to submodule root)")
 	staged := fs.Bool("staged", false, "commit whatever is already staged (skip staging)")
+	parentFiles := fs.StringArrayP("parent-files", "F", nil, "parent repo files to stage into the parent commit alongside the submodule ref bumps")
 	noParent := fs.Bool("no-parent", false, "skip parent ref update")
 	parentOnly := fs.Bool("parent-only", false, "parent-only mode: no sub commits, stage out-of-sync refs")
 	parentMessage := fs.String("parent-message", "", "custom parent commit message (default: auto-generated)")
 	fs.BoolVarP(&verbose, "verbose", "v", false, "show progress logs")
 	fs.Parse(args)
 
-	// Expand comma-separated --files values
-	if len(*files) > 0 {
-		var expanded []string
-		for _, f := range *files {
-			for _, part := range strings.Split(f, ",") {
-				part = strings.TrimSpace(part)
-				if part != "" {
-					expanded = append(expanded, part)
-				}
-			}
-		}
-		*files = expanded
-	}
+	// Accept both -f a -f b and -f "a,b"
+	*files = expandCommaList(*files)
+	*parentFiles = expandCommaList(*parentFiles)
 
 	// Validation
 	if *noParent && *parentOnly {
 		logf("error: --no-parent and --parent-only are mutually exclusive\n")
+		return ExitUsage
+	}
+	if *noParent && len(*parentFiles) > 0 {
+		logf("error: --parent-files cannot be used with --no-parent (there is no parent commit to stage into)\n")
 		return ExitUsage
 	}
 	// Staging flags mutual exclusivity
@@ -477,6 +272,11 @@ func GitCommit(args []string) int {
 	}
 
 	hasStagingFlag := *all || len(*files) > 0 || *staged
+
+	if *parentOnly && hasStagingFlag && len(*parentFiles) > 0 {
+		logf("error: --parent-files is redundant in --parent-only staging mode; use -f\n")
+		return ExitUsage
+	}
 
 	if *parentOnly && hasStagingFlag && *message == "" {
 		logf("error: --message/-m is required when using staging flags with --parent-only\n")
@@ -575,7 +375,7 @@ func GitCommit(args []string) int {
 
 			ref, _ := runGit(root, "rev-parse", "HEAD")
 
-			_, pushErr := runGit(root, "push")
+			_, pushErr := runGitNet(root, "push")
 			pushed := pushErr == nil
 
 			parentResult := GitCommitResult{
@@ -629,6 +429,10 @@ func GitCommit(args []string) int {
 		}
 
 		if len(targetSubs) == 0 {
+			if len(*parentFiles) > 0 {
+				logf("error: no submodule refs to update; commit parent files alone with --parent-only -f <file>\n")
+				return ExitUsage
+			}
 			output := GitCommitOutput{Path: root, Success: true, Submodules: []GitCommitResult{}}
 			progressf("glittering: nothing to do — all submodule refs are in sync\n")
 			outputJSON(output)
@@ -640,15 +444,20 @@ func GitCommit(args []string) int {
 			parentMsg = *parentMessage
 		}
 
-		parentResult := commitParentRefs(root, targetSubs, parentMsg)
+		parentResult := commitParentRefs(root, targetSubs, parentMsg, *parentFiles)
 		output := GitCommitOutput{
 			Path:       root,
 			Success:    parentResult.Success && parentResult.Pushed,
+			Partial:    parentResult.Success && len(parentResult.LeftUncommitted) > 0,
 			Submodules: []GitCommitResult{},
 			Parent:     &parentResult,
 		}
 		if !output.Success {
 			output.Error = parentResult.Error
+			if parentResult.Success && !parentResult.Pushed {
+				output.Hint = fmt.Sprintf("parent commit created but not pushed; push with: glittering git push --path %s", root)
+				logf("hint: %s\n", output.Hint)
+			}
 		}
 
 		deleteCache(root, "git.json")
@@ -656,6 +465,9 @@ func GitCommit(args []string) int {
 
 		if !output.Success {
 			return ExitFailure
+		}
+		if output.Partial {
+			return ExitPartial
 		}
 		return ExitOK
 	}
@@ -681,6 +493,10 @@ func GitCommit(args []string) int {
 			if _, err := runGit(subDir, "add", "-A"); err != nil {
 				subResults = append(subResults, GitCommitResult{Path: subPath, Error: fmt.Sprintf("stage failed: %v", err)})
 				output := GitCommitOutput{Path: root, Submodules: subResults, Error: fmt.Sprintf("stage failed in %s: %v", subPath, err)}
+				if h := recoveryHint(subResults, root); h != "" {
+					output.Hint = h
+					logf("hint: %s\n", h)
+				}
 				outputJSON(output)
 				return ExitFailure
 			}
@@ -689,6 +505,10 @@ func GitCommit(args []string) int {
 				if _, err := runGit(subDir, "add", "--", f); err != nil {
 					subResults = append(subResults, GitCommitResult{Path: subPath, Error: fmt.Sprintf("stage failed for %s: %v", f, err)})
 					output := GitCommitOutput{Path: root, Submodules: subResults, Error: fmt.Sprintf("stage failed for %s in %s: %v", f, subPath, err)}
+					if h := recoveryHint(subResults, root); h != "" {
+						output.Hint = h
+						logf("hint: %s\n", h)
+					}
 					outputJSON(output)
 					return ExitFailure
 				}
@@ -702,6 +522,10 @@ func GitCommit(args []string) int {
 			msg := fmt.Sprintf("nothing staged in %s; pass --all, -f <file>, --staged, or stage manually first", subPath)
 			subResults = append(subResults, GitCommitResult{Path: subPath, Error: msg})
 			output := GitCommitOutput{Path: root, Submodules: subResults, Error: msg}
+			if h := recoveryHint(subResults, root); h != "" {
+				output.Hint = h
+				logf("hint: %s\n", h)
+			}
 			outputJSON(output)
 			return ExitFailure
 		}
@@ -710,6 +534,10 @@ func GitCommit(args []string) int {
 		if _, err := runGit(subDir, "commit", "-m", *message); err != nil {
 			subResults = append(subResults, GitCommitResult{Path: subPath, Error: fmt.Sprintf("commit failed: %v", err)})
 			output := GitCommitOutput{Path: root, Submodules: subResults, Error: fmt.Sprintf("commit failed in %s: %v", subPath, err)}
+			if h := recoveryHint(subResults, root); h != "" {
+				output.Hint = h
+				logf("hint: %s\n", h)
+			}
 			outputJSON(output)
 			return ExitFailure
 		}
@@ -717,7 +545,7 @@ func GitCommit(args []string) int {
 		ref, _ := runGit(subDir, "rev-parse", "HEAD")
 
 		// Push
-		_, pushErr := runGit(subDir, "push", "--set-upstream", "origin", "HEAD")
+		_, pushErr := runGitNet(subDir, "push", "--set-upstream", "origin", "HEAD")
 		pushed := pushErr == nil
 
 		result := GitCommitResult{
@@ -730,6 +558,10 @@ func GitCommit(args []string) int {
 			result.Error = fmt.Sprintf("push failed: %v", pushErr)
 			subResults = append(subResults, result)
 			output := GitCommitOutput{Path: root, Submodules: subResults, Error: result.Error}
+			if h := recoveryHint(subResults, root); h != "" {
+				output.Hint = h
+				logf("hint: %s\n", h)
+			}
 			outputJSON(output)
 			return ExitFailure
 		}
@@ -752,12 +584,23 @@ func GitCommit(args []string) int {
 	}
 
 	// Auto-commit parent
-	parentResult := commitParentRefs(root, resolvedSubs, *parentMessage)
+	parentResult := commitParentRefs(root, resolvedSubs, *parentMessage, *parentFiles)
 	output.Parent = &parentResult
+	output.Partial = parentResult.Success && len(parentResult.LeftUncommitted) > 0
 
 	if !parentResult.Success || !parentResult.Pushed {
 		output.Success = false
 		output.Error = parentResult.Error
+		if !parentResult.Success {
+			// Subs are committed+pushed but the ref bump never happened
+			output.Hint = recoveryHint(subResults, root)
+		} else {
+			// Re-running --parent-only would create a duplicate commit; just push
+			output.Hint = fmt.Sprintf("parent commit created but not pushed; push with: glittering git push --path %s", root)
+		}
+		if output.Hint != "" {
+			logf("hint: %s\n", output.Hint)
+		}
 	}
 
 	deleteCache(root, "git.json")
@@ -765,6 +608,9 @@ func GitCommit(args []string) int {
 
 	if !output.Success {
 		return ExitFailure
+	}
+	if output.Partial {
+		return ExitPartial
 	}
 	return ExitOK
 }
@@ -786,8 +632,7 @@ func GitPull(args []string) int {
 	var warnings []string
 
 	// Pre-flight: check parent dirty/stash
-	parentPorcelain, _ := runGit(root, "status", "--porcelain")
-	if parentPorcelain != "" {
+	if entries, err := statusEntries(root); err == nil && len(entries) > 0 {
 		warnings = append(warnings, "parent repo has uncommitted changes")
 	}
 	parentStash := getStashCount(root)
@@ -803,7 +648,7 @@ func GitPull(args []string) int {
 
 	// Pull parent
 	progressf("glittering: pulling parent (%s)...\n", branch)
-	_, pullErr := runGit(root, "pull", "origin", branch)
+	_, pullErr := runGitNet(root, "pull", "origin", branch)
 	if pullErr != nil {
 		result := GitPullResult{Path: root, Branch: branch, Warnings: warnings, Error: fmt.Sprintf("pull failed: %v", pullErr)}
 		outputJSON(result)
@@ -818,7 +663,7 @@ func GitPull(args []string) int {
 	if len(uninit) > 0 {
 		progressf("glittering: initialising %d new submodules...\n", len(uninit))
 		args := append([]string{"submodule", "update", "--init", "--"}, uninit...)
-		if _, initErr := runGit(root, args...); initErr != nil {
+		if _, initErr := runGitNet(root, args...); initErr != nil {
 			warnings = append(warnings, fmt.Sprintf("submodule init failed: %v", initErr))
 		}
 	}
@@ -835,8 +680,7 @@ func GitPull(args []string) int {
 	dirtySet := make(map[string]bool)
 	for _, subPath := range submodulePaths {
 		subDir := filepath.Join(root, subPath)
-		porcelain, _ := runGit(subDir, "status", "--porcelain")
-		if porcelain != "" {
+		if entries, err := statusEntries(subDir); err == nil && len(entries) > 0 {
 			dirtySet[subPath] = true
 			warnings = append(warnings, fmt.Sprintf("%s has uncommitted changes (skipping pull)", subPath))
 		}
@@ -879,7 +723,7 @@ func GitPull(args []string) int {
 		beforeRef, _ := runGit(subDir, "rev-parse", "HEAD")
 
 		// Pull
-		if _, err := runGit(subDir, "pull", "origin", subBranch); err != nil {
+		if _, err := runGitNet(subDir, "pull", "origin", subBranch); err != nil {
 			sub.Error = fmt.Sprintf("pull failed: %v", err)
 			hasError = true
 			subResults = append(subResults, sub)

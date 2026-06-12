@@ -3,9 +3,10 @@ package cmd
 // --- Exit codes ---
 
 const (
-	ExitOK      = 0
-	ExitFailure = 1
-	ExitUsage   = 2
+	ExitOK      = 0 // success
+	ExitFailure = 1 // runtime error (git operation, I/O, invalid state)
+	ExitUsage   = 2 // usage error (missing args, flag conflicts)
+	ExitPartial = 3 // commit succeeded but parent files were left uncommitted
 )
 
 // --- Skip directories for package discovery ---
@@ -280,16 +281,25 @@ type GitCommitResult struct {
 	Ref     string   `json:"ref,omitempty"`
 	Pushed  bool     `json:"pushed"`
 	Staged  []string `json:"staged,omitempty"`
+	// LeftUncommitted lists parent-repo files with changes that were NOT
+	// included in this commit (unstaged or untracked, excluding submodules).
+	LeftUncommitted []string `json:"left_uncommitted,omitempty"`
 	Warnings []string `json:"warnings,omitempty"`
 	Error   string   `json:"error,omitempty"`
 }
 
 type GitCommitOutput struct {
-	Path       string            `json:"path"`
-	Success    bool              `json:"success"`
+	Path    string `json:"path"`
+	Success bool   `json:"success"`
+	// Partial is true when the commit succeeded but parent-repo files were
+	// left uncommitted (see Parent.LeftUncommitted).
+	Partial    bool              `json:"partial,omitempty"`
 	Submodules []GitCommitResult `json:"submodules"`
 	Parent     *GitCommitResult  `json:"parent,omitempty"`
-	Error      string            `json:"error,omitempty"`
+	// Hint suggests a recovery command when the run stopped partway (e.g.
+	// some submodules pushed but the parent ref bump never happened).
+	Hint  string `json:"hint,omitempty"`
+	Error string `json:"error,omitempty"`
 }
 
 type GitPullSubmodule struct {

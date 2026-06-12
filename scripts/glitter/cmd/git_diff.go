@@ -97,14 +97,8 @@ func collectRepoDiff(repoPath, absDir, session string, stagedOnly bool) *DiffRep
 
 	// Untracked files
 	var untracked []string
-	porcelain, err := runGit(absDir, "status", "--porcelain")
-	if err == nil && porcelain != "" {
-		for _, line := range strings.Split(porcelain, "\n") {
-			if strings.HasPrefix(line, "??") {
-				file := strings.TrimSpace(strings.TrimPrefix(line, "??"))
-				untracked = append(untracked, file)
-			}
-		}
+	if entries, err := statusEntries(absDir); err == nil {
+		untracked = untrackedPaths(entries)
 	}
 
 	if len(staged) == 0 && len(unstaged) == 0 && len(untracked) == 0 {

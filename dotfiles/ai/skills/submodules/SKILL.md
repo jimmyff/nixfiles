@@ -96,6 +96,8 @@ glittering git commit --parent-only --path <root>
 
 If other submodules also have out-of-sync refs, `--parent-only` (without explicit subs) auto-detects them. Verify those refs are pushed before including.
 
+To include parent-repo files (docs, plans) in the parent commit, name them with `-F <file>` — they are never swept automatically. If the result has `partial: true`, files listed in `parent.left_uncommitted` were NOT committed; resolve before reporting done.
+
 ### `sync` — Pull and sync everything
 
 **glittering**: `glittering git pull --path <workspace>`
@@ -122,6 +124,6 @@ Run after committing to verify the workspace is fully committed, pushed, and par
 
 - **No attribution**: Do not add `Co-Authored-By` or any author metadata to commit messages
 - Always confirm before committing or pushing
-- If a push fails (e.g. diverged branch), stop and ask the user
+- If a push fails (e.g. diverged branch), stop and ask the user — the result's `hint` field gives the recovery command for already-pushed submodules
 - No repo (parent or submodule) should ever be left in detached HEAD state. After any operation that detaches HEAD (e.g. `submodule update`), reattach to the tracking branch. If the tracking branch can't be determined, ask the user
 - Use `/glitterfix` if tests or analysis need fixing before committing

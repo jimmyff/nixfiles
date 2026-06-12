@@ -146,13 +146,17 @@ def "main git commit" [
   --path: string = "."
   --all
   --staged
-  --files(-f): list<string>
+  --files(-f): any          # single file or list
+  --parent-files(-F): any   # single file or list
   -m: string
   --no-parent
   --parent-only
   --parent-message: string
   ...sub_paths: string
 ] {
+  # Accept both `-f a.txt` and `-f [a.txt b.txt]`
+  let files = if $files == null or ($files | describe | str starts-with "list") { $files } else { [$files] }
+  let parent_files = if $parent_files == null or ($parent_files | describe | str starts-with "list") { $parent_files } else { [$parent_files] }
   let abs_path = ($path | path expand)
   mut args = [--verbose --path $abs_path]
   if ($m != null) and ($m != "") { $args = ($args | append [--message $m]) }
@@ -161,11 +165,20 @@ def "main git commit" [
   if ($files != null) {
     for f in $files { $args = ($args | append [--files $f]) }
   }
+  if ($parent_files != null) {
+    for f in $parent_files { $args = ($args | append [--parent-files $f]) }
+  }
   if $no_parent { $args = ($args | append [--no-parent]) }
   if $parent_only { $args = ($args | append [--parent-only]) }
   if ($parent_message != null) and ($parent_message != "") { $args = ($args | append [--parent-message $parent_message]) }
   $args = ($args | append $sub_paths)
-  let result = (glittering git commit ...$args | from json)
+  # `complete` so non-zero exits (1=failure, 3=partial) don't abort before rendering
+  let out = (glittering git commit ...$args | complete)
+  if ($out.stderr != "") { print -e ($out.stderr | str trim --right --char "\n") }
+  if (($out.stdout | str trim) == "") {
+    error make {msg: $"glittering git commit failed \(exit ($out.exit_code)) with no output"}
+  }
+  let result = ($out.stdout | from json)
 
   # Display sub results
   let subs = ($result.submodules? | default [])
@@ -195,7 +208,7 @@ def "main git commit" [
     let ref_str = if ($parent.ref? | default "") != "" { $" (($parent.ref | str substring 0..7))" } else { "" }
     let push_str = if ($parent.pushed? | default false) { " pushed" } else { "" }
     let err_str = if ($parent.error? | default "") != "" { $" (ansi red)($parent.error)(ansi reset)" } else { "" }
-    print $"  ($icon) (parent)($staged_str)($ref_str)($push_str)($err_str)"
+    print $"  ($icon) parent($staged_str)($ref_str)($push_str)($err_str)"
     let warnings = ($parent.warnings? | default [])
     if (not ($warnings | is-empty)) {
       for w in $warnings {
@@ -204,27 +217,20 @@ def "main git commit" [
     }
   }
 
-  $result
-}
-
-def "main git commit-sub" [--path: string = "." --all --staged --files: list<string> -m: string sub_path: string] {
-  print -e "hint: commit-sub is deprecated, use: glitter git commit"
-  mut args = [--verbose --path ($path | path expand) --message $m]
-  if $all { $args = ($args | append [--all]) }
-  if $staged { $args = ($args | append [--staged]) }
-  if ($files != null) {
-    for f in $files { $args = ($args | append [--files $f]) }
+  # Partial commit: succeeded, but parent files were left uncommitted
+  if ($result.partial? | default false) {
+    let left = ($result.parent?.left_uncommitted? | default [])
+    print $"  (ansi yellow)⚠ PARTIAL:(ansi reset) parent files NOT committed: (ansi yellow)($left | str join ', ')(ansi reset)"
+    print $"    include them with -F <file>, or commit now with: glitter git commit --parent-only -f <file> -m \"msg\""
   }
-  $args = ($args | append [$sub_path])
-  glittering git commit-sub ...$args | from json
-}
 
-def "main git commit-parent" [--path: string = "." --all -m: string ...sub_paths: string] {
-  print -e "hint: commit-parent is deprecated, use: glitter git commit --parent-only"
-  mut args = [--verbose --path ($path | path expand) --message $m]
-  if $all { $args = ($args | append [--all]) }
-  $args = ($args | append $sub_paths)
-  glittering git commit-parent ...$args | from json
+  # Recovery hint when the run stopped partway
+  let hint = ($result.hint? | default "")
+  if $hint != "" {
+    print $"  (ansi cyan)hint:(ansi reset) ($hint)"
+  }
+
+  $result
 }
 
 def "main git pull" [--path: string = "." --filter: string = ""] {

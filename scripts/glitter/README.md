@@ -33,8 +33,8 @@ glittering git push --path workspace [--filter name]
 glittering get --path workspace                  # pub get all packages
 glittering upgrade --path workspace              # pub upgrade all packages
 glittering git diff --path workspace [--filter name]
-glittering git commit-sub --message "msg" --path workspace [--all|--staged|--files f1 --files f2] <sub>
-glittering git commit-parent --message "msg" --path workspace [--all] sub1 sub2
+glittering git commit <sub>... --message "msg" --path workspace [--all|--staged|--files f] [--parent-files f]
+glittering git commit --parent-only --path workspace             # bump out-of-sync submodule refs
 glittering git pull --path workspace [--filter name]
 glittering clean                                 # Tidy old sessions
 ```

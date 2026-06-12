@@ -74,7 +74,7 @@ func GitPush(args []string) int {
 		}
 		subDir := filepath.Join(root, sub.Path)
 		progressf("  pushing %s...\n", sub.Path)
-		if _, pushErr := runGit(subDir, "push"); pushErr != nil {
+		if _, pushErr := runGitNet(subDir, "push"); pushErr != nil {
 			failed = append(failed, PushRepoResult{Path: sub.Path, Status: "failed", Ref: sub.Ref, Error: fmt.Sprintf("%v", pushErr)})
 		} else {
 			pushed = append(pushed, PushRepoResult{Path: sub.Path, Status: "pushed", Ref: sub.Ref})
@@ -85,7 +85,7 @@ func GitPush(args []string) int {
 	if len(filters) == 0 {
 		if data.Repo.AheadRemote > 0 && data.Repo.Upstream != "" {
 			progressf("  pushing parent...\n")
-			if _, pushErr := runGit(root, "push"); pushErr != nil {
+			if _, pushErr := runGitNet(root, "push"); pushErr != nil {
 				failed = append(failed, PushRepoResult{Path: ".", Status: "failed", Ref: data.Repo.Ref, Error: fmt.Sprintf("%v", pushErr)})
 			} else {
 				pushed = append(pushed, PushRepoResult{Path: ".", Status: "pushed", Ref: data.Repo.Ref})
