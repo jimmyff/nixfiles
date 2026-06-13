@@ -6,6 +6,8 @@
 #   mux         launch/attach the workspace for the current directory
 #   mux reset   delete the resolved session then relaunch (escape a bad resurrection)
 #   mux init    scaffold a tabs-only .zellij.kdl layout in the current directory
+#   mux dash    open/attach the dash session — one tab per active project
+#   mux dash reset  delete dash, rescan projects, relaunch fresh
 #
 # Bar chrome is the single source of truth: project .zellij.kdl files hold only
 # tabs/panes, and mux injects the default_tab_template from jimmyff.kdl at launch
@@ -192,6 +194,73 @@ def launch [r: record] {
     }
 }
 
+# --- dash -------------------------------------------------------------------
+
+# Active projects: ~/Projects/*/workspace dirs that are git repos, sorted by name.
+def dash-projects [] {
+    let base = ([$env.HOME "Projects"] | path join)
+    if not ($base | path exists) { return [] }
+    ls $base
+    | where type == dir
+    | get name
+    | each {|p| { name: ($p | path basename), ws: ([$p "workspace"] | path join) } }
+    | where {|r| ([$r.ws ".git"] | path join) | path exists }
+    | sort-by name
+}
+
+# Pure builder: tabs-only layout string (chrome injected later by merge-layout).
+# Every folder is treated equally — one tab, vertical split of shell | glitter overview.
+# --nixfiles appends ~/nixfiles as just another folder.
+def dash-layout [projects: list<any>, --nixfiles] {
+    let folders = (if $nixfiles {
+        $projects | append { name: "nixfiles", ws: ([$env.HOME "nixfiles"] | path join) }
+    } else { $projects })
+    let tabs = ($folders | each {|r|
+        $'    tab name="($r.name)" {
+        pane split_direction="vertical" {
+            pane cwd="($r.ws)"
+            pane cwd="($r.ws)" {
+                command "glitter"
+                args "overview" "--compact"
+            }
+        }
+    }'
+    } | str join "\n")
+    $"layout {\n($tabs)\n}\n"
+}
+
+# Guard + optional delete + (generate when creating) + launch the `dash` session.
+def open-dash [--reset, --nixfiles, --dry-run] {
+    if $dry_run {
+        print (dash-layout (dash-projects) --nixfiles=$nixfiles)
+        return
+    }
+    if ($env.ZELLIJ? | is-not-empty) {
+        error make { msg: "mux dash: run from outside a zellij session." }
+    }
+
+    let sessions = (zellij-sessions)
+    if $reset and ("dash" in $sessions) {
+        ^zellij delete-session "dash" --force
+    }
+
+    # Create when resetting or when no preserved session exists; otherwise attach.
+    let creating = ($reset or ("dash" not-in $sessions))
+    let layout = (if $creating {
+        let projects = (dash-projects)
+        if ($projects | is-empty) and (not $nixfiles) {
+            error make { msg: $"mux dash: no projects under ($env.HOME)/Projects/*/workspace." }
+        }
+        let tmp = (($env.TMPDIR? | default "/tmp") | path join "mux-dash-input.kdl")
+        (dash-layout $projects --nixfiles=$nixfiles) | save -f $tmp
+        $tmp
+    } else {
+        null   # attach preserved session — launch ignores layout anyway
+    })
+
+    launch { session: "dash", root: $env.HOME, layout: $layout }
+}
+
 # --- entry points -----------------------------------------------------------
 
 def main [] {
@@ -228,3 +297,6 @@ def "main init" [] {
     $SCAFFOLD | save $target
     print $"Wrote ($target)"
 }
+
+def "main dash" [--nixfiles, --dry-run] { open-dash --nixfiles=$nixfiles --dry-run=$dry_run }
+def "main dash reset" [--nixfiles] { open-dash --reset --nixfiles=$nixfiles }

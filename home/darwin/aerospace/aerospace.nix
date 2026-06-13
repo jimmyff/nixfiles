@@ -20,7 +20,7 @@
       settings = {
         active_color = "0xffffe27a";
         inactive_color = "0xff7d7db4";
-        width = 2;
+        width = 3;
       };
     };
   };

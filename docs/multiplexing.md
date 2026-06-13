@@ -42,6 +42,8 @@ Sessions start **locked**, so every `Ctrl` reaches the TUI. To drive zellij:
 | `mux` / `x` | launch or attach the workspace for the cwd |
 | `mux reset` | delete the session, then relaunch (escape a bad resurrection) |
 | `mux init` | scaffold a tabs-only `.zellij.kdl` here |
+| `mux dash` | open/attach `dash` — one tab per active project |
+| `mux dash reset` | delete `dash`, rescan projects, relaunch fresh |
 
 - **Session name:** `$ZJ_SESSION` → `~/Projects/<name>/workspace` → git repo → cwd basename.
 - **Layout:** `$ZJ_LAYOUT` → nearest `.zellij.kdl` → the `default_layout` fallback. That
@@ -57,6 +59,27 @@ their birth chrome until `mux reset`. `dev.nu` in osdn does the same injection f
 
 A project's `.zellij.kdl` lives at its repo root, in the **private** repo (layouts hold launch
 commands; nixfiles is public). `~/nixfiles/.zellij.kdl` is the committed scaffold `mux init` writes.
+
+## `mux dash`
+
+A single session `dash`, one tab per active project — scan every workspace
+without leaving zellij. Tabs-only like `mux init`; bar chrome injected at launch.
+
+| Command | Action |
+| ------- | ------ |
+| `mux dash` | open/attach `dash` (attaching keeps shell state) |
+| `mux dash reset` | delete `dash`, rescan, relaunch with a fresh layout |
+| `… --nixfiles` | also append `~/nixfiles` as another folder tab |
+
+- **Projects:** directory scan of `~/Projects/*/workspace` requiring `workspace/.git`
+  (no Nix manifest), sorted by name — whatever is cloned shows up.
+- **Each tab (one per folder):** vertical split — left an interactive shell, right
+  `glitter overview --compact` (cached, one-shot; Enter to re-run). The left shell's
+  devshell may print its own overview via `startup.nu` — harmless.
+- **`~/nixfiles` (`--nixfiles`):** just another folder — same split; its `glitter overview`
+  has 0 Dart packages but shows the repo's git status (the useful part).
+- `mux dash` attaches the preserved session; use `mux dash reset` after cloning a
+  new project. Run from **outside** zellij (can't nest a session).
 
 ## Applying changes
 
