@@ -2,8 +2,8 @@ package cmd
 
 import (
 	"encoding/json"
-	flag "github.com/spf13/pflag"
 	"fmt"
+	flag "github.com/spf13/pflag"
 	"io"
 	"os"
 	"os/exec"

@@ -40,6 +40,11 @@ func discoverPackages(root string, filters []string) ([]PackageInfo, error) {
 	if len(filters) == 0 {
 		return packages, nil
 	}
+	pkgPaths := make([]string, len(packages))
+	for i, pkg := range packages {
+		pkgPaths[i] = pkg.Path
+	}
+	warnUnmatchedFilters(filters, pkgPaths, "package")
 	var filtered []PackageInfo
 	for _, pkg := range packages {
 		for _, f := range filters {

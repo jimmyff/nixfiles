@@ -45,10 +45,16 @@ func GitDiff(args []string) int {
 		return ExitFailure
 	}
 	filters := parseFilter(*filter)
-	submodulePaths = filterSubmodulePaths(submodulePaths, filters)
+	includeParent, subFilters := splitParentFilter(filters)
+	warnUnmatchedFilters(subFilters, submodulePaths, "submodule")
+	if len(filters) > 0 && len(subFilters) == 0 {
+		submodulePaths = nil // "." alone: parent only, no submodules
+	} else {
+		submodulePaths = filterSubmodulePaths(submodulePaths, subFilters)
+	}
 
-	// Parent repo — skip when filter is active
-	if len(filters) == 0 {
+	// Parent repo — include when no filter, or when "." was requested
+	if len(filters) == 0 || includeParent {
 		if result := collectRepoDiff(".", root, session, *stagedOnly); result != nil {
 			repos = append(repos, *result)
 		}

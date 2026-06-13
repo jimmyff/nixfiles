@@ -2,8 +2,8 @@ package cmd
 
 import (
 	"encoding/json"
-	flag "github.com/spf13/pflag"
 	"fmt"
+	flag "github.com/spf13/pflag"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -177,7 +177,7 @@ func gitStatus(args []string) int {
 			if len(filters) > 0 {
 				var gitOut GitOutput
 				if err := json.Unmarshal(data, &gitOut); err == nil {
-					gitOut.Submodules = filterGitSubmodules(gitOut.Submodules, filters)
+					gitOut.Submodules = filterGitSubmodulesWithParent(gitOut.Submodules, filters)
 					outputJSON(gitOut)
 					return ExitOK
 				}
@@ -202,7 +202,7 @@ func gitStatus(args []string) int {
 	writeCache(root, "git.json", out)
 	// Then filter for output
 	filters := parseFilter(*filter)
-	out.Submodules = filterGitSubmodules(out.Submodules, filters)
+	out.Submodules = filterGitSubmodulesWithParent(out.Submodules, filters)
 	if err := outputJSON(out); err != nil {
 		logf("error: %v\n", err)
 		return ExitFailure

@@ -2,8 +2,8 @@ package cmd
 
 import (
 	"encoding/json"
-	flag "github.com/spf13/pflag"
 	"fmt"
+	flag "github.com/spf13/pflag"
 )
 
 // analyzeGitIssues examines collected git data and returns a list of issues.
@@ -198,9 +198,7 @@ func GitCheck(args []string) int {
 	}
 
 	filters := parseFilter(*filter)
-	if len(filters) > 0 {
-		data.Submodules = filterGitSubmodules(data.Submodules, filters)
-	}
+	data.Submodules = filterGitSubmodulesWithParent(data.Submodules, filters)
 
 	issues := analyzeGitIssues(data)
 	out := buildCheckOutput(root, data.Timestamp, issues)

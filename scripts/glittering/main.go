@@ -2,8 +2,8 @@ package main
 
 import (
 	"fmt"
-	"os"
 	"glittering/cmd"
+	"os"
 )
 
 const helpText = `glittering — Dart/Flutter super-project orchestrator (JSON to stdout, logs to stderr)

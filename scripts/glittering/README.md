@@ -35,6 +35,7 @@ glittering upgrade --path workspace              # pub upgrade all packages
 glittering git diff --path workspace [--filter name]
 glittering git commit <sub>... --message "msg" --path workspace [--all|--staged|--files f] [--parent-files f]
 glittering git commit --parent-only --path workspace             # bump out-of-sync submodule refs
+glittering git commit --parent-only -f <file> -m "msg" --path workspace  # commit parent-repo files only
 glittering git pull --path workspace [--filter name]
 glittering clean                                 # Tidy old sessions
 ```

@@ -1,8 +1,8 @@
 package cmd
 
 import (
-	flag "github.com/spf13/pflag"
 	"fmt"
+	flag "github.com/spf13/pflag"
 	"path/filepath"
 )
 
@@ -20,6 +20,14 @@ func GitPush(args []string) int {
 		return ExitUsage
 	}
 
+	// Reject "." before the network fetch — filtered push operates on
+	// submodules only; include the parent by running without --filter.
+	filters := parseFilter(*filter)
+	if includeParent, _ := splitParentFilter(filters); includeParent {
+		logf("error: --filter . is not supported for git push — \".\" is the parent repo, and filtered push operates on submodules only; run without --filter to include the parent\n")
+		return ExitUsage
+	}
+
 	// Always fetch first to get accurate ahead/behind counts
 	data, err := collectGitData(root, true)
 	if err != nil {
@@ -27,8 +35,8 @@ func GitPush(args []string) int {
 		return ExitFailure
 	}
 
-	filters := parseFilter(*filter)
 	if len(filters) > 0 {
+		warnUnmatchedFilters(filters, submodulePathsOf(data.Submodules), "submodule")
 		data.Submodules = filterGitSubmodules(data.Submodules, filters)
 	}
 

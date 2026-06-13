@@ -126,6 +126,101 @@ func TestFilterGitSubmodules_NilSubs(t *testing.T) {
 	}
 }
 
+func TestSafePath_Parent(t *testing.T) {
+	if got := safePath("."); got != "_parent" {
+		t.Errorf("safePath(\".\"): expected _parent (not a hidden ..-like name), got %q", got)
+	}
+}
+
+func TestSafePath_NestedPath(t *testing.T) {
+	if got := safePath("packages/foo"); got != "packages--foo" {
+		t.Errorf("safePath: expected packages--foo, got %q", got)
+	}
+}
+
+func TestSplitParentFilter_Nil(t *testing.T) {
+	includeParent, subFilters := splitParentFilter(nil)
+	if includeParent || len(subFilters) != 0 {
+		t.Errorf("nil: expected (false, []), got (%v, %v)", includeParent, subFilters)
+	}
+}
+
+func TestSplitParentFilter_NoDot(t *testing.T) {
+	includeParent, subFilters := splitParentFilter([]string{"foo", "bar"})
+	if includeParent {
+		t.Errorf("no dot: expected includeParent=false")
+	}
+	if len(subFilters) != 2 || subFilters[0] != "foo" || subFilters[1] != "bar" {
+		t.Errorf("no dot: expected [foo bar], got %v", subFilters)
+	}
+}
+
+func TestSplitParentFilter_DotOnly(t *testing.T) {
+	includeParent, subFilters := splitParentFilter([]string{"."})
+	if !includeParent {
+		t.Errorf("dot only: expected includeParent=true")
+	}
+	if len(subFilters) != 0 {
+		t.Errorf("dot only: expected no sub filters, got %v", subFilters)
+	}
+}
+
+func TestSplitParentFilter_DotPlusSubs(t *testing.T) {
+	includeParent, subFilters := splitParentFilter([]string{".", "foo"})
+	if !includeParent || len(subFilters) != 1 || subFilters[0] != "foo" {
+		t.Errorf("dot+subs: expected (true, [foo]), got (%v, %v)", includeParent, subFilters)
+	}
+	// Order-independent: dot last
+	includeParent, subFilters = splitParentFilter([]string{"foo", "."})
+	if !includeParent || len(subFilters) != 1 || subFilters[0] != "foo" {
+		t.Errorf("subs+dot: expected (true, [foo]), got (%v, %v)", includeParent, subFilters)
+	}
+}
+
+func TestUnmatchedFilters_AllMatch(t *testing.T) {
+	got := unmatchedFilters([]string{"foo", "bar"}, []string{"packages/foo", "packages/bar"})
+	if len(got) != 0 {
+		t.Errorf("all match: expected none, got %v", got)
+	}
+}
+
+func TestUnmatchedFilters_SomeUnmatched(t *testing.T) {
+	got := unmatchedFilters([]string{"foo", "xyz"}, []string{"packages/foo"})
+	if len(got) != 1 || got[0] != "xyz" {
+		t.Errorf("some unmatched: expected [xyz], got %v", got)
+	}
+}
+
+func TestUnmatchedFilters_DotExcluded(t *testing.T) {
+	// "." is the parent token, never reported as unmatched even with no paths.
+	got := unmatchedFilters([]string{"."}, nil)
+	if len(got) != 0 {
+		t.Errorf("dot excluded: expected none, got %v", got)
+	}
+}
+
+func TestUnmatchedFilters_EmptyInputs(t *testing.T) {
+	if got := unmatchedFilters(nil, []string{"packages/foo"}); len(got) != 0 {
+		t.Errorf("nil filters: expected none, got %v", got)
+	}
+	if got := unmatchedFilters([]string{"foo"}, nil); len(got) != 1 || got[0] != "foo" {
+		t.Errorf("nil paths: expected [foo], got %v", got)
+	}
+}
+
+func TestDedupeStrings_PreservesOrder(t *testing.T) {
+	got := dedupeStrings([]string{"b", "a", "b", "c", "a"})
+	want := []string{"b", "a", "c"}
+	if len(got) != len(want) {
+		t.Fatalf("expected %v, got %v", want, got)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Errorf("at %d: expected %q, got %q (full: %v)", i, want[i], got[i], got)
+		}
+	}
+}
+
 func TestResolveRoot_Dot(t *testing.T) {
 	cwd, err := os.Getwd()
 	if err != nil {

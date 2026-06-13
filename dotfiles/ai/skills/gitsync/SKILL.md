@@ -20,6 +20,7 @@ One ritual for switching machines: run it when leaving (commits + pushes + pulls
    - Review each dirty repo with `glittering git diff --filter <sub>`; group related changes into commits
    - Propose ALL commit messages together in one summary for approval — this is where leftover half-done WIP gets caught: anything declined stays uncommitted
    - Commit via `glittering git commit` (prefer `-f` selective staging over `--all`; `-F` for related parent files)
+   - Parent-repo-only changes (no dirty subs): `glittering git commit --parent-only -f <file> -m "msg"`
    - Resolve everything the results report: `partial`/`left_uncommitted` means parent files still uncommitted; on failure, follow the `hint` field
 3. **Pull**: `glittering git pull --path <root>` — pulls parent, inits new submodules, checks out tracking branches, pulls each sub. Declined-WIP subs are skipped with warnings (expected — surface them). Merge conflicts: stop and ask.
 4. **Verify**: `glittering git check --path <root>`. Submodules ahead of the parent ref mean the remote moved past what the parent recorded — bump with `glittering git commit --parent-only`. No repo left in detached HEAD.

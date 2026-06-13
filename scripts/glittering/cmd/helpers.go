@@ -42,7 +42,13 @@ func outputJSON(v interface{}) error {
 }
 
 // safePath converts a relative path to a safe filename (/ -> --).
+// The parent repo's path "." maps to "_parent": a literal "." would produce
+// hidden, ..-like filenames (e.g. "..patch"), and the underscore prefix avoids
+// colliding with any real package/submodule named "parent" (which has no prefix).
 func safePath(p string) string {
+	if p == "." {
+		return "_parent"
+	}
 	return strings.ReplaceAll(p, "/", "--")
 }
 
@@ -189,6 +195,88 @@ func filterGitSubmodules(subs []GitSubmoduleStatus, filters []string) []GitSubmo
 		}
 	}
 	return filtered
+}
+
+// filterGitSubmodulesWithParent applies submodule filtering with "." parent
+// semantics and warns on unmatched tokens. The parent repo status is always
+// present in GitOutput, so this only governs the submodule slice: "." alone
+// (or any filter matching no submodule) yields an empty slice. With no filter
+// the input is returned unchanged.
+func filterGitSubmodulesWithParent(subs []GitSubmoduleStatus, filters []string) []GitSubmoduleStatus {
+	_, subFilters := splitParentFilter(filters)
+	warnUnmatchedFilters(subFilters, submodulePathsOf(subs), "submodule")
+	if len(filters) > 0 && len(subFilters) == 0 {
+		return []GitSubmoduleStatus{} // "." alone: parent only, no submodules
+	}
+	return filterGitSubmodules(subs, subFilters)
+}
+
+// splitParentFilter separates the "." token (the parent repo) from submodule
+// filter tokens. Callers must distinguish "no filter at all" (len(filters)==0:
+// everything) from "filter was . only" (len(filters)>0 && len(subFilters)==0:
+// parent only, no submodules).
+func splitParentFilter(filters []string) (includeParent bool, subFilters []string) {
+	for _, f := range filters {
+		if f == "." {
+			includeParent = true
+			continue
+		}
+		subFilters = append(subFilters, f)
+	}
+	return includeParent, subFilters
+}
+
+// unmatchedFilters returns filter tokens (excluding ".", the parent repo) that
+// substring-match none of the given paths. Pure.
+func unmatchedFilters(filters, paths []string) []string {
+	var unmatched []string
+	for _, f := range filters {
+		if f == "." {
+			continue
+		}
+		matched := false
+		for _, p := range paths {
+			if strings.Contains(p, f) {
+				matched = true
+				break
+			}
+		}
+		if !matched {
+			unmatched = append(unmatched, f)
+		}
+	}
+	return unmatched
+}
+
+// warnUnmatchedFilters logs a stderr warning per filter token matching no path.
+// noun is "submodule" or "package". Warning-only — does not affect exit codes.
+func warnUnmatchedFilters(filters, paths []string, noun string) {
+	for _, f := range unmatchedFilters(filters, paths) {
+		logf("warning: filter %q matches no %s\n", f, noun)
+	}
+}
+
+// submodulePathsOf extracts the Path field from each submodule status.
+func submodulePathsOf(subs []GitSubmoduleStatus) []string {
+	paths := make([]string, len(subs))
+	for i, s := range subs {
+		paths[i] = s.Path
+	}
+	return paths
+}
+
+// dedupeStrings returns items with duplicates removed, preserving first-seen order.
+func dedupeStrings(items []string) []string {
+	seen := make(map[string]bool, len(items))
+	var result []string
+	for _, item := range items {
+		if seen[item] {
+			continue
+		}
+		seen[item] = true
+		result = append(result, item)
+	}
+	return result
 }
 
 // resolveSubmodulePath resolves a potentially short submodule name to the full path.

@@ -258,8 +258,8 @@ type CheckOutput struct {
 }
 
 type PushRepoResult struct {
-	Path   string `json:"path"`            // "." for parent
-	Status string `json:"status"`          // "pushed", "skipped", "failed"
+	Path   string `json:"path"`   // "." for parent
+	Status string `json:"status"` // "pushed", "skipped", "failed"
 	Ref    string `json:"ref,omitempty"`
 	Error  string `json:"error,omitempty"`
 }
@@ -284,8 +284,8 @@ type GitCommitResult struct {
 	// LeftUncommitted lists parent-repo files with changes that were NOT
 	// included in this commit (unstaged or untracked, excluding submodules).
 	LeftUncommitted []string `json:"left_uncommitted,omitempty"`
-	Warnings []string `json:"warnings,omitempty"`
-	Error   string   `json:"error,omitempty"`
+	Warnings        []string `json:"warnings,omitempty"`
+	Error           string   `json:"error,omitempty"`
 }
 
 type GitCommitOutput struct {

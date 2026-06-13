@@ -1,8 +1,8 @@
 package cmd
 
 import (
-	flag "github.com/spf13/pflag"
 	"fmt"
+	flag "github.com/spf13/pflag"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -205,6 +205,111 @@ func commitParentRefs(root string, subs []string, message string, parentFiles []
 	return result
 }
 
+// commitParentFiles stages parent-repo changes (an --all sweep and/or named
+// files), commits, pushes, emits GitCommitOutput JSON, invalidates the git
+// cache, and returns the exit code. files is the union of -f and -F (already
+// expanded and deduped). With all=true the named files are redundant but
+// harmless — re-adding keeps the Staged list populated for cases like
+// `--parent-only --all -F PLAN.md`.
+//
+// Unlike commitParentRefs this never reports ExitPartial: a named-files commit
+// leaves other dirty parent files behind by design, so there is no
+// "left uncommitted" contract to honour.
+func commitParentFiles(root string, all bool, files []string, message string) int {
+	var stagedFiles []string
+
+	if all {
+		if _, err := runGit(root, "add", "-A"); err != nil {
+			output := GitCommitOutput{Path: root, Error: fmt.Sprintf("stage failed: %v", err)}
+			outputJSON(output)
+			return ExitFailure
+		}
+
+		// Warn if submodule refs are being staged (bypasses remote-push verification)
+		subPaths, _ := getSubmodulePaths(root)
+		if len(subPaths) > 0 {
+			stagedNames, err := runGit(root, "diff", "--cached", "--name-only")
+			if err == nil && stagedNames != "" {
+				subSet := make(map[string]bool, len(subPaths))
+				for _, sp := range subPaths {
+					subSet[sp] = true
+				}
+				var warnSubs []string
+				for _, name := range strings.Split(stagedNames, "\n") {
+					name = strings.TrimSpace(name)
+					if subSet[name] {
+						warnSubs = append(warnSubs, name)
+					}
+				}
+				if len(warnSubs) > 0 {
+					progressf("glittering: WARNING: --all is staging submodule ref changes (%s) without verifying they are pushed to remote\n",
+						strings.Join(warnSubs, ", "))
+				}
+			}
+		}
+	}
+
+	for _, f := range files {
+		if _, err := runGit(root, "add", "--", f); err != nil {
+			output := GitCommitOutput{Path: root, Error: fmt.Sprintf("stage failed for %s: %v", f, err)}
+			outputJSON(output)
+			return ExitFailure
+		}
+		stagedFiles = append(stagedFiles, f)
+	}
+
+	// Empty-stage check: produce a clear error rather than letting git commit
+	// fall through with "nothing to commit" on stdout.
+	if _, diffErr := runGit(root, "diff", "--cached", "--quiet"); diffErr == nil {
+		msg := "nothing staged in parent; pass --all, -f <file>, --staged, or stage manually first"
+		parentResult := GitCommitResult{Path: ".", Error: msg}
+		output := GitCommitOutput{Path: root, Parent: &parentResult, Submodules: []GitCommitResult{}, Error: msg}
+		outputJSON(output)
+		return ExitFailure
+	}
+
+	if _, err := runGit(root, "commit", "-m", message); err != nil {
+		parentResult := GitCommitResult{Path: ".", Error: fmt.Sprintf("commit failed: %v", err)}
+		output := GitCommitOutput{Path: root, Parent: &parentResult, Submodules: []GitCommitResult{}, Error: parentResult.Error}
+		outputJSON(output)
+		return ExitFailure
+	}
+
+	ref, _ := runGit(root, "rev-parse", "HEAD")
+
+	_, pushErr := runGitNet(root, "push")
+	pushed := pushErr == nil
+
+	parentResult := GitCommitResult{
+		Path:    ".",
+		Success: true,
+		Ref:     ref,
+		Staged:  stagedFiles,
+		Pushed:  pushed,
+	}
+	if !pushed {
+		parentResult.Error = fmt.Sprintf("push failed: %v", pushErr)
+	}
+
+	output := GitCommitOutput{
+		Path:       root,
+		Success:    parentResult.Success && pushed,
+		Submodules: []GitCommitResult{},
+		Parent:     &parentResult,
+	}
+	if !output.Success {
+		output.Error = parentResult.Error
+	}
+
+	deleteCache(root, "git.json")
+	outputJSON(output)
+
+	if !output.Success {
+		return ExitFailure
+	}
+	return ExitOK
+}
+
 // recoveryHint returns guidance when some submodules were already
 // committed+pushed but the run failed before the parent ref bump — without
 // it, those refs silently stay stale in the parent.
@@ -229,15 +334,21 @@ func GitCommit(args []string) int {
 		logf("Usage: glittering git commit <sub>... -m \"msg\" [flags]\n\n")
 		logf("Commit submodules and auto-update parent ref.\n\n")
 		fs.PrintDefaults()
+		logf("\nExamples:\n")
+		logf("  glittering git commit kiln -m \"fix parser\" --all          # commit+push sub, auto-bump parent ref\n")
+		logf("  glittering git commit kiln -m \"fix\" -f lib/a.dart         # surgical: stage only named files\n")
+		logf("  glittering git commit kiln -m \"fix\" --all -F PLAN.md      # parent file rides along with ref bump\n")
+		logf("  glittering git commit --parent-only -f PLAN.md -m \"plan\"  # commit parent-repo files only\n")
+		logf("  glittering git commit --parent-only                       # bump out-of-sync submodule refs\n")
 	}
 	path := fs.String("path", ".", "repository root path")
 	message := fs.StringP("message", "m", "", "commit message (required for sub commits)")
 	all := fs.Bool("all", false, "stage all changes in each named submodule (parent repo files are NOT staged; see --parent-files)")
 	files := fs.StringArrayP("files", "f", nil, "specific files to stage (relative to submodule root)")
 	staged := fs.Bool("staged", false, "commit whatever is already staged (skip staging)")
-	parentFiles := fs.StringArrayP("parent-files", "F", nil, "parent repo files to stage into the parent commit alongside the submodule ref bumps")
+	parentFiles := fs.StringArrayP("parent-files", "F", nil, "parent repo files to stage into the parent commit alongside the submodule ref bumps; in --parent-only mode with no refs to bump, commits these files alone (alias for -f)")
 	noParent := fs.Bool("no-parent", false, "skip parent ref update")
-	parentOnly := fs.Bool("parent-only", false, "parent-only mode: no sub commits, stage out-of-sync refs")
+	parentOnly := fs.Bool("parent-only", false, "parent-only mode: commit parent-repo files (-f/-F) and/or bump out-of-sync submodule refs — no submodule commits")
 	parentMessage := fs.String("parent-message", "", "custom parent commit message (default: auto-generated)")
 	fs.BoolVarP(&verbose, "verbose", "v", false, "show progress logs")
 	fs.Parse(args)
@@ -273,11 +384,6 @@ func GitCommit(args []string) int {
 
 	hasStagingFlag := *all || len(*files) > 0 || *staged
 
-	if *parentOnly && hasStagingFlag && len(*parentFiles) > 0 {
-		logf("error: --parent-files is redundant in --parent-only staging mode; use -f\n")
-		return ExitUsage
-	}
-
 	if *parentOnly && hasStagingFlag && *message == "" {
 		logf("error: --message/-m is required when using staging flags with --parent-only\n")
 		return ExitUsage
@@ -311,101 +417,13 @@ func GitCommit(args []string) int {
 
 	// Parent-only mode
 	if *parentOnly {
-		// Parent-only with staging flags: commit arbitrary parent files
+		// Parent-only with staging flags: commit arbitrary parent files.
+		// -F is accepted as an alias for -f here — merge both into one staged
+		// set (deduped) so `--parent-only -f a -F b` and `--parent-only --all
+		// -F b` behave sensibly.
 		if hasStagingFlag {
-			var stagedFiles []string
-
-			if *all {
-				if _, err := runGit(root, "add", "-A"); err != nil {
-					output := GitCommitOutput{Path: root, Error: fmt.Sprintf("stage failed: %v", err)}
-					outputJSON(output)
-					return ExitFailure
-				}
-
-				// Warn if submodule refs are being staged (bypasses remote-push verification)
-				subPaths, _ := getSubmodulePaths(root)
-				if len(subPaths) > 0 {
-					stagedNames, err := runGit(root, "diff", "--cached", "--name-only")
-					if err == nil && stagedNames != "" {
-						subSet := make(map[string]bool, len(subPaths))
-						for _, sp := range subPaths {
-							subSet[sp] = true
-						}
-						var warnSubs []string
-						for _, name := range strings.Split(stagedNames, "\n") {
-							name = strings.TrimSpace(name)
-							if subSet[name] {
-								warnSubs = append(warnSubs, name)
-							}
-						}
-						if len(warnSubs) > 0 {
-							progressf("glittering: WARNING: --all is staging submodule ref changes (%s) without verifying they are pushed to remote\n",
-								strings.Join(warnSubs, ", "))
-						}
-					}
-				}
-			} else if len(*files) > 0 {
-				for _, f := range *files {
-					if _, err := runGit(root, "add", "--", f); err != nil {
-						output := GitCommitOutput{Path: root, Error: fmt.Sprintf("stage failed for %s: %v", f, err)}
-						outputJSON(output)
-						return ExitFailure
-					}
-					stagedFiles = append(stagedFiles, f)
-				}
-			}
-			// --staged: no staging action needed (commit index as-is)
-
-			// Empty-stage check: produce a clear error rather than letting git commit
-			// fall through with "nothing to commit" on stdout.
-			if _, diffErr := runGit(root, "diff", "--cached", "--quiet"); diffErr == nil {
-				msg := "nothing staged in parent; pass --all, -f <file>, --staged, or stage manually first"
-				parentResult := GitCommitResult{Path: ".", Error: msg}
-				output := GitCommitOutput{Path: root, Parent: &parentResult, Submodules: []GitCommitResult{}, Error: msg}
-				outputJSON(output)
-				return ExitFailure
-			}
-
-			if _, err := runGit(root, "commit", "-m", *message); err != nil {
-				parentResult := GitCommitResult{Path: ".", Error: fmt.Sprintf("commit failed: %v", err)}
-				output := GitCommitOutput{Path: root, Parent: &parentResult, Submodules: []GitCommitResult{}, Error: parentResult.Error}
-				outputJSON(output)
-				return ExitFailure
-			}
-
-			ref, _ := runGit(root, "rev-parse", "HEAD")
-
-			_, pushErr := runGitNet(root, "push")
-			pushed := pushErr == nil
-
-			parentResult := GitCommitResult{
-				Path:    ".",
-				Success: true,
-				Ref:     ref,
-				Staged:  stagedFiles,
-				Pushed:  pushed,
-			}
-			if !pushed {
-				parentResult.Error = fmt.Sprintf("push failed: %v", pushErr)
-			}
-
-			output := GitCommitOutput{
-				Path:       root,
-				Success:    parentResult.Success && pushed,
-				Submodules: []GitCommitResult{},
-				Parent:     &parentResult,
-			}
-			if !output.Success {
-				output.Error = parentResult.Error
-			}
-
-			deleteCache(root, "git.json")
-			outputJSON(output)
-
-			if !output.Success {
-				return ExitFailure
-			}
-			return ExitOK
+			merged := dedupeStrings(append(append([]string{}, *files...), *parentFiles...))
+			return commitParentFiles(root, *all, merged, *message)
 		}
 
 		// Parent-only without staging flags: auto-detect out-of-sync refs
@@ -430,8 +448,18 @@ func GitCommit(args []string) int {
 
 		if len(targetSubs) == 0 {
 			if len(*parentFiles) > 0 {
-				logf("error: no submodule refs to update; commit parent files alone with --parent-only -f <file>\n")
-				return ExitUsage
+				// No refs to bump, but parent files named via -F: commit them
+				// alone (same as --parent-only -f). A message is required here —
+				// unlike the refs path, there is nothing to auto-generate from.
+				msg := *message
+				if msg == "" {
+					msg = *parentMessage
+				}
+				if msg == "" {
+					logf("error: --message/-m (or --parent-message) is required to commit parent files with no submodule refs to update\n")
+					return ExitUsage
+				}
+				return commitParentFiles(root, false, dedupeStrings(*parentFiles), msg)
 			}
 			output := GitCommitOutput{Path: root, Success: true, Submodules: []GitCommitResult{}}
 			progressf("glittering: nothing to do — all submodule refs are in sync\n")
@@ -629,6 +657,14 @@ func GitPull(args []string) int {
 		return ExitUsage
 	}
 
+	// Reject "." before the parent pull — filtered pull operates on submodules
+	// only; the parent is always pulled when running without --filter.
+	filters := parseFilter(*filter)
+	if includeParent, _ := splitParentFilter(filters); includeParent {
+		logf("error: --filter . is not supported for git pull — \".\" is the parent repo, and filtered pull operates on submodules only; run without --filter to include the parent\n")
+		return ExitUsage
+	}
+
 	var warnings []string
 
 	// Pre-flight: check parent dirty/stash
@@ -687,7 +723,7 @@ func GitPull(args []string) int {
 	}
 
 	// Filter submodules for pull (parent pull always runs)
-	filters := parseFilter(*filter)
+	warnUnmatchedFilters(filters, submodulePaths, "submodule")
 	submodulePaths = filterSubmodulePaths(submodulePaths, filters)
 
 	// Pull each submodule

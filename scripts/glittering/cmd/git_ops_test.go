@@ -334,10 +334,38 @@ func TestGitCommit_ParentFilesWithNoParent(t *testing.T) {
 	}
 }
 
-func TestGitCommit_ParentFilesWithParentOnlyStaging(t *testing.T) {
-	got := GitCommit([]string{"-m", "test", "--parent-only", "--all", "-F", "PLAN.md"})
-	if got != ExitUsage {
-		t.Errorf("--parent-files + --parent-only staging: expected ExitUsage (%d), got %d", ExitUsage, got)
+// --parent-only --all -F is no longer a usage error: -F is accepted as an alias
+// for -f and merges into the staged set. (Previously this asserted ExitUsage;
+// without --path it would now run `git add -A` in the test CWD, so it must use a
+// real workspace.)
+func TestGitCommit_ParentOnlyAllWithParentFiles(t *testing.T) {
+	parent := setupWorkspaceWithRemote(t)
+
+	if err := os.WriteFile(filepath.Join(parent, "PROJECT_PLAN.md"), []byte("plan v2\n"), 0644); err != nil {
+		t.Fatalf("write: %v", err)
+	}
+
+	var got int
+	stdout := captureStdout(t, func() {
+		got = GitCommit([]string{"--parent-only", "--all", "-F", "PROJECT_PLAN.md", "-m", "update plan", "--path", parent})
+	})
+	if got != ExitOK {
+		t.Fatalf("expected ExitOK, got %d: %s", got, stdout)
+	}
+
+	var output GitCommitOutput
+	if err := json.Unmarshal([]byte(stdout), &output); err != nil {
+		t.Fatalf("output is not valid JSON: %v\noutput: %s", err, stdout)
+	}
+	if !output.Success {
+		t.Errorf("expected success=true, got: %s", stdout)
+	}
+	if len(output.Submodules) != 0 {
+		t.Errorf("expected no submodule results, got %v", output.Submodules)
+	}
+	committed := gitOut(t, parent, "show", "--name-only", "--format=", "HEAD")
+	if !strings.Contains(committed, "PROJECT_PLAN.md") {
+		t.Errorf("PROJECT_PLAN.md must be in the commit:\n%s", committed)
 	}
 }
 
@@ -544,5 +572,168 @@ func TestGitCommit_LaterSubFailure_EmitsRecoveryHint(t *testing.T) {
 	}
 	if strings.Contains(output.Hint, "subb") {
 		t.Errorf("hint must not list the failed sub subb, got: %s", output.Hint)
+	}
+}
+
+// --parent-only -F with no out-of-sync refs commits the named parent files
+// alone (the discoverability gap that prompted these changes).
+func TestGitCommit_ParentOnlyParentFilesAlone_NoRefs(t *testing.T) {
+	parent := setupWorkspaceWithRemote(t)
+
+	if err := os.WriteFile(filepath.Join(parent, "PROJECT_PLAN.md"), []byte("plan v2\n"), 0644); err != nil {
+		t.Fatalf("write: %v", err)
+	}
+
+	var got int
+	stdout := captureStdout(t, func() {
+		got = GitCommit([]string{"--parent-only", "-F", "PROJECT_PLAN.md", "-m", "update plan", "--path", parent})
+	})
+	if got != ExitOK {
+		t.Fatalf("expected ExitOK, got %d: %s", got, stdout)
+	}
+
+	var output GitCommitOutput
+	if err := json.Unmarshal([]byte(stdout), &output); err != nil {
+		t.Fatalf("output is not valid JSON: %v\noutput: %s", err, stdout)
+	}
+	if !output.Success {
+		t.Errorf("expected success=true, got: %s", stdout)
+	}
+	if len(output.Submodules) != 0 {
+		t.Errorf("expected empty submodules, got %v", output.Submodules)
+	}
+	if output.Parent == nil || !output.Parent.Pushed {
+		t.Errorf("expected parent pushed, got: %s", stdout)
+	}
+	committed := gitOut(t, parent, "show", "--name-only", "--format=", "HEAD")
+	if !strings.Contains(committed, "PROJECT_PLAN.md") {
+		t.Errorf("PROJECT_PLAN.md must be in the commit:\n%s", committed)
+	}
+}
+
+// -F alone with no refs requires a message — there is nothing to auto-generate.
+func TestGitCommit_ParentOnlyParentFilesAlone_MissingMessage(t *testing.T) {
+	parent := setupWorkspaceWithRemote(t)
+
+	if err := os.WriteFile(filepath.Join(parent, "PROJECT_PLAN.md"), []byte("plan v2\n"), 0644); err != nil {
+		t.Fatalf("write: %v", err)
+	}
+	before := strings.TrimSpace(gitOut(t, parent, "rev-parse", "HEAD"))
+
+	got := GitCommit([]string{"--parent-only", "-F", "PROJECT_PLAN.md", "--path", parent})
+	if got != ExitUsage {
+		t.Fatalf("expected ExitUsage, got %d", got)
+	}
+	after := strings.TrimSpace(gitOut(t, parent, "rev-parse", "HEAD"))
+	if before != after {
+		t.Errorf("HEAD must be unchanged on usage error: before %s after %s", before, after)
+	}
+}
+
+// --parent-message satisfies the message requirement for the -F-alone path.
+func TestGitCommit_ParentOnlyParentFilesAlone_ParentMessageAccepted(t *testing.T) {
+	parent := setupWorkspaceWithRemote(t)
+
+	if err := os.WriteFile(filepath.Join(parent, "PROJECT_PLAN.md"), []byte("plan v2\n"), 0644); err != nil {
+		t.Fatalf("write: %v", err)
+	}
+
+	var got int
+	stdout := captureStdout(t, func() {
+		got = GitCommit([]string{"--parent-only", "-F", "PROJECT_PLAN.md", "--parent-message", "update plan", "--path", parent})
+	})
+	if got != ExitOK {
+		t.Fatalf("expected ExitOK, got %d: %s", got, stdout)
+	}
+	committed := gitOut(t, parent, "show", "--name-only", "--format=", "HEAD")
+	if !strings.Contains(committed, "PROJECT_PLAN.md") {
+		t.Errorf("PROJECT_PLAN.md must be in the commit:\n%s", committed)
+	}
+}
+
+// -f and -F merge into one staged set in parent-only mode.
+func TestGitCommit_ParentOnlyMergesFilesAndParentFiles(t *testing.T) {
+	parent := setupWorkspaceWithRemote(t)
+
+	if err := os.WriteFile(filepath.Join(parent, "PROJECT_PLAN.md"), []byte("plan v2\n"), 0644); err != nil {
+		t.Fatalf("write: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(parent, "NOTES.md"), []byte("notes\n"), 0644); err != nil {
+		t.Fatalf("write: %v", err)
+	}
+
+	var got int
+	stdout := captureStdout(t, func() {
+		got = GitCommit([]string{"--parent-only", "-f", "PROJECT_PLAN.md", "-F", "NOTES.md", "-m", "docs", "--path", parent})
+	})
+	if got != ExitOK {
+		t.Fatalf("expected ExitOK, got %d: %s", got, stdout)
+	}
+	committed := gitOut(t, parent, "show", "--name-only", "--format=", "HEAD")
+	if !strings.Contains(committed, "PROJECT_PLAN.md") || !strings.Contains(committed, "NOTES.md") {
+		t.Errorf("both files must be in the commit:\n%s", committed)
+	}
+}
+
+// A file named via both -f and -F is staged once.
+func TestGitCommit_ParentOnlyDedupesFiles(t *testing.T) {
+	parent := setupWorkspaceWithRemote(t)
+
+	if err := os.WriteFile(filepath.Join(parent, "PROJECT_PLAN.md"), []byte("plan v2\n"), 0644); err != nil {
+		t.Fatalf("write: %v", err)
+	}
+
+	var got int
+	stdout := captureStdout(t, func() {
+		got = GitCommit([]string{"--parent-only", "-f", "PROJECT_PLAN.md", "-F", "PROJECT_PLAN.md", "-m", "docs", "--path", parent})
+	})
+	if got != ExitOK {
+		t.Fatalf("expected ExitOK, got %d: %s", got, stdout)
+	}
+	var output GitCommitOutput
+	if err := json.Unmarshal([]byte(stdout), &output); err != nil {
+		t.Fatalf("output is not valid JSON: %v\noutput: %s", err, stdout)
+	}
+	if output.Parent == nil {
+		t.Fatalf("expected parent result: %s", stdout)
+	}
+	count := 0
+	for _, s := range output.Parent.Staged {
+		if s == "PROJECT_PLAN.md" {
+			count++
+		}
+	}
+	if count != 1 {
+		t.Errorf("expected PROJECT_PLAN.md once in staged, got %d: %v", count, output.Parent.Staged)
+	}
+}
+
+// Regression: -F with out-of-sync refs still bumps refs AND lands the file in
+// one auto-messaged commit (the documented recovery path is unchanged).
+func TestGitCommit_ParentOnlyParentFilesWithRefs_Unchanged(t *testing.T) {
+	parent := setupWorkspaceWithRemote(t)
+
+	// Advance the submodule HEAD and push it, leaving the parent ref stale.
+	subDir := filepath.Join(parent, "sub")
+	gitRun(t, subDir, "commit", "--quiet", "--allow-empty", "-m", "advance")
+	gitRun(t, subDir, "push", "--quiet", "origin", "HEAD:main")
+
+	if err := os.WriteFile(filepath.Join(parent, "PROJECT_PLAN.md"), []byte("plan v2\n"), 0644); err != nil {
+		t.Fatalf("write: %v", err)
+	}
+
+	var got int
+	stdout := captureStdout(t, func() {
+		got = GitCommit([]string{"--parent-only", "-F", "PROJECT_PLAN.md", "--path", parent})
+	})
+	if got != ExitOK {
+		t.Fatalf("expected ExitOK, got %d: %s", got, stdout)
+	}
+	committed := gitOut(t, parent, "show", "--name-only", "--format=", "HEAD")
+	if !strings.Contains(committed, "PROJECT_PLAN.md") {
+		t.Errorf("PROJECT_PLAN.md must be in the commit:\n%s", committed)
+	}
+	if !strings.Contains(committed, "sub") {
+		t.Errorf("submodule ref bump must be in the commit:\n%s", committed)
 	}
 }

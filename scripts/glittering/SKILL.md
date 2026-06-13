@@ -20,6 +20,7 @@ In a multi-package workspace (cue: `.gitmodules` and/or multiple `pubspec.yaml` 
 | run tests / verify they pass | `glittering test` |
 | check code quality / analyzer issues | `glittering analyze` |
 | commit and/or push work | `glittering git commit` |
+| commit parent-repo-only files (docs/plans) | `glittering git commit --parent-only -f <file> -m "msg"` |
 | "is everything committed/pushed?" (end of session) | `glittering git check` |
 | pull latest / sync repos | `glittering git pull` |
 | review changes / file-level detail | `glittering git diff` — per-file staged/unstaged/untracked + patch `details_file` |
@@ -62,6 +63,7 @@ glittering git commit <sub>... -m "msg" --path <root> [--all | -f file | --stage
   # never swept. The parent commit contains the ref bumps, files named with --parent-files/-F,
   # and anything already staged in the parent. Other dirty parent files are left behind and
   # reported via partial: true + parent.left_uncommitted — check both before claiming done.
+glittering git commit --parent-only -f <file>... -m "msg" --path <root>  # commit parent-repo-only files (docs, plans); -F also accepted
 glittering git pull --path <root> [--filter <names>]              # pull parent + subs
 ```
 
@@ -77,8 +79,9 @@ glittering git pull --path <root> [--filter <names>]              # pull parent 
 - `--filter` uses substring matching: `--filter blog` matches `packages/blog`
 - `git commit` auto-resolves short names: `git_dart` → `packages/git_dart`
 - Surgical commit (sub also contains unrelated WIP): `glittering git commit <sub> -m "msg" -f a.dart -f b.dart` stages only those files (relative to sub root) and leaves the rest dirty — prefer this over hand-staging with raw `git add` + `--staged`
-- Use `--no-parent` to skip parent update, `--parent-only` for parent-only mode
-- To land parent-repo files (docs, plans) in the same commit as the ref bumps, name them with `-F/--parent-files` — only include files related to your change, not unrelated WIP
+- `--no-parent` skips the parent update; `--parent-only` has two uses — bare: bump out-of-sync refs; with `-f`/`-F` + `-m`: commit parent-repo files alone. Add `-F <file>` to a sub commit to land parent files alongside the ref bumps (related files only, not unrelated WIP)
+- `--filter .` targets the parent repo in `git`/`git diff`/`git check` (push/pull reject it); unmatched filter tokens warn on stderr
+- `git diff` JSON stdout already IS the compact per-file summary (a `--stat` equivalent); the full patch is in `details_file`
 - After a manual commit inside a submodule, push it with `git push --filter <sub>` and bump the parent ref with `git commit --parent-only`. `--filter` skips the parent-dirty pre-flight, so a pending parent ref bump won't block the submodule push
 - Use `--cached` for instant reads from last live run
 - Run `glittering <command> --help` for flag details
