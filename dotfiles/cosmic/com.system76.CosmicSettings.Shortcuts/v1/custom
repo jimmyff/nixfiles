@@ -1,31 +1,68 @@
 {
-    (
-        modifiers: [
-            Super,
-        ],
-        key: "space",
-    ): System(Launcher),
-    (
-        modifiers: [],
-        key: "Print",
-    ): Disable,
-    (
-        modifiers: [
-            Ctrl,
-            Alt,
-        ],
-        key: "3",
-    ): System(Screenshot),
-    (
-        modifiers: [
-            Shift,
-        ],
-        key: "F6",
-    ): System(KeyboardBrightnessUp),
-    (
-        modifiers: [
-            Shift,
-        ],
-        key: "F5",
-    ): System(KeyboardBrightnessDown),
+    // ── Existing ──────────────────────────────────────────────────────────
+    (modifiers: [Super], key: "space"): System(Launcher),
+    (modifiers: [], key: "Print"): Disable,
+    (modifiers: [Ctrl, Alt], key: "3"): System(Screenshot),
+    (modifiers: [Shift], key: "F6"): System(KeyboardBrightnessUp),
+    (modifiers: [Shift], key: "F5"): System(KeyboardBrightnessDown),
+
+    // ── Disable window stacking (the "tabs") ──────────────────────────────
+    (modifiers: [Super], key: "s"): Disable,
+
+    // ── Free Super+Alt+hjkl/arrows for zellij pane nav + workspace moves ──
+    //    (COSMIC default: SwitchOutput / MoveToOutput)
+    (modifiers: [Super, Alt], key: "h"): Disable,
+    (modifiers: [Super, Alt], key: "j"): Disable,
+    (modifiers: [Super, Alt], key: "k"): Disable,
+    (modifiers: [Super, Alt], key: "l"): Disable,
+    (modifiers: [Super, Alt], key: "Left"): Disable,
+    (modifiers: [Super, Alt], key: "Down"): Disable,
+    (modifiers: [Super, Alt], key: "Up"): Disable,
+    (modifiers: [Super, Alt], key: "Right"): Disable,
+    (modifiers: [Super, Shift, Alt], key: "h"): Disable,
+    (modifiers: [Super, Shift, Alt], key: "j"): Disable,
+    (modifiers: [Super, Shift, Alt], key: "k"): Disable,
+    (modifiers: [Super, Shift, Alt], key: "l"): Disable,
+    (modifiers: [Super, Shift, Alt], key: "Left"): Disable,
+    (modifiers: [Super, Shift, Alt], key: "Down"): Disable,
+    (modifiers: [Super, Shift, Alt], key: "Up"): Disable,
+    (modifiers: [Super, Shift, Alt], key: "Right"): Disable,
+
+    // ── Free Super+Ctrl+hjkl for zellij tab switching ─────────────────────
+    //    (COSMIC default: Previous/NextWorkspace)
+    (modifiers: [Super, Ctrl], key: "h"): Disable,
+    (modifiers: [Super, Ctrl], key: "j"): Disable,
+    (modifiers: [Super, Ctrl], key: "k"): Disable,
+    (modifiers: [Super, Ctrl], key: "l"): Disable,
+
+    // ── Aerospace mirror: alt+<letter> = switch workspace ─────────────────
+    (modifiers: [Alt], key: "w"): Workspace(1),
+    (modifiers: [Alt], key: "e"): Workspace(2),
+    (modifiers: [Alt], key: "u"): Workspace(3),
+    (modifiers: [Alt], key: "i"): Workspace(4),
+    (modifiers: [Alt], key: "o"): Workspace(5),
+    (modifiers: [Alt], key: "c"): Workspace(6),
+    (modifiers: [Alt], key: "b"): Workspace(7),
+    (modifiers: [Alt], key: "n"): Workspace(8),
+    (modifiers: [Alt], key: "m"): Workspace(9),
+
+    // ── Aerospace mirror: Super+Alt+<letter> = send window to workspace ───
+    //    (Send = move without following focus, ≈ Aerospace move-node-to-workspace)
+    (modifiers: [Super, Alt], key: "w"): SendToWorkspace(1),
+    (modifiers: [Super, Alt], key: "e"): SendToWorkspace(2),
+    (modifiers: [Super, Alt], key: "u"): SendToWorkspace(3),
+    (modifiers: [Super, Alt], key: "i"): SendToWorkspace(4),
+    (modifiers: [Super, Alt], key: "o"): SendToWorkspace(5),
+    (modifiers: [Super, Alt], key: "c"): SendToWorkspace(6),
+    (modifiers: [Super, Alt], key: "b"): SendToWorkspace(7),
+    (modifiers: [Super, Alt], key: "n"): SendToWorkspace(8),
+    (modifiers: [Super, Alt], key: "m"): SendToWorkspace(9),
+
+    // ── Aerospace mirror: monitor focus / move ────────────────────────────
+    (modifiers: [Alt], key: "space"): NextOutput,
+    (modifiers: [Alt, Shift], key: "space"): MoveToNextOutput,
+
+    // ── Aerospace mirror: alt+tab = workspace back-and-forth ──────────────
+    (modifiers: [Alt], key: "Tab"): LastWorkspace,
+    (modifiers: [Alt, Shift], key: "Tab"): MigrateWorkspaceToNextOutput,
 }
