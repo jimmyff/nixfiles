@@ -69,15 +69,15 @@ without leaving zellij. Tabs-only like `mux init`; bar chrome injected at launch
 | ------- | ------ |
 | `mux dash` | open/attach `dash` (attaching keeps shell state) |
 | `mux dash reset` | delete `dash`, rescan, relaunch with a fresh layout |
-| `… --nixfiles` | also append `~/nixfiles` as another folder tab |
 
 - **Projects:** directory scan of `~/Projects/*/workspace` requiring `workspace/.git`
   (no Nix manifest), sorted by name — whatever is cloned shows up.
 - **Each tab (one per folder):** vertical split — left an interactive shell, right
   `glitter overview --compact` (cached, one-shot; Enter to re-run). The left shell's
   devshell may print its own overview via `startup.nu` — harmless.
-- **`~/nixfiles` (`--nixfiles`):** just another folder — same split; its `glitter overview`
-  has 0 Dart packages but shows the repo's git status (the useful part).
+- **`~/nixfiles`:** always included as an ordinary folder (the `DASH_EXTRA` const in
+  `mux.nu`) — same split; its `glitter overview` has 0 Dart packages but shows the repo's
+  git status (the useful part). Add more always-on workspaces by editing that const.
 - `mux dash` attaches the preserved session; use `mux dash reset` after cloning a
   new project. Run from **outside** zellij (can't nest a session).
 

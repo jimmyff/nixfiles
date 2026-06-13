@@ -33,6 +33,9 @@ const SCAFFOLD = 'layout {
 }
 '
 
+# Always-on `mux dash` workspaces beyond ~/Projects/*/workspace (expanded, skipped if absent).
+const DASH_EXTRA = ['~/nixfiles']
+
 # --- layout injection -------------------------------------------------------
 
 # Extract a balanced `<keyword> { ... }` block from KDL text, or "" if absent.
@@ -208,13 +211,18 @@ def dash-projects [] {
     | sort-by name
 }
 
+# All dash folders: discovered projects plus existing DASH_EXTRA workspaces, in order.
+def dash-folders [] {
+    let extra = ($DASH_EXTRA
+        | each {|p| $p | path expand }
+        | where {|d| $d | path exists }
+        | each {|d| { name: ($d | path basename), ws: $d } })
+    (dash-projects) | append $extra
+}
+
 # Pure builder: tabs-only layout string (chrome injected later by merge-layout).
 # Every folder is treated equally — one tab, vertical split of shell | glitter overview.
-# --nixfiles appends ~/nixfiles as just another folder.
-def dash-layout [projects: list<any>, --nixfiles] {
-    let folders = (if $nixfiles {
-        $projects | append { name: "nixfiles", ws: ([$env.HOME "nixfiles"] | path join) }
-    } else { $projects })
+def dash-layout [folders: list<any>] {
     let tabs = ($folders | each {|r|
         $'    tab name="($r.name)" {
         pane split_direction="vertical" {
@@ -230,9 +238,9 @@ def dash-layout [projects: list<any>, --nixfiles] {
 }
 
 # Guard + optional delete + (generate when creating) + launch the `dash` session.
-def open-dash [--reset, --nixfiles, --dry-run] {
+def open-dash [--reset, --dry-run] {
     if $dry_run {
-        print (dash-layout (dash-projects) --nixfiles=$nixfiles)
+        print (dash-layout (dash-folders))
         return
     }
     if ($env.ZELLIJ? | is-not-empty) {
@@ -247,12 +255,12 @@ def open-dash [--reset, --nixfiles, --dry-run] {
     # Create when resetting or when no preserved session exists; otherwise attach.
     let creating = ($reset or ("dash" not-in $sessions))
     let layout = (if $creating {
-        let projects = (dash-projects)
-        if ($projects | is-empty) and (not $nixfiles) {
-            error make { msg: $"mux dash: no projects under ($env.HOME)/Projects/*/workspace." }
+        let folders = (dash-folders)
+        if ($folders | is-empty) {
+            error make { msg: $"mux dash: nothing to show — no ($env.HOME)/Projects/*/workspace and no DASH_EXTRA dirs." }
         }
         let tmp = (($env.TMPDIR? | default "/tmp") | path join "mux-dash-input.kdl")
-        (dash-layout $projects --nixfiles=$nixfiles) | save -f $tmp
+        (dash-layout $folders) | save -f $tmp
         $tmp
     } else {
         null   # attach preserved session — launch ignores layout anyway
@@ -298,5 +306,5 @@ def "main init" [] {
     print $"Wrote ($target)"
 }
 
-def "main dash" [--nixfiles, --dry-run] { open-dash --nixfiles=$nixfiles --dry-run=$dry_run }
-def "main dash reset" [--nixfiles] { open-dash --reset --nixfiles=$nixfiles }
+def "main dash" [--dry-run] { open-dash --dry-run=$dry_run }
+def "main dash reset" [] { open-dash --reset }
