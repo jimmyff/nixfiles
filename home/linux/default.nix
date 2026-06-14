@@ -7,7 +7,8 @@
 
   imports = [
     ../shared/apps
-    ./desktop/environment_cosmic
+    # ./desktop/environment_cosmic
+    ./desktop/environment_niri
   ];
 
   config = {
@@ -22,7 +23,9 @@
     };
 
     # Disable GUI modules on headless systems
-    cosmic_module.enable = lib.mkIf (!config.desktop.enable) (lib.mkForce false);
+    # niri env gates on config.desktop.enable directly (no per-module flag);
+    # the old cosmic_module force-disable is dropped with the cosmic import.
+    # cosmic_module.enable = lib.mkIf (!config.desktop.enable) (lib.mkForce false);
     kitty_module.enable = lib.mkIf (!config.desktop.enable) (lib.mkForce false);
     rio_module.enable = lib.mkIf (!config.desktop.enable) (lib.mkForce false);
     alacritty_module.enable = lib.mkIf (!config.desktop.enable) (lib.mkForce false);

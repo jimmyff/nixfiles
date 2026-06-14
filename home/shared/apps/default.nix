@@ -41,8 +41,8 @@
 
   # Terminals
   kitty_module.enable = lib.mkDefault true;
-  rio_module.enable = lib.mkDefault true;
-  alacritty_module.enable = lib.mkDefault true;
+  rio_module.enable = lib.mkDefault false;
+  alacritty_module.enable = lib.mkDefault false;
   zellij_module.enable = lib.mkDefault true;
   mux_module.enable = lib.mkDefault true;
 

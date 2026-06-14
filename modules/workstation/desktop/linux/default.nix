@@ -8,7 +8,10 @@
     # ../environment_sway
 
     # Cosmic
-    ../environment_cosmic
+    # ../environment_cosmic
+
+    # niri
+    ../environment_niri
   ];
 
 }

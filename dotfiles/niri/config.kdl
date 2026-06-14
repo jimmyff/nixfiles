@@ -1,0 +1,157 @@
+// niri config — managed in ~/nixfiles/dotfiles/niri/config.kdl (live-symlinked).
+// niri live-reloads this file on save. Validate with `niri validate`.
+//
+// Keymap follows the aerospace standard, adapted to niri's model:
+//   Super (Mod) = window axis   (h/l = columns, j/k = windows; flows to workspaces at edges)
+//   Alt          = workspace axis (niri workspaces are a vertical strip)
+//   +Shift       = move instead of focus
+// Super+Alt+hjkl and Super+Ctrl+hjkl are deliberately LEFT UNBOUND so they
+// pass through to kitty/zellij (the multiplexer layer — see docs/multiplexing.md).
+
+input {
+    keyboard {
+        // xkb inherited from localectl (en_GB); kanata remaps below the compositor.
+    }
+    touchpad {
+        tap
+        natural-scroll
+        dwt
+        middle-emulation
+    }
+    mouse {
+        natural-scroll
+    }
+    // Mouse jumps to the newly focused window (≈ aerospace's move-mouse-to-focus).
+    warp-mouse-to-focus
+}
+
+output "eDP-1" {
+    // Pixelbook Go 1080p@13.3". Verify the name with `niri msg outputs`;
+    // tune scale live (niri reloads this file on save).
+    scale 1.0
+}
+
+layout {
+    gaps 16
+    // Border on every window. focus-ring (only the focused window) is the
+    // alternative — disabled here.
+    focus-ring {
+        off
+    }
+    border {
+        width 2
+        active-color "#8bbef4"     // focused — zellij frame_highlight (blue)
+        inactive-color "#7d7db4"   // unfocused — zellij frame_unselected
+    }
+    // New windows open at this width; Mod+R cycles the presets below.
+    // Use `fixed 1200` for a pixel width instead of a proportion.
+    preset-column-widths {
+        proportion 0.33333
+        proportion 0.5
+        proportion 0.66667
+    }
+    default-column-width { proportion 0.5; }
+}
+
+// Snappier transitions (1.0 = niri default; lower = faster). Tune to taste,
+// or add per-animation blocks (e.g. `window-open { off; }`) to override individually.
+animations {
+    slowdown 0.6
+}
+
+prefer-no-csd
+
+// Per-app tweaks — find an app's id/title with `niri msg windows`.
+window-rule {
+    match app-id="nm-connection-editor"
+    open-floating true
+}
+window-rule {
+    match app-id="chromium-browser"
+    default-column-width { proportion 0.75; }
+}
+window-rule {
+    match app-id="wiremix"
+    open-floating true
+}
+
+// The startup overlay lists niri's DEFAULT binds, not ours — skip it.
+hotkey-overlay {
+    skip-at-startup
+}
+
+screenshot-path "~/Pictures/Screenshots/Screenshot from %Y-%m-%d %H-%M-%S.png"
+
+spawn-at-startup "waybar"
+spawn-at-startup "nm-applet" "--indicator"   // wifi/bluetooth icon in the waybar tray
+spawn-at-startup "swaybg" "-c" "#1e1e2e"      // solid wallpaper (niri has no built-in bg)
+spawn-at-startup "wl-clip-persist" "--clipboard" "regular"   // keep clipboard after the source app closes
+
+binds {
+    // ── Apps & session ────────────────────────────────────────────────
+    Mod+Return { spawn "kitty"; }
+    Mod+T { spawn "kitty"; }
+    Mod+Space { spawn "fuzzel"; }
+    Mod+V { spawn-sh "cliphist list | fuzzel --dmenu --with-nth 2 | cliphist decode | wl-copy"; }
+    Mod+Q { close-window; }
+    XF86PowerOff { spawn "niri-power-menu"; }
+    Mod+Escape { spawn "niri-power-menu"; }
+    Mod+Shift+E { quit; }
+    Mod+Shift+Slash { show-hotkey-overlay; }   // cheat-sheet of these binds
+    Mod+N { spawn "swaync-client" "-t" "-sw"; }        // toggle notification center
+    Mod+Shift+N { spawn "swaync-client" "-d" "-sw"; }  // toggle do-not-disturb
+
+    // ── Focus — Super = window axis (flows to workspaces at column edges) ─
+    Mod+H { focus-column-left; }
+    Mod+L { focus-column-right; }
+    Mod+J { focus-window-or-workspace-down; }
+    Mod+K { focus-window-or-workspace-up; }
+    // Focus — Alt = workspace axis (always switches workspace)
+    Alt+J { focus-workspace-down; }
+    Alt+K { focus-workspace-up; }
+    Mod+Tab { focus-window-previous; }          // toggle to last-focused window
+
+    // ── Move — Super+Shift = window axis (flows to workspaces at edges) ──
+    Mod+Shift+H { move-column-left; }
+    Mod+Shift+L { move-column-right; }
+    Mod+Shift+J { move-window-down-or-to-workspace-down; }
+    Mod+Shift+K { move-window-up-or-to-workspace-up; }
+    // Move — Alt+Shift = move the whole column to a workspace
+    Alt+Shift+J { move-column-to-workspace-down; }
+    Alt+Shift+K { move-column-to-workspace-up; }
+
+    // ── Column structure ───────────────────────────────────────────────
+    Mod+Comma { consume-window-into-column; }
+    Mod+Period { expel-window-from-column; }
+    Mod+W { toggle-column-tabbed-display; }      // stack a column's windows as tabs
+
+    // ── Sizing & layout ────────────────────────────────────────────────
+    Mod+R { switch-preset-column-width; }
+    Mod+F { maximize-column; }
+    Mod+Shift+F { fullscreen-window; }
+    Mod+C { center-column; }
+    Mod+Minus { set-column-width "-10%"; }
+    Mod+Equal { set-column-width "+10%"; }
+    Mod+Shift+Space { toggle-window-floating; }  // float / unfloat the window
+    Mod+O { toggle-overview; }                    // bird's-eye of workspaces
+
+    // ── Monitors (rarely used on the Pixelbook) ───────────────────────
+    Alt+Space { focus-monitor-next; }
+    Alt+Shift+Space { move-column-to-monitor-next; }
+
+    // ── Screenshots (niri built-in) ───────────────────────────────────
+    Print { screenshot; }
+    Ctrl+Print { screenshot-screen; }
+    Alt+Print { screenshot-window; }
+
+    // ── Media & brightness (work while locked) ────────────────────────
+    XF86AudioRaiseVolume allow-when-locked=true { spawn "swayosd-client" "--output-volume" "raise" "--max-volume" "100"; }
+    XF86AudioLowerVolume allow-when-locked=true { spawn "swayosd-client" "--output-volume" "lower"; }
+    XF86AudioMute allow-when-locked=true { spawn "swayosd-client" "--output-volume" "mute-toggle"; }
+    XF86AudioMicMute allow-when-locked=true { spawn "swayosd-client" "--input-volume" "mute-toggle"; }
+    XF86MonBrightnessUp allow-when-locked=true { spawn "swayosd-client" "--brightness" "raise"; }
+    XF86MonBrightnessDown allow-when-locked=true { spawn "swayosd-client" "--brightness" "lower"; }
+    XF86AudioPlay { spawn "playerctl" "play-pause"; }
+    XF86AudioNext { spawn "playerctl" "next"; }
+    XF86AudioPrev { spawn "playerctl" "previous"; }
+}
