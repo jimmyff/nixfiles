@@ -5,9 +5,10 @@
 #
 #   mux         launch/attach the workspace for the current directory
 #   mux reset   delete the resolved session then relaunch (escape a bad resurrection)
-#   mux init    scaffold a tabs-only .zellij.kdl layout in the current directory
+#   mux init    scaffold a .zellij.kdl session layout (live shell | overview) here
 #   mux dash    open/attach the dash session — one tab per active project
 #   mux dash reset  delete dash, rescan projects, relaunch fresh
+#   mux dash init   scaffold a .zellij-dash.kdl dash tab body (suspended shell | overview)
 #
 # Bar chrome is the single source of truth: project .zellij.kdl files hold only
 # tabs/panes, and mux injects the default_tab_template from jimmyff.kdl at launch
@@ -22,19 +23,24 @@
 # target of ~/.config/zellij/layouts). See merge-layout.
 const DEFAULT_LAYOUT = '~/.config/zellij/layouts/jimmyff.kdl'
 
-# Tabs-only scaffold written by `mux init`; chrome is injected at launch by merge-layout.
-const SCAFFOLD = 'layout {
-    tab name="edit" {
-        pane
-    }
-    tab name="git" {
-        pane
-    }
-}
-'
-
 # Always-on `mux dash` workspaces beyond ~/Projects/*/workspace (expanded, skipped if absent).
 const DASH_EXTRA = ['~/nixfiles']
+
+# Shared default tab body: left shell | right cached overview. `--suspended` makes the
+# shell lazy (used by `mux dash` — a glance); live otherwise (a working `mux` session).
+# No pane cwd: panes inherit the tab's cwd (dash) or zellij's launch dir (session).
+def default-body [--suspended] {
+    let suspend = (if $suspended { "\n        start_suspended true" } else { "" })
+    $'pane split_direction="vertical" {
+    pane {
+        command "nu"($suspend)
+    }
+    pane {
+        command "glitter"
+        args "overview" "--compact"
+    }
+}'
+}
 
 # --- layout injection -------------------------------------------------------
 
@@ -220,20 +226,24 @@ def dash-folders [] {
     (dash-projects) | append $extra
 }
 
-# Pure builder: tabs-only layout string (chrome injected later by merge-layout).
-# Every folder is treated equally — one tab, vertical split of shell | glitter overview.
-def dash-layout [folders: list<any>] {
-    let tabs = ($folders | each {|r|
-        $'    tab name="($r.name)" {
-        pane split_direction="vertical" {
-            pane cwd="($r.ws)"
-            pane cwd="($r.ws)" {
-                command "glitter"
-                args "overview" "--compact"
-            }
-        }
+# One dash tab for a folder. Body = the folder's optional .zellij-dash.kdl (a tab-body
+# pane subtree) if present, else the suspended default body. Tab-level cwd makes the
+# panes start in the workspace, so bodies hold no hardcoded paths.
+def dash-tab [r: record] {
+    let custom = ([$r.ws ".zellij-dash.kdl"] | path join)
+    let body = (if ($custom | path exists) {
+        open --raw $custom | str trim
+    } else {
+        default-body --suspended
+    })
+    $'    tab name="($r.name)" cwd="($r.ws)" {
+($body)
     }'
-    } | str join "\n")
+}
+
+# Pure builder: tabs-only layout string (chrome injected later by merge-layout).
+def dash-layout [folders: list<any>] {
+    let tabs = ($folders | each {|r| dash-tab $r } | str join "\n")
     $"layout {\n($tabs)\n}\n"
 }
 
@@ -301,10 +311,21 @@ def "main init" [] {
     if ($target | path exists) {
         error make { msg: $"mux init: ($target) already exists — refusing to overwrite." }
     }
-    # Tabs-only scaffold; bar chrome is injected from jimmyff.kdl at launch (merge-layout).
-    $SCAFFOLD | save $target
+    # Single working tab (live shell | overview); bar chrome injected at launch (merge-layout).
+    let body = (default-body | lines | each {|l| $"        ($l)" } | str join "\n")
+    $"layout {\n    tab name=\"edit\" {\n($body)\n    }\n}\n" | save $target
     print $"Wrote ($target)"
 }
 
 def "main dash" [--dry-run] { open-dash --dry-run=$dry_run }
 def "main dash reset" [] { open-dash --reset }
+
+def "main dash init" [] {
+    let target = ([$env.PWD ".zellij-dash.kdl"] | path join)
+    if ($target | path exists) {
+        error make { msg: $"mux dash init: ($target) already exists — refusing to overwrite." }
+    }
+    # Dash tab body (suspended shell | overview); used as a folder's dash tab via dash-tab.
+    default-body --suspended | save $target
+    print $"Wrote ($target)"
+}

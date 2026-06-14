@@ -41,7 +41,7 @@ Sessions start **locked**, so every `Ctrl` reaches the TUI. To drive zellij:
 | ------- | ------ |
 | `mux` / `x` | launch or attach the workspace for the cwd |
 | `mux reset` | delete the session, then relaunch (escape a bad resurrection) |
-| `mux init` | scaffold a tabs-only `.zellij.kdl` here |
+| `mux init` | scaffold a `.zellij.kdl` session layout here |
 | `mux dash` | open/attach `dash` — one tab per active project |
 | `mux dash reset` | delete `dash`, rescan projects, relaunch fresh |
 
@@ -63,21 +63,46 @@ commands; nixfiles is public). `~/nixfiles/.zellij.kdl` is the committed scaffol
 ## `mux dash`
 
 A single session `dash`, one tab per active project — scan every workspace
-without leaving zellij. Tabs-only like `mux init`; bar chrome injected at launch.
+without leaving zellij. One tab body per folder; bar chrome injected at launch.
 
 | Command | Action |
 | ------- | ------ |
 | `mux dash` | open/attach `dash` (attaching keeps shell state) |
 | `mux dash reset` | delete `dash`, rescan, relaunch with a fresh layout |
+| `mux dash init` | scaffold a `.zellij-dash.kdl` tab override in the cwd |
 
 - **Projects:** directory scan of `~/Projects/*/workspace` requiring `workspace/.git`
   (no Nix manifest), sorted by name — whatever is cloned shows up.
-- **Each tab (one per folder):** vertical split — left an interactive shell, right
-  `glitter overview --compact` (cached, one-shot; Enter to re-run). The left shell's
-  devshell may print its own overview via `startup.nu` — harmless.
-- **`~/nixfiles`:** always included as an ordinary folder (the `DASH_EXTRA` const in
-  `mux.nu`) — same split; its `glitter overview` has 0 Dart packages but shows the repo's
-  git status (the useful part). Add more always-on workspaces by editing that const.
+- **Each tab (one per folder):** split — left a **suspended** shell (Enter to start its
+  devshell), right `glitter overview --compact` (cached; Enter to re-run). Suspending keeps
+  launch fast and skips the duplicate `startup.nu` overview.
+- **Per-folder override:** a `<workspace>/.zellij-dash.kdl` replaces that tab's body (the
+  panes inside `tab name=… { … }`); `mux dash init` scaffolds the default. Panes inherit the
+  tab's `cwd` (no hardcoded paths); `start_suspended true` pre-fills a command. It lives in
+  the folder's repo, so keep secrets out (`~/nixfiles` is public). Example — jimmyff-website
+  adds a `zola serve` pane:
+
+  ```kdl
+  pane split_direction="vertical" {
+      pane {
+          command "nu"
+          start_suspended true
+      }
+      pane split_direction="horizontal" {
+          pane {
+              command "glitter"
+              args "overview" "--compact"
+          }
+          pane {
+              command "zola"
+              args "serve"
+              start_suspended true
+          }
+      }
+  }
+  ```
+- **`~/nixfiles`:** always included (the `DASH_EXTRA` const in `mux.nu`) — its `glitter
+  overview` shows the repo's git status. Add more always-on folders by editing that const.
 - `mux dash` attaches the preserved session; use `mux dash reset` after cloning a
   new project. Run from **outside** zellij (can't nest a session).
 
