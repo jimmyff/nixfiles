@@ -47,6 +47,19 @@ in
       config.lib.file.mkOutOfStoreSymlink
         "${config.home.homeDirectory}/nixfiles/dotfiles/niri/config.kdl";
 
+    # uwsm sources this POSIX env file during session preload (it does NOT source
+    # Nushell). Re-export home.sessionVariables plus the custom PATH entries that
+    # nu.nix adds (home/shared/apps/nu/nu.nix), so GUI apps launched by niri keep
+    # SSH_AUTH_SOCK, EDITOR, BROWSER, etc. and the extra bin dirs available.
+    xdg.configFile."uwsm/env".text = ''
+      ${lib.concatStringsSep "\n" (
+        lib.mapAttrsToList
+          (name: value: "export ${name}=${lib.escapeShellArg (toString value)}")
+          config.home.sessionVariables
+      )}
+      export PATH="${config.home.homeDirectory}/.local/bin:${config.xdg.cacheHome}/dart-pub/bin:$PATH"
+    '';
+
     # Notifications — SwayNotificationCenter (popups + control-center panel).
     # Toggle panel: Mod+N; toggle Do-Not-Disturb: Mod+Shift+N (niri binds).
     # Waybar shows an unread/DND indicator (custom/notification module).

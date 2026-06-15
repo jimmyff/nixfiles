@@ -3,6 +3,7 @@
   imports = [
     ./greeter/greetd.nix
     ./niri.nix
+    ./uwsm.nix
     ./thunar.nix
   ];
 

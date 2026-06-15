@@ -11,6 +11,16 @@
     inherit lib config;
     pkgs = pkgs-apps;
   };
+
+  # Starship's Nushell integration, generated from the same starship the prompt
+  # uses (so it stays version-consistent). We source this ourselves, guarded by
+  # `$nu.is-interactive` (see the guarded `use` in extraConfig), instead of
+  # letting HM inject it unconditionally — that injection runs even in
+  # non-interactive shells (e.g. a session-launch `nu -l -c`) and exports
+  # prompt vars containing ANSI control chars into the environment.
+  starshipNushellInit = pkgs-apps.runCommand "starship-nushell-init.nu" { } ''
+    ${config.programs.starship.package}/bin/starship init nu > $out
+  '';
 in {
   programs = {
     # Docs: https://www.nushell.sh/book/configuration.html
@@ -78,6 +88,11 @@ in {
 
         # Atuin nushell integration is configured in atuin.nix
 
+        # Starship prompt — interactive sessions only. Skipping it for
+        # non-interactive nu keeps prompt vars (which carry ANSI control chars)
+        # out of the environment that a session launcher would import.
+        if $nu.is-interactive { use ${starshipNushellInit} }
+
       '';
 
       # Previous path settings:
@@ -101,7 +116,12 @@ in {
     # Starship / prompt
     starship = {
       enable = true;
+      # Sourced manually (interactive-only) in nushell extraConfig above; see
+      # the starshipNushellInit derivation. HM's default injection is
+      # unconditional and would set prompt vars in non-interactive shells too.
+      enableNushellIntegration = false;
       settings = {
+        scan_timeout = 150; # raised default for low-end hardware (nixelbook)
         add_newline = true;
         character = {
           success_symbol = "[➜](bold green)";
