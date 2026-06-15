@@ -35,28 +35,11 @@
     (modifiers: [Super, Ctrl], key: "k"): Disable,
     (modifiers: [Super, Ctrl], key: "l"): Disable,
 
-    // ── Aerospace mirror: alt+<letter> = switch workspace ─────────────────
-    (modifiers: [Alt], key: "w"): Workspace(1),
-    (modifiers: [Alt], key: "e"): Workspace(2),
-    (modifiers: [Alt], key: "u"): Workspace(3),
-    (modifiers: [Alt], key: "i"): Workspace(4),
-    (modifiers: [Alt], key: "o"): Workspace(5),
-    (modifiers: [Alt], key: "c"): Workspace(6),
-    (modifiers: [Alt], key: "b"): Workspace(7),
-    (modifiers: [Alt], key: "n"): Workspace(8),
-    (modifiers: [Alt], key: "m"): Workspace(9),
-
-    // ── Aerospace mirror: Super+Alt+<letter> = send window to workspace ───
-    //    (Send = move without following focus, ≈ Aerospace move-node-to-workspace)
-    (modifiers: [Super, Alt], key: "w"): SendToWorkspace(1),
-    (modifiers: [Super, Alt], key: "e"): SendToWorkspace(2),
-    (modifiers: [Super, Alt], key: "u"): SendToWorkspace(3),
-    (modifiers: [Super, Alt], key: "i"): SendToWorkspace(4),
-    (modifiers: [Super, Alt], key: "o"): SendToWorkspace(5),
-    (modifiers: [Super, Alt], key: "c"): SendToWorkspace(6),
-    (modifiers: [Super, Alt], key: "b"): SendToWorkspace(7),
-    (modifiers: [Super, Alt], key: "n"): SendToWorkspace(8),
-    (modifiers: [Super, Alt], key: "m"): SendToWorkspace(9),
+    // ── Workspace axis: Alt+j/k switch, Alt+Shift+j/k move (mirrors niri/aerospace) ──
+    (modifiers: [Alt], key: "j"): NextWorkspace,
+    (modifiers: [Alt], key: "k"): PreviousWorkspace,
+    (modifiers: [Alt, Shift], key: "j"): MoveToNextWorkspace,
+    (modifiers: [Alt, Shift], key: "k"): MoveToPreviousWorkspace,
 
     // ── Aerospace mirror: monitor focus / move ────────────────────────────
     (modifiers: [Alt], key: "space"): NextOutput,

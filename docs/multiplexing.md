@@ -8,9 +8,10 @@ One kitty window, zellij as the only multiplexer, one named session per project
 | Keys | Go to |
 | ---- | ----- |
 | ⌃ (anything) | the focused TUI — zellij is **locked by default** (Claude, Helix) |
-| ⌘⌥ + home row / symbols / arrows | **zellij** — nav, resize, detach (works while locked) |
+| ⌘⌥ + anything | **zellij** — nav, panes, tabs, resize, detach (works while locked) |
 | ⌘ / ⌘⇧ + `hjkl` | aerospace — window focus / move |
-| ⌥ / ⌘⌥ + top·bottom-row letter | aerospace — switch / move to workspace |
+| ⌥ / ⌥⇧ + `j` `k` | aerospace — switch / move window to workspace (mirrors niri) |
+| ⌥ / ⌥⇧ + space | aerospace — monitor focus / move |
 | ⌃ in Chromium | menu shortcuts — tabs, address bar |
 
 kanata makes the modifiers from home-row holds: `a`/`;`=⌘, `s`/`l`=⌥, `d`/`k`=⌃, `f`/`j`=⇧.

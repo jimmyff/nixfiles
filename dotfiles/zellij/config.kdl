@@ -148,17 +148,26 @@ keybinds clear-defaults=true {
         bind "Alt Super =" { Resize "Increase"; }
         bind "Alt Super [" { PreviousSwapLayout; }
         bind "Alt Super ]" { NextSwapLayout; }
-        bind "Alt Super f" { ToggleFloatingPanes; }
+        bind "Alt Super f" { ToggleFocusFullscreen; }
         bind "Alt Super h" { MoveFocusOrTab "left"; }
         bind "Alt Super i" { MoveTab "left"; }
         bind "Alt Super j" { MoveFocus "down"; }
         bind "Alt Super k" { MoveFocus "up"; }
         bind "Alt Super l" { MoveFocusOrTab "right"; }
         bind "Alt Super n" { NewPane; }
+        bind "Alt Super Shift n" { NewPane "stacked"; }
         bind "Alt Super o" { MoveTab "right"; }
         bind "Super Ctrl h" { GoToPreviousTab; }
         bind "Super Ctrl l" { GoToNextTab; }
         bind "Alt Super d" { Detach; }
+        // room: floating tab switcher (https://github.com/rvcas/room)
+        bind "Alt Super space" {
+            LaunchOrFocusPlugin "file:~/.local/share/zellij/plugins/room.wasm" {
+                floating true
+                ignore_case true
+                quick_jump true
+            }
+        }
     }
     shared_except "locked" {
         bind "Ctrl g" { SwitchToMode "locked"; }
@@ -197,13 +206,14 @@ keybinds clear-defaults=true {
         bind "Alt =" { Resize "Increase"; }
         bind "Alt [" { PreviousSwapLayout; }
         bind "Alt ]" { NextSwapLayout; }
-        bind "Alt f" { ToggleFloatingPanes; }
+        bind "Alt f" { ToggleFocusFullscreen; }
         bind "Alt h" { MoveFocusOrTab "left"; }
         bind "Alt i" { MoveTab "left"; }
         bind "Alt j" { MoveFocus "down"; }
         bind "Alt k" { MoveFocus "up"; }
         bind "Alt l" { MoveFocusOrTab "right"; }
         bind "Alt n" { NewPane; }
+        bind "Alt Shift n" { NewPane "stacked"; }
         bind "Alt o" { MoveTab "right"; }
     }
     shared_except "normal" "locked" "entersearch" {
@@ -295,6 +305,11 @@ plugins {
 // eg. "file:/path/to/my-plugin.wasm"
 // eg. "https://example.com/my-plugin.wasm"
 load_plugins {
+    "file:~/.local/share/zellij/plugins/zellij-attention.wasm" {
+        enabled "true"
+        waiting_icon "⏳"
+        completed_icon "✅"
+    }
 }
 web_client {
     font "monospace"

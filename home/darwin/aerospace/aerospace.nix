@@ -18,9 +18,9 @@
     services.jankyborders = {
       enable = true;
       settings = {
-        active_color = "0xffffe27a";
+        active_color = "0xff8bbef4";
         inactive_color = "0xff7d7db4";
-        width = 3;
+        width = 4;
       };
     };
   };

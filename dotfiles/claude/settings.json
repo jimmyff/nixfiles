@@ -94,6 +94,18 @@
       "Read(./secrets/**)"
     ]
   },
+  "hooks": {
+    "Notification": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh -c '[ -n \"$ZELLIJ\" ] && zellij pipe --name \"zellij-attention::waiting::$ZELLIJ_PANE_ID\" || true'"
+          }
+        ]
+      }
+    ]
+  },
   "enabledMcpjsonServers": [
     "github"
   ],
