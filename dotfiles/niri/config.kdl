@@ -82,6 +82,10 @@ hotkey-overlay {
 
 screenshot-path "~/Pictures/Screenshots/Screenshot from %Y-%m-%d %H-%M-%S.png"
 
+// uwsm: export WAYLAND_DISPLAY/NIRI_SOCKET into the systemd & D-Bus env (with an
+// explicit var list) and signal session readiness. No-op outside a uwsm session.
+spawn-at-startup "/run/current-system/sw/bin/uwsm" "finalize"
+
 spawn-at-startup "waybar"
 spawn-at-startup "nm-applet" "--indicator"   // wifi/bluetooth icon in the waybar tray
 spawn-at-startup "swaybg" "-c" "#1e1e2e"      // solid wallpaper (niri has no built-in bg)

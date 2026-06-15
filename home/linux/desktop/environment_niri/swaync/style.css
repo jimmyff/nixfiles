@@ -19,6 +19,7 @@
 /* ── Notification card (shared by popups + control-center) ───────────── */
 .notification-row {
   outline: none;
+  background: transparent;
 }
 
 .notification-row .notification-background {
@@ -102,6 +103,16 @@
 
 .control-center .notification-row .notification-background .notification {
   background: @surface;
+}
+
+/* swaync is GTK4: with no dark base theme, the list/scroller/row containers
+   fall back to Adwaita-light grey. Paint the whole chain transparent so the
+   panel's @base shows through instead of leaking grey behind each card. */
+.control-center .widget-notifications,
+.control-center scrolledwindow,
+.control-center viewport,
+.control-center list {
+  background: transparent;
 }
 
 .widget-title {
