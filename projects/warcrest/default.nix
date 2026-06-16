@@ -13,7 +13,7 @@
 
   # Development scripts to include
   scripts = {
-    global = ["flitter/flitter.rs"];
+    global = [];
     local = [];
   };
 

@@ -20,7 +20,7 @@
   # Development environment configuration
   development = {
     enable = true;
-    projects = ["cache" "jimmyff-website"];
+    projects = ["cache" "jimmyff-website" "kosmos"];
   };
 
   # Platform-specific development tools

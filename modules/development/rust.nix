@@ -36,7 +36,6 @@ in {
       cargo
       rustc
       rust-analyzer
-      rust-script
     ];
 
     # Rust environment variables (XDG compliant)

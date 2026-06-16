@@ -419,7 +419,6 @@ in {
         pkgs-dev-tools.nix-direnv
 
         # Development utilities
-        pkgs-dev-tools.entr
         pkgs-dev-tools.lnav
         pkgs-dev-tools.go
 

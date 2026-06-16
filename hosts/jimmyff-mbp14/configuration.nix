@@ -10,14 +10,14 @@
   # Development environment configuration
   development = {
     enable = true;
-    projects = [ "jimmyff-website" "rocket-kit" "osdn" "cache" "escp" "shed" "warcrest" "rocketware" ];
+    projects = [ "jimmyff-website" "osdn" "cache" "escp" "kosmos" "shed" "warcrest" "rocketware" ];
   };
 
   # Platform-specific development tools
   android.enable = true;
   dart.enable = true;
   xcode.enable = true;
-  rust.enable = true;
+  rust.enable = false;
   mitmproxy.enable = true;
   wireshark.enable = false;
   docker.enable = true;

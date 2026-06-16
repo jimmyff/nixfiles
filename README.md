@@ -34,7 +34,6 @@
 - **Project environments:** Declarative dev setup with direnv
 - **Encrypted secrets:** agenix (boot-time) + sops (on-demand) sharing one age identity, both backed by a private vault flake input
 - **Workspace management:** [`✨glittering`](scripts/glittering/) - Multi-package orchestrator: git, test, analyze across Dart/Flutter workspaces
-- **Flutter hot reload:** [`flitter.rs`](scripts/flitter/) - hot reloading with debug info capture
 - **Package freshness:** [`flake-freshness.nu`](scripts/flake-freshness/) - monitor nix package versions across inputs
 
 ---
