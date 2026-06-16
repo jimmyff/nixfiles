@@ -19,7 +19,7 @@
       enable = true;
       settings = {
         active_color = "0xff8bbef4";
-        inactive_color = "0xff7d7db4";
+        inactive_color = "0xff2A2A3C";
         width = 6;
         style = "round";
       };

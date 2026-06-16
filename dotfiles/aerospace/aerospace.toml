@@ -41,8 +41,10 @@ default-root-container-orientation = 'auto'
 # See https://nikitabobko.github.io/AeroSpace/guide#on-focus-changed-callbacks
 # See https://nikitabobko.github.io/AeroSpace/commands#move-mouse
 # Fallback value (if you omit the key): on-focused-monitor-changed = []
-on-focused-monitor-changed = ['move-mouse monitor-lazy-center']
-on-focus-changed = 'move-mouse window-lazy-center'
+# Mouse-follows-focus left off by preference — no cursor recentering on focus or
+# monitor changes. Omitting the keys = [] = no mouse move. Uncomment to restore.
+# on-focused-monitor-changed = ['move-mouse monitor-lazy-center']
+# on-focus-changed = 'move-mouse window-lazy-center'
 
 # You can effectively turn off macOS "Hide application" (cmd-h) feature by toggling this flag
 # Useful if you don't use this macOS feature, but accidentally hit cmd-h or cmd-alt-h key
@@ -74,6 +76,11 @@ outer.right = 6
 # numbering like niri), so we slice the namespace numpad-style: LG = 1-3,
 # built-in = 7-9 (4-6 left free for future direct-jump binds). Undocked, the
 # LG's workspaces fall back to the main (built-in) monitor — nothing is lost.
+#
+# Multi-monitor gotcha (AeroSpace #101): if one app has windows on BOTH monitors,
+# focusing toward one can make macOS raise the app's OTHER window instead, so a
+# monitor hop lands on the wrong monitor. Not a config bug — keep an app's
+# windows on a single monitor to avoid it.
 [workspace-to-monitor-force-assignment]
 1 = 'LG'
 2 = 'LG'
@@ -122,22 +129,20 @@ cmd-t = [
 cmd-shift-slash = 'layout tiles horizontal vertical'
 cmd-shift-comma = 'layout accordion horizontal vertical'
 
-# Window nav (Cmd) — niri-style "flow": at the workspace edge, focus spills into
-# the outer axis. h/l → monitors (left/right), j/k → the workspace strip. h/l are
-# native; j/k take a bash hop since AeroSpace has no "focus-or-workspace" action.
-# All wrap. See: .../commands#focus  .../commands#move
-cmd-h = 'focus --boundaries all-monitors-outer-frame --boundaries-action wrap-around-all-monitors left'
-cmd-l = 'focus --boundaries all-monitors-outer-frame --boundaries-action wrap-around-all-monitors right'
-cmd-j = 'exec-and-forget /etc/profiles/per-user/jimmyff/bin/aerospace focus --boundaries workspace --boundaries-action fail down || /etc/profiles/per-user/jimmyff/bin/aerospace workspace --wrap-around next --no-stdin'
-cmd-k = 'exec-and-forget /etc/profiles/per-user/jimmyff/bin/aerospace focus --boundaries workspace --boundaries-action fail up || /etc/profiles/per-user/jimmyff/bin/aerospace workspace --wrap-around prev --no-stdin'
+# Window axis = Cmd+hjkl. h/l move focus left/right and cross to the adjacent
+# monitor at a workspace edge (stop at the outer frame — never wrap to ws1).
+# j/k cycle the focused monitor's workspace strip (monitor-local next/prev).
+cmd-h = 'focus --boundaries all-monitors-outer-frame --boundaries-action stop left'
+cmd-l = 'focus --boundaries all-monitors-outer-frame --boundaries-action stop right'
+cmd-j = 'workspace --wrap-around next'
+cmd-k = 'workspace --wrap-around prev'
 
-# Move the focused window with the same flow (Cmd+Shift). Crossing into a new
-# workspace carries focus along (--focus-follows-window), niri-style. Note: move
-# h/l cross monitors but can't wrap — native `move` has no wrap action.
+# Move the focused window the same way (Cmd+Shift). h/l carry it to the adjacent
+# monitor at the edge; j/k carry it to the next/prev workspace and follow it.
 cmd-shift-h = 'move --boundaries all-monitors-outer-frame --boundaries-action stop left'
 cmd-shift-l = 'move --boundaries all-monitors-outer-frame --boundaries-action stop right'
-cmd-shift-j = 'exec-and-forget /etc/profiles/per-user/jimmyff/bin/aerospace move --boundaries workspace --boundaries-action fail down || /etc/profiles/per-user/jimmyff/bin/aerospace move-node-to-workspace --wrap-around next --no-stdin --focus-follows-window'
-cmd-shift-k = 'exec-and-forget /etc/profiles/per-user/jimmyff/bin/aerospace move --boundaries workspace --boundaries-action fail up || /etc/profiles/per-user/jimmyff/bin/aerospace move-node-to-workspace --wrap-around prev --no-stdin --focus-follows-window'
+cmd-shift-j = 'move-node-to-workspace --wrap-around next --focus-follows-window'
+cmd-shift-k = 'move-node-to-workspace --wrap-around prev --focus-follows-window'
 
 # See: https://nikitabobko.github.io/AeroSpace/commands#resize
 cmd-minus = 'resize smart -50'
@@ -151,20 +156,19 @@ cmd-equal = 'resize smart +50'
 alt-j = 'workspace --wrap-around next'
 alt-k = 'workspace --wrap-around prev'
 
-# Monitor axis = Alt+h/l (monitors sit left/right). Mirrors the workspace axis;
-# wraps so neither key is dead on a 2-monitor setup. Mouse follows focus via
-# on-focused-monitor-changed. See: .../commands#focus-monitor
-alt-h = 'focus-monitor --wrap-around left'
-alt-l = 'focus-monitor --wrap-around right'
+# Monitor axis = Alt+h/l: focus the monitor in that direction, keeping whatever
+# workspace it shows. h = left monitor, l = right.
+alt-h = 'focus-monitor left'
+alt-l = 'focus-monitor right'
 
 # Take the focused window to the prev/next workspace, arriving with it
 # (--focus-follows-window). "Add Shift to the nav key to carry the window."
 # See: https://nikitabobko.github.io/AeroSpace/commands#move-node-to-workspace
 alt-shift-j = 'move-node-to-workspace --wrap-around next --focus-follows-window'
 alt-shift-k = 'move-node-to-workspace --wrap-around prev --focus-follows-window'
-# Same for monitors: take the window to the monitor left/right, focus follows.
-alt-shift-h = 'move-node-to-monitor --wrap-around left --focus-follows-window'
-alt-shift-l = 'move-node-to-monitor --wrap-around right --focus-follows-window'
+# Same for monitors: carry the focused window to the monitor in that direction.
+alt-shift-h = 'move-node-to-monitor left --focus-follows-window'
+alt-shift-l = 'move-node-to-monitor right --focus-follows-window'
 
 # See: https://nikitabobko.github.io/AeroSpace/commands#workspace-back-and-forth
 alt-tab = 'workspace-back-and-forth'
