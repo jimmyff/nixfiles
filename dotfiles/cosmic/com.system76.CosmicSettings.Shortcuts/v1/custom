@@ -35,17 +35,31 @@
     (modifiers: [Super, Ctrl], key: "k"): Disable,
     (modifiers: [Super, Ctrl], key: "l"): Disable,
 
+    // ── Window axis: Super+hjkl focus, Super+Shift+hjkl move. COSMIC's Focus/Move
+    //    spill into the next workspace (j/k) or output (h/l) at the tiling edge —
+    //    niri-style flow, built in. Assumes vertical workspaces (COSMIC default). ──
+    (modifiers: [Super], key: "h"): Focus(Left),
+    (modifiers: [Super], key: "l"): Focus(Right),
+    (modifiers: [Super], key: "j"): Focus(Down),
+    (modifiers: [Super], key: "k"): Focus(Up),
+    (modifiers: [Super, Shift], key: "h"): Move(Left),
+    (modifiers: [Super, Shift], key: "l"): Move(Right),
+    (modifiers: [Super, Shift], key: "j"): Move(Down),
+    (modifiers: [Super, Shift], key: "k"): Move(Up),
+
     // ── Workspace axis: Alt+j/k switch, Alt+Shift+j/k move (mirrors niri/aerospace) ──
     (modifiers: [Alt], key: "j"): NextWorkspace,
     (modifiers: [Alt], key: "k"): PreviousWorkspace,
     (modifiers: [Alt, Shift], key: "j"): MoveToNextWorkspace,
     (modifiers: [Alt, Shift], key: "k"): MoveToPreviousWorkspace,
 
-    // ── Aerospace mirror: monitor focus / move ────────────────────────────
-    (modifiers: [Alt], key: "space"): NextOutput,
-    (modifiers: [Alt, Shift], key: "space"): MoveToNextOutput,
+    // ── Monitor axis: Alt+h/l focus, Alt+Shift+h/l move (mirrors niri/aerospace) ──
+    (modifiers: [Alt], key: "h"): SwitchOutput(Left),
+    (modifiers: [Alt], key: "l"): SwitchOutput(Right),
+    (modifiers: [Alt, Shift], key: "h"): MoveToOutput(Left),
+    (modifiers: [Alt, Shift], key: "l"): MoveToOutput(Right),
 
     // ── Aerospace mirror: alt+tab = workspace back-and-forth ──────────────
     (modifiers: [Alt], key: "Tab"): LastWorkspace,
-    (modifiers: [Alt, Shift], key: "Tab"): MigrateWorkspaceToNextOutput,
+    (modifiers: [Alt, Shift], key: "Tab"): MigrateWorkspaceToOutput(Right),
 }

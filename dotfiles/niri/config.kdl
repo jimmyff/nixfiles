@@ -105,9 +105,10 @@ binds {
     Mod+N { spawn "swaync-client" "-t" "-sw"; }        // toggle notification center
     Mod+Shift+N { spawn "swaync-client" "-d" "-sw"; }  // toggle do-not-disturb
 
-    // ── Focus — Super = window axis (flows to workspaces at column edges) ─
-    Mod+H { focus-column-left; }
-    Mod+L { focus-column-right; }
+    // ── Focus — Super = window axis. At the edge, h/l flow to the monitor,
+    //    j/k flow to the workspace (mirrors aerospace cmd-hjkl) ──────────
+    Mod+H { focus-column-or-monitor-left; }
+    Mod+L { focus-column-or-monitor-right; }
     Mod+J { focus-window-or-workspace-down; }
     Mod+K { focus-window-or-workspace-up; }
     // Focus — Alt = workspace axis (always switches workspace)
@@ -115,9 +116,10 @@ binds {
     Alt+K { focus-workspace-up; }
     Mod+Tab { focus-window-previous; }          // toggle to last-focused window
 
-    // ── Move — Super+Shift = window axis (flows to workspaces at edges) ──
-    Mod+Shift+H { move-column-left; }
-    Mod+Shift+L { move-column-right; }
+    // ── Move — Super+Shift = window axis. At the edge, h/l carry the column
+    //    to the monitor, j/k to the workspace (mirrors aerospace cmd-shift) ─
+    Mod+Shift+H { move-column-left-or-to-monitor-left; }
+    Mod+Shift+L { move-column-right-or-to-monitor-right; }
     Mod+Shift+J { move-window-down-or-to-workspace-down; }
     Mod+Shift+K { move-window-up-or-to-workspace-up; }
     // Move — Alt+Shift = move the whole column to a workspace
@@ -139,9 +141,11 @@ binds {
     Mod+Shift+Space { toggle-window-floating; }  // float / unfloat the window
     Mod+O { toggle-overview; }                    // bird's-eye of workspaces
 
-    // ── Monitors (rarely used on the Pixelbook) ───────────────────────
-    Alt+Space { focus-monitor-next; }
-    Alt+Shift+Space { move-column-to-monitor-next; }
+    // ── Monitors — Alt+h/l axis (mirrors aerospace/cosmic) ────────────
+    Alt+H { focus-monitor-left; }
+    Alt+L { focus-monitor-right; }
+    Alt+Shift+H { move-column-to-monitor-left; }
+    Alt+Shift+L { move-column-to-monitor-right; }
 
     // ── Screenshots (niri built-in) ───────────────────────────────────
     Print { screenshot; }
