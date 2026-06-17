@@ -307,8 +307,9 @@ plugins {
 load_plugins {
     "file:~/.local/share/zellij/plugins/zellij-attention.wasm" {
         enabled "true"
-        waiting_icon "⏳"
-        completed_icon "✅"
+        attention_icon "🚨"
+        working_icon "⏳"
+        done_icon "✅"
     }
 }
 web_client {

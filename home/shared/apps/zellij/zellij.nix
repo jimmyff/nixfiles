@@ -24,12 +24,13 @@
       hash = "sha256-kLSDpAt2JGj7dYYhYFh6BfvtzVwTrcs+0jHwG/nActE=";
     };
 
-    # zellij-attention: background plugin that flags tabs needing attention
-    # (https://github.com/KiryuuLight/zellij-attention). Driven by `zellij pipe`
-    # from Claude Code's Notification hook (see dotfiles/claude/settings.json).
+    # zellij-attention: background plugin that flags which tab needs attention with a
+    # 3-state priority indicator — attention/working/done (jimmyff's fork of
+    # KiryuuLight/zellij-attention: https://github.com/jimmyff/zellij-attention).
+    # Driven by `zellij pipe` from Claude Code hooks (see dotfiles/claude/settings.json).
     home.file.".local/share/zellij/plugins/zellij-attention.wasm".source = pkgs-apps.fetchurl {
-      url = "https://github.com/KiryuuLight/zellij-attention/releases/download/v0.3.1/zellij-attention.wasm";
-      hash = "sha256-QgkzerYacxRI7HMzYvPvaZqQW7tcARKpOm1hY2D9ci8=";
+      url = "https://github.com/jimmyff/zellij-attention/releases/download/v0.4.0/zellij-attention.wasm";
+      hash = "sha256-cdVp+Lsde1S2NsY3pygM4BVc8uz5XHBFlo7gwMw2gIQ=";
     };
   };
 }
