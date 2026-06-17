@@ -15,7 +15,7 @@ input {
     touchpad {
         tap
         natural-scroll
-        dwt
+        // dwt (disable-while-typing) off: keeps the touchpad live while keys held.
         middle-emulation
     }
     mouse {
