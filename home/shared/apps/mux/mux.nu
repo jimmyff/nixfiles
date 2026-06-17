@@ -4,10 +4,11 @@
 # then attaches to (or creates) the matching zellij session.
 #
 #   mux         launch/attach the workspace for the current directory
-#   mux reset   delete the resolved session then relaunch (escape a bad resurrection)
+#   mux reset [--force]  delete the resolved session then relaunch (escape a bad
+#               resurrection); --force first SIGKILLs a wedged server + drops its stale socket
 #   mux init    scaffold a .zellij.kdl session layout (live shell | overview) here
 #   mux dash    open/attach the dash session — one tab per active project
-#   mux dash reset  delete dash, rescan projects, relaunch fresh
+#   mux dash reset [--force]  delete dash, rescan projects, relaunch fresh (--force as above)
 #   mux dash init   scaffold a .zellij-dash.kdl dash tab body (suspended shell | overview)
 #
 # Bar chrome is the single source of truth: project .zellij.kdl files hold only
@@ -184,6 +185,32 @@ def zellij-sessions [] {
     $res.stdout | lines | str trim | where {|l| $l | is-not-empty }
 }
 
+# [{pid, sock}] for every running server of <session>, parsed from `ps`. zellij launches
+# its server as `zellij --server <sock>`, so the socket to remove is right there in the
+# cmdline — no IPC and no cache-path guessing, which is what lets this work when the server
+# is wedged (unresponsive to zellij's own commands).
+def server-entries [session: string] {
+    let out = (do -i { ^ps -axww -o pid=,command= | complete })
+    if ($out == null) or ($out.exit_code != 0) { return [] }
+    $out.stdout
+    | lines
+    | each {|l| $l | parse --regex '^\s*(?<pid>\d+)\s+.*zellij --server (?<sock>\S+)' }
+    | flatten
+    | where {|r| ($r.sock | path basename) == $session }
+}
+
+# Forcibly tear down a wedged session: SIGKILL its server and delete the stale socket, so a
+# normal delete-session + relaunch can proceed. For when `zellij delete-session` itself hangs.
+# Uses only ps/kill/rm — never zellij IPC. Returns the killed pids (empty if none found).
+def force-kill-session [session: string] {
+    let entries = (server-entries $session)
+    for e in $entries {
+        do -i { ^kill -9 $e.pid }
+        do -i { ^rm -f $e.sock }
+    }
+    if ($entries | is-empty) { [] } else { $entries | get pid }
+}
+
 # attach if the session exists (running or resurrectable), else create it
 def launch [r: record] {
     cd $r.root
@@ -248,13 +275,20 @@ def dash-layout [folders: list<any>] {
 }
 
 # Guard + optional delete + (generate when creating) + launch the `dash` session.
-def open-dash [--reset, --dry-run] {
+def open-dash [--reset, --force, --dry-run] {
     if $dry_run {
         print (dash-layout (dash-folders))
         return
     }
     if ($env.ZELLIJ? | is-not-empty) {
         error make { msg: "mux dash: run from outside a zellij session." }
+    }
+
+    # --force: SIGKILL a wedged server + drop its stale socket before the normal reset,
+    # for when the session is unresponsive and `delete-session` would otherwise hang.
+    if $force {
+        let killed = (force-kill-session "dash")
+        if ($killed | is-not-empty) { print $"mux dash: force-killed wedged server — pids ($killed | str join ', ')" }
     }
 
     let sessions = (zellij-sessions)
@@ -295,11 +329,17 @@ def main [] {
     }
 }
 
-def "main reset" [] {
+def "main reset" [--force] {
     if ($env.ZELLIJ? | is-not-empty) {
         error make { msg: "mux reset: run from outside a zellij session." }
     }
     let r = (resolve)
+    # --force: SIGKILL a wedged server + drop its stale socket first, so the delete below
+    # can't hang on an unresponsive session.
+    if $force {
+        let killed = (force-kill-session $r.session)
+        if ($killed | is-not-empty) { print $"mux reset: force-killed wedged server — pids ($killed | str join ', ')" }
+    }
     if ($r.session in (zellij-sessions)) {
         ^zellij delete-session $r.session --force
     }
@@ -318,7 +358,7 @@ def "main init" [] {
 }
 
 def "main dash" [--dry-run] { open-dash --dry-run=$dry_run }
-def "main dash reset" [] { open-dash --reset }
+def "main dash reset" [--force] { open-dash --reset --force=$force }
 
 def "main dash init" [] {
     let target = ([$env.PWD ".zellij-dash.kdl"] | path join)
