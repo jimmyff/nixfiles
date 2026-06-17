@@ -31,7 +31,7 @@
   # Development environment configuration
   development = {
     enable = true;
-    projects = ["jimmyff-website" "osdn" "cache" "kosmos" "warcrest" "shed" "rocketware"];
+    projects = ["jimmyff-website" "osdn" "cache" "kosmos" "warcrest" "shed"];
   };
 
   # Platform-specific development tools
