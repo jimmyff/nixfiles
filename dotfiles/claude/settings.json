@@ -165,10 +165,11 @@
   "statusLine": {
     "type": "command",
     "command": "~/.claude/statusline.sh",
-    "padding": 0
+    "padding": 0,
+    "refreshInterval": 60
   },
   "alwaysThinkingEnabled": true,
-  "effortLevel": "high",
+  "effortLevel": "xhigh",
   "autoMemoryEnabled": false,
   "autoDreamEnabled": false,
   "theme": "dark-daltonized",
