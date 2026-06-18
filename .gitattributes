@@ -1,0 +1,3 @@
+# Pins effortLevel so Claude's in-app toggle doesn't dirty the repo (needs jq).
+# Filter defined in home/shared/services/git.nix.
+dotfiles/claude/settings.json filter=claude-settings

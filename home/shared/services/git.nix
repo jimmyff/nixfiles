@@ -18,6 +18,8 @@
         };
         # `git sdiff` for on-demand side-by-side view
         alias.sdiff = "!git -c delta.side-by-side=true diff";
+        # Pin effortLevel in Claude's settings.json (see .gitattributes).
+        filter.claude-settings.clean = "jq --indent 2 '.effortLevel = \"xhigh\"'";
       };
     };
 
