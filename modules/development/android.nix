@@ -185,9 +185,16 @@ in {
     # Debug keystore stays on agenix: it's needed by every `flutter run` and
     # isn't really a secret (well-known "android" password). Release/upload
     # keystores moved to sops — see modules/development/rocketware-secrets.nix.
+    #
+    # symlink = false writes a real file into ~/.android instead of symlinking
+    # to the read-only agenix runtime dir. AGP 8's validateSigning task creates
+    # a `debug.keystore.lock` *beside* the keystore; with a symlink that lands
+    # in the read-only agenix dir and fails (AccessDeniedException). ~/.android
+    # is user-writable, so the lock works there. Same plaintext, same 600 perms.
     age.secrets.android-debug-keystore = {
       file = nixfiles-vault + "/android-debug-keystore.age";
       path = "${homeDir}/.android/debug.keystore";
+      symlink = false;
       mode = "600";
       owner = username;
       group = userGroup;
