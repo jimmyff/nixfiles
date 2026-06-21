@@ -419,13 +419,19 @@ def "main overview" [--path: string = "." --refresh --force --compact] {
     ($subs | where { |s| $s.ahead_parent != $s.ahead_remote or $s.behind_parent != $s.behind_remote } | is-not-empty)
   }
 
-  # Repo row (workspace = packages under no submodule)
+  # Repo row (workspace = packages under no submodule) — aggregate rollup,
+  # with indented child rows for its own packages (mirrors multi-package submodules)
   let repo = ($git.repo | update path $git.path)
   let repo_row = (with-metric-cells (format-git-row $repo $fetched true $has_parent)
     (packages-outside $sub_paths $test_data.packages)
     (packages-outside $sub_paths $analyze_data.packages)
     (packages-outside $sub_paths $stats_data.packages)
     $has_tests $has_analyze $has_stats)
+
+  let repo_pkgs = (packages-outside $sub_paths $status.packages | sort-by path)
+  let repo_children = if $compact or (($repo_pkgs | length) <= 1) { [] } else {
+    build-child-rows "" $repo_pkgs $test_data.packages $analyze_data.packages $stats_data.packages $has_parent $has_tests $has_analyze $has_stats
+  }
 
   # Submodule rows (+ indented per-package child rows for multi-package submodules)
   let sub_rows = ($subs | each { |r|
@@ -442,7 +448,7 @@ def "main overview" [--path: string = "." --refresh --force --compact] {
     [$rollup] | append $children
   } | flatten)
 
-  let rows = ([$repo_row] | append $sub_rows)
+  let rows = ([$repo_row] | append $repo_children | append $sub_rows)
 
   mut cols = ["package" "git"]
   if $has_parent { $cols = ($cols | append "parent") }
@@ -660,7 +666,7 @@ def build-child-rows [
     has_parent: $has_parent, has_tests: $has_tests, has_analyze: $has_analyze, has_stats: $has_stats
   }
   let items = ($pkgs | each { |p|
-    let rel = if $p.path == $sub_path { "" } else { ($p.path | str replace $"($sub_path)/" "") }
+    let rel = if $sub_path == "" { $p.path } else if $p.path == $sub_path { "" } else { ($p.path | str replace $"($sub_path)/" "") }
     { segs: (if $rel == "" { [] } else { $rel | split row "/" }), pkg_path: $p.path }
   })
   render-pkg-tree $items "" $ctx
@@ -805,12 +811,12 @@ def print-footer [git_data: record, test_data: record, analyze_data: record, sta
     $missing = ($missing | append "stats")
   }
 
+  let sep = $" \u{00b7} "
   if (not ($parts | is-empty)) {
-    let sep = $" \u{00b7} "
     print $"(ansi dark_gray)($parts | str join $sep)(ansi reset)"
   }
   if (not ($warnings | is-empty)) {
-    print $"(ansi yellow)($warnings | str join ' \u{00b7} ') — run with --refresh(ansi reset)"
+    print $"(ansi yellow)($warnings | str join $sep) — run with --refresh(ansi reset)"
   }
   if (not ($missing | is-empty)) {
     print $"(ansi dark_gray)No cached ($missing | str join '/') data — run with --refresh(ansi reset)"
