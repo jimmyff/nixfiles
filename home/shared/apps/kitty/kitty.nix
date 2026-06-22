@@ -43,6 +43,8 @@
         "cmd+alt+k" = "no_op";
         "cmd+alt+l" = "no_op";
         "cmd+alt+d" = "no_op"; # → zellij Detach
+        "cmd+alt+r" = "no_op"; # → zellij rename pane (was kitty reset_terminal, macOS opt+cmd+r)
+        "ctrl+shift+delete" = "no_op"; # kitty default reset_terminal (Linux + macOS) — RIS nukes TUI state
         "ctrl+h" = "no_op";
         "ctrl+j" = "no_op";
         "ctrl+k" = "no_op";

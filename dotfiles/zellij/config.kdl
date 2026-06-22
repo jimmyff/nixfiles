@@ -156,6 +156,8 @@ keybinds clear-defaults=true {
         bind "Alt Super l" { MoveFocusOrTab "right"; }
         bind "Alt Super n" { NewPane; }
         bind "Alt Super Shift n" { NewPane "stacked"; }
+        bind "Alt Super r" { SwitchToMode "renamepane"; PaneNameInput 0; }
+        bind "Alt Super Shift r" { SwitchToMode "renametab"; TabNameInput 0; }
         bind "Alt Super o" { MoveTab "right"; }
         bind "Super Ctrl h" { GoToPreviousTab; }
         bind "Super Ctrl l" { GoToNextTab; }
