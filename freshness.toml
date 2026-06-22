@@ -8,23 +8,38 @@
 
 [packages]
 
-# Core stable packages (CLI utilities)
-pkgs-stable = ["rclone"]
+# Stable packages
+# The base system + home-manager `programs.*` use the stable pkgs set
+# (home-manager.useGlobalPkgs = true), so most daily tools live here.
+pkgs-stable = [
+  "rclone",
+  # CLI / TUI tools
+  "kitty", "starship", "atuin", "yazi", "lazygit", "gh",
+  # "delta",
+  # Cloud
+  "firebase-tools",
+]
 
 # Unstable packages (desktop, apps, dev tools, Flutter, Rust, Android)
 pkgs-unstable = [
   # Dev tools (editors, LSPs, formatters, shell)
-  "helix", "zed-editor", "vscode", "nushell", "go",
-  # Flutter/Dart
-  "flutter", "dart",
+  "helix", "zed-editor", "nushell", "zellij", "go",
+  # "direnv",
+  # Flutter / Android
+  "flutter", "dart", "android-studio",
+  # "zulu17",
+  # Cloud
+  "google-cloud-sdk",
   # Rust
-  "rustc", "cargo", "rust-analyzer",
-  # Desktop (COSMIC)
-  "aerospace",
-  "cosmic-session", "cosmic-comp", "cosmic-greeter", "cosmic-panel",
-  "cosmic-settings", "cosmic-files", "cosmic-edit", "cosmic-launcher",
+  # "rustc", "cargo", "rust-analyzer",
+  # Desktop
+  "aerospace", "niri",
+  # COSMIC
+  # "cosmic-session", "cosmic-comp", "cosmic-greeter", "cosmic-panel",
+  # "cosmic-settings", "cosmic-files", "cosmic-edit", "cosmic-launcher",
   # User applications
-  "cinny-desktop", "thunderbird", "signal-desktop-bin", "google-chrome",
+  # "thunderbird",
+  "ungoogled-chromium",
 ]
 
 # AI Tools (bleeding edge)

@@ -19,6 +19,7 @@ const CONFIG = {
         error: (ansi red),
         info: (ansi blue),
         accent: (ansi cyan),
+        dim: (ansi dark_gray),
         reset: (ansi reset)
     },
     cache: {
@@ -233,8 +234,17 @@ def format_version [version: string, status: string] {
     match $status {
         "outdated" => { $"($CONFIG.colors.outdated_bg)($version)($CONFIG.colors.reset)" },
         "equal" => { $"($CONFIG.colors.equal)($version)($CONFIG.colors.reset)" },
+        "unknown" => { $"($CONFIG.colors.error)($version)($CONFIG.colors.reset)" },
         _ => { $version }
     }
+}
+
+# Grey horizontal rule for separating output sections
+def separator [] {
+    let cols = (try { term size | get columns } catch { 0 })
+    let width = (if $cols > 0 { $cols } else { 64 })
+    let line = ("" | fill --character "─" --width $width)
+    $"($CONFIG.colors.dim)($line)($CONFIG.colors.reset)"
 }
 
 # ============================================================================
@@ -258,12 +268,12 @@ def main [
 
     # Find and load packages config
     let pkgs_config = (find_packages_config $pkgs)
-    print $"($CONFIG.colors.info)Loading packages from: ($pkgs_config)($CONFIG.colors.reset)"
+    print -e $"($CONFIG.colors.info)Loading packages from: ($pkgs_config)($CONFIG.colors.reset)"
 
     let packages = (load_packages $pkgs_config)
 
     # Extract input info from flake
-    print $"($CONFIG.colors.info)Extracting inputs from: ($flake)($CONFIG.colors.reset)"
+    print -e $"($CONFIG.colors.info)Extracting inputs from: ($flake)($CONFIG.colors.reset)"
     let input_info = (extract_input_info $flake)
 
     # Filter by input if specified
@@ -278,7 +288,7 @@ def main [
         return
     }
 
-    print $"($CONFIG.colors.info)Checking ($filtered_packages | length) packages...($CONFIG.colors.reset)\n"
+    print -e $"($CONFIG.colors.info)Checking ($filtered_packages | length) packages...($CONFIG.colors.reset)\n"
 
     # Get flake directory for current versions
     let flake_dir = ($flake | path dirname)
@@ -288,15 +298,13 @@ def main [
 
     # Check each package
     let use_cache = (not $no_cache)
-    let results = ($filtered_packages | each {|pkg|
+    let results = ($filtered_packages | par-each --keep-order {|pkg|
         let info = ($input_info | get -o $pkg.input)
 
         if $info == null {
             print $"($CONFIG.colors.warning)Warning: No info found for input ($pkg.input)($CONFIG.colors.reset)"
             return null
         }
-
-        print $"  Checking ($pkg.package) from ($pkg.input)..."
 
         # Get current version from locked revision
         let current = if $info.locked_rev != null {
@@ -329,48 +337,72 @@ def main [
 
     # Output results
     if $json {
-        $display_results | to json
-        return
+        return ($display_results | to json)
     }
 
-    # Display table
-    print "\n"
-    let table_data = ($display_results | each {|row|
-        {
-            package: $row.package,
-            input: $row.input,
-            current: (format_version $row.current $row.status),
-            latest: (if $row.status == "outdated" {
-                $"($CONFIG.colors.latest_bg)($row.latest)($CONFIG.colors.reset)"
-            } else {
-                $row.latest
-            }),
-            status: (match $row.status {
-                "equal" => { $"($CONFIG.colors.equal)✓ up to date($CONFIG.colors.reset)" },
-                "outdated" => { $"($CONFIG.colors.warning)⚠ update available($CONFIG.colors.reset)" },
-                _ => { "?" }
-            })
+    # Display per-input sections
+    let ordered_inputs = ($display_results | get input | uniq)
+
+    print (separator)
+    for inp in $ordered_inputs {
+        let rows = ($display_results | where input == $inp)
+        let branch = ($rows | first | get branch)
+        let url = $"github:nixos/nixpkgs/($branch)"
+
+        print $"\n($CONFIG.colors.accent)($inp)($CONFIG.colors.reset)  ·  ($CONFIG.colors.info)($url)($CONFIG.colors.reset)"
+
+        let table_data = ($rows | each {|row|
+            {
+                package: $row.package,
+                current: (format_version $row.current $row.status),
+                latest: (if $row.status == "outdated" {
+                    $"($CONFIG.colors.latest_bg)($row.latest)($CONFIG.colors.reset)"
+                } else {
+                    $row.latest
+                }),
+                status: (match $row.status {
+                    "equal" => { $"($CONFIG.colors.equal)✓ up to date($CONFIG.colors.reset)" },
+                    "outdated" => { $"($CONFIG.colors.warning)⚠ update available($CONFIG.colors.reset)" },
+                    "unknown" => { $"($CONFIG.colors.error)✗ not found($CONFIG.colors.reset)" },
+                    _ => { "?" }
+                })
+            }
+        })
+        print ($table_data | table -e)
+
+        let out_count = ($rows | where status == "outdated" | length)
+        let nf_count = ($rows | where status == "unknown" | length)
+
+        if $out_count > 0 {
+            print $"  ($CONFIG.colors.warning)⚠ ($out_count) update\(s\) available($CONFIG.colors.reset)"
+            print $"  ($CONFIG.colors.info)→ nix flake lock --update-input ($inp)($CONFIG.colors.reset)"
+        } else if $nf_count == 0 {
+            print $"  ($CONFIG.colors.equal)✓ all up to date($CONFIG.colors.reset)"
         }
-    })
+        if $nf_count > 0 {
+            print $"  ($CONFIG.colors.error)✗ ($nf_count) not found — check freshness.toml($CONFIG.colors.reset)"
+        }
+    }
 
-    print ($table_data | table -e)
+    print $"\n(separator)"
 
-    # Summary
-    let outdated = ($results | where status == "outdated")
-    let outdated_count = ($outdated | length)
+    # Aggregate summary + combined update command (uses unfiltered $results
+    # so counts stay honest even under --updates-only)
+    let total = ($results | length)
+    let total_ok = ($results | where status == "equal" | length)
+    let total_out = ($results | where status == "outdated" | length)
+    let total_nf = ($results | where status == "unknown" | length)
+    let inputs_to_update = ($results | where status == "outdated" | get input | uniq)
 
-    if $outdated_count > 0 {
-        print $"\n($CONFIG.colors.accent)Summary:($CONFIG.colors.reset)"
-        print $"  • ($outdated_count) packages with updates available"
+    print $"\n($CONFIG.colors.accent)Summary($CONFIG.colors.reset)  ($total) checked · ($total_ok) up to date · ($total_out) outdated · ($total_nf) not found"
 
-        let inputs_to_update = ($outdated | get input | uniq)
-        print $"  • Inputs to update: ($inputs_to_update | str join ', ')"
-
-        print $"\n($CONFIG.colors.info)Next steps:($CONFIG.colors.reset)"
-        $inputs_to_update | each {|inp|
-            print $"  nix flake lock --update-input ($inp)"
-        } | ignore
-    } else {
-        print $"\n($CONFIG.colors.equal)✓ All packages are up to date!($CONFIG.colors.reset)"
+    if ($inputs_to_update | length) > 0 {
+        let combined = ($inputs_to_update | each {|i| $"--update-input ($i)" } | str join " ")
+        print $"  ($CONFIG.colors.info)→ nix flake lock ($combined)($CONFIG.colors.reset)"
+    } else if $total_nf == 0 {
+        print $"  ($CONFIG.colors.equal)✓ All packages are up to date!($CONFIG.colors.reset)"
+    }
+    if $total_nf > 0 {
+        print $"  ($CONFIG.colors.error)✗ ($total_nf) package\(s\) not found — check freshness.toml($CONFIG.colors.reset)"
     }
 }

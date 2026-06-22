@@ -1,6 +1,6 @@
 # flake-freshness
 
-![Callie & Marrie say Stay Fresh!](https://www.jimmyff.co.uk/processed_images/stay-fresh.453646a2f5f5794f.webp)
+![Callie & Marrie say Stay Fresh!](https://www.jimmyff.co.uk/blog/keeping-my-nix-inputs-fresh/stay-fresh.webp)
 
 Monitor package versions across your flake's specialized nixpkgs inputs. Compare installed versions against latest available versions and identify which inputs need updating. For background information [read my blog post](https://www.jimmyff.co.uk/blog/keeping-my-nix-inputs-fresh/).
 
@@ -32,7 +32,7 @@ The script will auto-discover `freshness.toml` in your project root, or check ot
 - `~/.config/flake-freshness/freshness.toml` (user-specific)
 - `scripts/flake-freshness/freshness.toml`
 
-![screenshot](https://www.jimmyff.co.uk/processed_images/flake-freshness.160abb330c918c57.webp)
+![screenshot](https://www.jimmyff.co.uk/blog/keeping-my-nix-inputs-fresh/flake-freshness.webp)
 
 ## Usage
 
@@ -77,20 +77,38 @@ pkgs-dev-tools = [
 
 ## Output
 
-```
-Package        Input            Current    Latest     Status
-─────────────────────────────────────────────────────────────
-claude-code    pkgs-ai          2.0.0      2.0.8      ⚠ update available
-helix          pkgs-dev-tools   24.07      24.07      ✓ up to date
-flutter        pkgs-dev-flutter 3.35.2     3.35.2     ✓ up to date
+Results are grouped per input. Each section shows the input's source URL, a
+table of its packages, and the exact command to update that input. Packages
+missing from nixpkgs (typo / renamed) render a red `✗ not found`.
 
-Summary:
-  • 1 package(s) with updates available
-  • Inputs to update: pkgs-ai
-
-Next steps:
-  nix flake lock --update-input pkgs-ai
 ```
+────────────────────────────────────────────────────────────
+
+pkgs-stable  ·  github:nixos/nixpkgs/nixos-25.11
+╭─────────┬─────────┬────────┬──────────────╮
+│ package │ current │ latest │    status    │
+├─────────┼─────────┼────────┼──────────────┤
+│ rclone  │ 1.72.1  │ 1.72.1 │ ✓ up to date │
+╰─────────┴─────────┴────────┴──────────────╯
+  ✓ all up to date
+
+pkgs-ai  ·  github:nixos/nixpkgs/nixpkgs-unstable
+╭─────────────┬─────────┬─────────┬────────────────────╮
+│ package     │ current │ latest  │ status             │
+├─────────────┼─────────┼─────────┼────────────────────┤
+│ claude-code │ 2.1.175 │ 2.1.177 │ ⚠ update available │
+╰─────────────┴─────────┴─────────┴────────────────────╯
+  ⚠ 1 update(s) available
+  → nix flake lock --update-input pkgs-ai
+
+────────────────────────────────────────────────────────────
+
+Summary  12 checked · 10 up to date · 1 outdated · 1 not found
+  → nix flake lock --update-input pkgs-ai
+```
+
+> Progress/info lines are written to stderr, so `--json` emits clean,
+> machine-readable output on stdout.
 
 ## Options
 
