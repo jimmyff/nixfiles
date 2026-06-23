@@ -37,7 +37,8 @@
 
 ## Documentation
 
-- Keep Readme/Agent/Claude files up-to-date; flag if not (do not update without consent)
+- CLAUDE.md / AGENTS.md: keep lean and do not edit without showing me the change first; favour tightening over addition.
+- Other docs (readmes, changelogs, roadmaps, trackers, ledgers): keep current as part of the work, avoid drift; flag substantive rewrites first.
 - Files: ideally <100 lines, max 200
 - Code should be self-documenting; Readmes provide quick orientation (purpose, structure, components) not comprehensive documentation
 - Agent files: high-level overview, key patterns; reference package READMEs for specifics
