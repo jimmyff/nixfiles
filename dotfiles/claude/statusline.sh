@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Claude Code status line.
-# Layout:  model·effort   ⊙ ctx%   5h left% ·reset   7d left% ·reset
-# All data comes from the JSON Claude Code sends on stdin (no git call needed).
+# Layout:  model·effort   ⎇ worktree[·branch]   ⊙ ctx%   5h left% ·reset   7d left% ·reset
+# Most data comes from the JSON Claude Code sends on stdin; only the git
+# worktree/branch needs a call, capped with `timeout` so a huge repo can't stall the bar.
 # Colours: green = good, yellow = caution, red = nearly out.
 # Every % is "how much is left" (high is good): context remaining, and the
 # rate-limit windows shown as 100 - used. Each is paired with its reset countdown.
@@ -26,7 +27,8 @@ done < <(printf '%s' "$input" | jq -r '
     .rate_limits.five_hour.used_percentage // "",
     .rate_limits.five_hour.resets_at       // "",
     .rate_limits.seven_day.used_percentage // "",
-    .rate_limits.seven_day.resets_at       // ""
+    .rate_limits.seven_day.resets_at       // "",
+    .workspace.current_dir                 // .cwd // ""
   ] | .[]')
 
 model=${vals[0]:-Claude}
@@ -36,11 +38,12 @@ five_used=${vals[3]:-}
 five_reset=${vals[4]:-}
 seven_used=${vals[5]:-}
 seven_reset=${vals[6]:-}
+dir=${vals[7]:-}
 
 esc=$'\033'
 reset="${esc}[0m"; dim="${esc}[2m"; bold="${esc}[1m"
 green="${esc}[32m"; yellow="${esc}[33m"; red="${esc}[31m"
-cyan="${esc}[36m"; grey="${esc}[90m"
+cyan="${esc}[36m"; grey="${esc}[90m"; magenta="${esc}[35m"
 
 int() { printf '%s' "${1%.*}"; }                 # drop any decimal part
 
@@ -74,8 +77,28 @@ fmt_reset() {                                    # epoch -> "3d4h" / "2h12m" / "
   else                      printf '%dm'     "$m"; fi
 }
 
+# Git worktree / branch — the one piece not in Claude's JSON, so one quick
+# `git` call against the session dir, capped by `timeout` so a giant repo
+# can't stall the bar. Shows the worktree folder name; appends the branch only
+# when it differs (e.g. main checkout, or a worktree on an unrelated branch).
+git_seg=""
+if [ -n "$dir" ] && command -v git >/dev/null 2>&1; then
+  if command -v timeout >/dev/null 2>&1; then tmo="timeout 1"; else tmo=""; fi
+  branch=$($tmo git -C "$dir" rev-parse --abbrev-ref HEAD 2>/dev/null)
+  if [ -n "$branch" ]; then
+    [ "$branch" = "HEAD" ] &&                       # detached: show short SHA
+      branch="@$($tmo git -C "$dir" rev-parse --short HEAD 2>/dev/null)"
+    top=$($tmo git -C "$dir" rev-parse --show-toplevel 2>/dev/null)
+    wt=${top##*/}; [ -z "$wt" ] && wt="$branch"     # worktree folder name
+    git_seg="${dim}⎇${reset} ${magenta}${wt}${reset}"
+    [ "$wt" != "$branch" ] &&                       # branch shown only when distinct
+      git_seg="${git_seg}${dim}·${reset}${magenta}${branch}${reset}"
+  fi
+fi
+
 out="${bold}${cyan}${model}${reset}"
 [ -n "$effort" ] && out="${out}${dim}·${reset}$(col_effort "$effort")${effort}${reset}"
+[ -n "$git_seg" ] && out="${out}   ${git_seg}"
 
 if [ -n "$ctx_rem" ]; then
   c=$(col_remaining "$ctx_rem")
