@@ -51,14 +51,43 @@ rec {
       unset DEVELOPER_DIR SDKROOT
     '';
 
-  # Common shellHook tail: run startup.nu
-  commonShellHook = ''
-    # Run startup script if it exists and nushell is available
-    if [ -f startup.nu ] && command -v nu >/dev/null 2>&1 && nu -c "version" >/dev/null 2>&1; then
-      nu startup.nu
-    elif [ -f startup.nu ]; then
-      echo ""
-      echo "🔧 To start the development environment, run: ./startup.nu"
-    fi
+  # Shell-hook tail: render the glitter workspace overview from the worktree root.
+  # No-ops cleanly when glitter isn't on PATH.
+  overviewHook = ''
+    command -v glitter >/dev/null 2>&1 && glitter overview --compact || true
   '';
+
+  # Shared devShell builder for the common project shape. Returns the full flake
+  # `outputs` attrset ({ devShells = …; }) so a project flake's outputs can be just
+  # `mkDevShell { inherit nixpkgs-stable; name = "Foo"; }`.
+  #   nixpkgs-stable : stable nixpkgs input (provides legacyPackages.<system>)
+  #   name           : display name shown in the shell banner
+  #   extraPackages  : pkgs -> [ derivations ] added to the shell (default none)
+  #   extraHook      : extra shellHook snippet inserted before the overview
+  #   noCC           : use mkShellNoCC (default) vs mkShell
+  mkDevShell = {
+    nixpkgs-stable,
+    name,
+    extraPackages ? (_: []),
+    extraHook ? "",
+    noCC ? true,
+  }: {
+    devShells = eachSystem (system: let
+      pkgs = nixpkgs-stable.legacyPackages.${system};
+      mkShellFn =
+        if noCC
+        then pkgs.mkShellNoCC
+        else pkgs.mkShell;
+    in
+      mkShellFn {
+        packages = extraPackages pkgs;
+        shellHook = ''
+          ${darwinPathHook pkgs}
+          echo "🚀 ${name} dev environment"
+          ${extraHook}
+          ${overviewHook}
+        '';
+      });
+  };
+
 }

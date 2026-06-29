@@ -24,7 +24,7 @@
 # target of ~/.config/zellij/layouts). See merge-layout.
 const DEFAULT_LAYOUT = '~/.config/zellij/layouts/jimmyff.kdl'
 
-# Always-on `mux dash` workspaces beyond ~/Projects/*/workspace (expanded, skipped if absent).
+# Always-on `mux dash` workspaces beyond ~/projects/*/workspace (expanded, skipped if absent).
 const DASH_EXTRA = ['~/nixfiles']
 
 # Shared default tab body: left shell | right cached overview. `--suspended` makes the
@@ -85,9 +85,9 @@ def merge-layout [project_layout: string] {
 
 # --- resolution -------------------------------------------------------------
 
-# ~/Projects/<name>/workspace[/…] → { session: <name>, root: …/workspace }
+# ~/projects/<name>/workspace[/…] → { session: <name>, root: …/workspace }
 def project-workspace [] {
-    let prefix = $"($env.HOME)/Projects/"
+    let prefix = $"($env.HOME)/projects/"
     if not ($env.PWD | str starts-with $prefix) {
         return null
     }
@@ -96,7 +96,7 @@ def project-workspace [] {
         let name = ($rel | get 0)
         {
             session: $name,
-            root: ([$env.HOME "Projects" $name "workspace"] | path join),
+            root: ([$env.HOME "projects" $name "workspace"] | path join),
         }
     } else {
         null
@@ -232,9 +232,9 @@ def launch [r: record] {
 
 # --- dash -------------------------------------------------------------------
 
-# Active projects: ~/Projects/*/workspace dirs that are git repos, sorted by name.
+# Active projects: ~/projects/*/workspace dirs that are git repos, sorted by name.
 def dash-projects [] {
-    let base = ([$env.HOME "Projects"] | path join)
+    let base = ([$env.HOME "projects"] | path join)
     if not ($base | path exists) { return [] }
     ls $base
     | where type == dir
@@ -301,7 +301,7 @@ def open-dash [--reset, --force, --dry-run] {
     let layout = (if $creating {
         let folders = (dash-folders)
         if ($folders | is-empty) {
-            error make { msg: $"mux dash: nothing to show — no ($env.HOME)/Projects/*/workspace and no DASH_EXTRA dirs." }
+            error make { msg: $"mux dash: nothing to show — no ($env.HOME)/projects/*/workspace and no DASH_EXTRA dirs." }
         }
         let tmp = (($env.TMPDIR? | default "/tmp") | path join "mux-dash-input.kdl")
         (dash-layout $folders) | save -f $tmp

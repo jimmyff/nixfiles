@@ -21,7 +21,7 @@
   ├── home/             # Home Manager modules
   ├── hosts/            # Host config
   ├── modules/          # Nix modules (core, workstation, development)
-  ├── projects/         # Development project templates
+  ├── projects/         # Project repo map (repos.nix) + shared devshell-utils.nix
   ├── scripts/          # Utility scripts
   └── secrets/          # Encrypted secrets configuration
 
@@ -65,8 +65,10 @@ home-manager switch --flake ~/nixfiles
 ./scripts/gcp-beacon/build-image.sh   # build GCE image (first-time / DR)
 ./scripts/gcp-beacon/deploy.sh        # push config to the running host
 
-# Development projects (see projects/)
-dev-setup && cd ~/Projects/<project> && direnv allow
+# Development projects (see projects/repos.nix)
+# dev-setup bare-clones each repo to ~/projects/<project>/.bare and adds a
+# default-branch worktree; enter the worktree to activate the devshell.
+dev-setup && cd ~/projects/<project>/<branch> && direnv allow   # <branch> e.g. main
 
 # Updates & maintenance
 ./scripts/flake-freshness/flake-freshness.nu  # Check for package updates

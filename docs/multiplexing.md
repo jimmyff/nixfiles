@@ -46,7 +46,7 @@ Sessions start **locked**, so every `Ctrl` reaches the TUI. To drive zellij:
 | `mux dash` | open/attach `dash` — one tab per active project |
 | `mux dash reset` | delete `dash`, rescan projects, relaunch fresh |
 
-- **Session name:** `$ZJ_SESSION` → `~/Projects/<name>/workspace` → git repo → cwd basename.
+- **Session name:** `$ZJ_SESSION` → `~/projects/<name>/workspace` → git repo → cwd basename.
 - **Layout:** `$ZJ_LAYOUT` → nearest `.zellij.kdl` → the `default_layout` fallback. That
   fallback is `jimmyff` (`dotfiles/zellij/layouts/jimmyff.kdl`, classic tab + status bar),
   used *only* when no `.zellij.kdl` is found.
@@ -72,7 +72,7 @@ without leaving zellij. One tab body per folder; bar chrome injected at launch.
 | `mux dash reset` | delete `dash`, rescan, relaunch with a fresh layout |
 | `mux dash init` | scaffold a `.zellij-dash.kdl` tab override in the cwd |
 
-- **Projects:** directory scan of `~/Projects/*/workspace` requiring `workspace/.git`
+- **Projects:** directory scan of `~/projects/*/workspace` requiring `workspace/.git`
   (no Nix manifest), sorted by name — whatever is cloned shows up.
 - **Each tab (one per folder):** split — left a **suspended** shell (Enter to start its
   devshell), right `glitter overview --compact` (cached; Enter to re-run). Suspending keeps

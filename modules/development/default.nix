@@ -27,19 +27,6 @@
     echo "============================="
     echo ""
 
-    # Copy file only if content has changed (avoids unnecessary direnv reloads)
-    copy_if_changed() {
-      local src="$1" dest="$2" label="$3"
-      if [ -f "$dest" ] && cmp -s "$src" "$dest"; then
-        echo "  $label unchanged, skipping"
-        return 1
-      fi
-      chmod u+w "$dest" 2>/dev/null || true
-      cp "$src" "$dest"
-      echo "  Copied $label"
-      return 0
-    }
-
     # Check Flutter and Android SDK installation (only if Android is enabled)
     ${lib.optionalString (config.android.enable or false) ''
       echo "📱 Checking Flutter and Android SDK installation..."
@@ -138,254 +125,96 @@
     fi
     nu -c 'print $"(ansi dark_gray_dimmed)────────────────────────────────────────(ansi reset)"'
 
-    cd ${homeDir}/Projects || { echo "Error: ~/Projects directory not found"; exit 1; }
+    cd ${homeDir}/projects || { echo "Error: ~/projects directory not found"; exit 1; }
 
-    ${lib.concatStringsSep "\n" (lib.mapAttrsToList (
-        name: project:
-          lib.optionalString (project.repo != null) ''
-            if [ ! -d "${name}/workspace" ] || [ ! -d "${name}/workspace/.git" ]; then
-              echo ""
-              echo "📁 Setting up ${name}..."
+    # Per project: bare-clone the repo and check out a flat default-branch worktree.
+    # The devshell flake now lives in the repo, so there is nothing to copy — Nix
+    # snapshots only git-tracked source, cached by commit. Idempotent: a re-run with
+    # .bare present just re-ensures the worktree, submodules, LFS, and direnv allow.
+    ${lib.concatStringsSep "\n" (map (
+        name: let
+          repo =
+            repos.${name}
+            or (throw "development.projects: no repo URL for '${name}' in projects/repos.nix");
+        in ''
+          echo ""
+          echo "📁 ${name}"
+          PROJECT_DIR="${homeDir}/projects/${name}"
+          mkdir -p "$PROJECT_DIR"
 
-              # Create project directory if it doesn't exist
-              mkdir -p "${name}"
+          # Fresh setup: bare clone, remote-tracking refspec, push.autoSetupRemote.
+          if [ ! -d "$PROJECT_DIR/.bare" ]; then
+            echo "  Bare-cloning ${repo}"
+            git clone --bare "${repo}" "$PROJECT_DIR/.bare"
+            git --git-dir="$PROJECT_DIR/.bare" config remote.origin.fetch '+refs/heads/*:refs/remotes/origin/*'
+            git --git-dir="$PROJECT_DIR/.bare" fetch origin
+            # Bare-cloned worktree branches have no upstream; this lets `git push` work without -u.
+            git --git-dir="$PROJECT_DIR/.bare" config push.autoSetupRemote true
+            printf 'gitdir: ./.bare\n' > "$PROJECT_DIR/.git"
+          fi
 
-              # Remove workspace directory if it exists but isn't a git repo
-              if [ -d "${name}/workspace" ] && [ ! -d "${name}/workspace/.git" ]; then
-                echo "Removing non-git workspace directory ${name}/workspace..."
-                rm -rf "${name}/workspace"
-              fi
+          # Ensure the default-branch (main/master) worktree exists.
+          DEFAULT=$(git --git-dir="$PROJECT_DIR/.bare" symbolic-ref --short HEAD)
+          if [ ! -d "$PROJECT_DIR/$DEFAULT" ]; then
+            echo "  Adding worktree $DEFAULT"
+            git -C "$PROJECT_DIR" worktree add "$DEFAULT" "$DEFAULT"
+          fi
 
-              # Clone into workspace subdirectory
-              if command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then
-                echo "Using GitHub CLI to clone ${project.repo}"
-                gh repo clone ${project.repo} ${name}/workspace
-              else
-                echo "Using git to clone ${project.repo}"
-                git clone ${project.repo} ${name}/workspace
-              fi
+          WT="$PROJECT_DIR/$DEFAULT"
+          if [ -d "$WT" ]; then
+            cd "$WT"
 
-              if [ -d "${name}/workspace" ] && [ -d "${name}/workspace/.git" ]; then
-                echo "✅ ${name} cloned successfully"
-
-                # Initialize git submodules if they exist
-                cd "${name}/workspace"
-                if [ -f .gitmodules ]; then
-                  echo "🔄 Initializing git submodules..."
-                  if git submodule update --init --recursive; then
-                    echo "✅ Submodules initialized successfully"
-
-                    # Checkout default branch for all submodules to avoid detached HEAD state
-                    echo "🌿 Checking out default branch for submodules..."
-                    git submodule foreach '
-                      branch=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed "s@^refs/remotes/origin/@@")
-                      if [ -z "$branch" ]; then
-                        git remote set-head origin --auto >/dev/null 2>&1
-                        branch=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed "s@^refs/remotes/origin/@@")
-                      fi
-                      if [ -n "$branch" ]; then
-                        git checkout "$branch"
-                      else
-                        echo "⚠️  Could not determine default branch for $name, staying detached"
-                      fi
-                    '
+            # Submodules + reattach each to its default branch (avoid detached HEAD).
+            if [ -f .gitmodules ]; then
+              echo "🔄 Initializing submodules..."
+              if git submodule update --init --recursive; then
+                git submodule foreach '
+                  branch=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed "s@^refs/remotes/origin/@@")
+                  if [ -z "$branch" ]; then
+                    git remote set-head origin --auto >/dev/null 2>&1
+                    branch=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed "s@^refs/remotes/origin/@@")
+                  fi
+                  if [ -n "$branch" ]; then
+                    git checkout "$branch"
                   else
-                    echo "❌ Failed to initialize submodules"
+                    echo "⚠️  Could not determine default branch for $name, staying detached"
                   fi
-                fi
-
-                # Initialize git LFS if .gitattributes contains LFS references
-                if [ -f .gitattributes ] && grep -q "filter=lfs" .gitattributes 2>/dev/null; then
-                  echo "📦 Initializing git LFS..."
-
-                  # Install LFS hooks locally (avoid global config issues)
-                  git lfs install --local
-
-                  # Fetch LFS objects instead of pulling (more reliable)
-                  echo "📥 Downloading LFS objects..."
-                  git lfs fetch --all
-                  git lfs checkout
-
-                  # If that fails, try alternative approach
-                  if [ $? -ne 0 ]; then
-                    echo "⚠️  LFS checkout failed, trying alternative approach..."
-                    # Reset any problematic state
-                    git reset --hard HEAD
-                    git lfs fetch --all
-                    git lfs checkout --force
-                  fi
-                fi
-                cd ../..
-
+                '
               else
-                echo "❌ Failed to clone ${name}"
-              fi
-            else
-              echo "✅ ${name} already exists"
-            fi
-
-            # Always copy/update development configuration files
-            nu -c 'print $"(ansi blue_bold)📁 Setting up development configuration for ${name}...(ansi reset)"'
-            PROJECT_DIR="${homeDir}/Projects/${name}"
-            PROJECT_SOURCE="${homeDir}/nixfiles/projects/${name}"
-            mkdir -p "$PROJECT_DIR"
-
-            # Fix ownership of project directory
-            if command -v chown >/dev/null 2>&1; then
-              if [[ "$OSTYPE" == "darwin"* ]]; then
-                chown -R ${username}:staff "$PROJECT_DIR" 2>/dev/null || true
-              else
-                chown -R ${username}:users "$PROJECT_DIR" 2>/dev/null || true
+                echo "❌ Failed to initialize submodules"
               fi
             fi
 
-            # Copy .envrc with warning comment (only if changed)
-            if [ -f "$PROJECT_SOURCE/.envrc" ]; then
-              TMPFILE=$(mktemp)
-              {
-                echo "# NOTE: Copied version: original is in nixfiles/projects/${name}/.envrc"
-                echo "# This file is read-only to prevent accidental edits. Edit the original in nixfiles instead."
-                echo ""
-                cat "$PROJECT_SOURCE/.envrc"
-                echo ""
-                echo "# Auto-added: re-evaluate the devshell when the shared utils or flake change."
-                echo "# nix-direnv keys its cache on flake.nix/flake.lock/.envrc and ignores imported"
-                echo "# files, so edits to devshell-utils.nix would otherwise serve a stale shell."
-                echo "watch_file ./devshell-utils.nix"
-                echo "watch_file ./flake.nix"
-              } > "$TMPFILE"
-              copy_if_changed "$TMPFILE" "$PROJECT_DIR/.envrc" ".envrc"
-              rm -f "$TMPFILE"
-            else
-              echo "⚠️  .envrc not found"
+            # Git LFS, if the repo uses it.
+            if [ -f .gitattributes ] && grep -q "filter=lfs" .gitattributes 2>/dev/null; then
+              echo "📦 Fetching LFS objects..."
+              git lfs install --local
+              git lfs fetch --all
+              git lfs checkout
             fi
 
-            if [ -f "$PROJECT_SOURCE/startup.nu" ]; then
-              copy_if_changed "$PROJECT_SOURCE/startup.nu" "$PROJECT_DIR/startup.nu" "startup.nu"
-            else
-              echo "⚠️  startup.nu not found"
+            # Allow the committed devshell (no-op until the repo carries its flake/.envrc).
+            if [ -f .envrc ] && command -v direnv >/dev/null 2>&1; then
+              direnv allow .
             fi
 
-            # Copy flake.nix with warning comment (only if changed)
-            if [ -f "$PROJECT_SOURCE/flake.nix" ]; then
-              TMPFILE=$(mktemp)
-              {
-                echo "# NOTE: Copied version: original is in nixfiles/projects/${name}/flake.nix"
-                echo "# This file is read-only to prevent accidental edits. Edit the original in nixfiles instead."
-                echo ""
-                cat "$PROJECT_SOURCE/flake.nix"
-              } > "$TMPFILE"
-              copy_if_changed "$TMPFILE" "$PROJECT_DIR/flake.nix" "flake.nix"
-              rm -f "$TMPFILE"
-            else
-              echo "⚠️  flake.nix not found"
-            fi
+            cd "${homeDir}/projects"
+          else
+            echo "❌ ${name}: worktree $DEFAULT missing after setup"
+          fi
 
-            # Copy shared devshell-utils.nix with warning comment (only if changed)
-            UTILS_SOURCE="${homeDir}/nixfiles/projects/devshell-utils.nix"
-            if [ -f "$UTILS_SOURCE" ]; then
-              TMPFILE=$(mktemp)
-              {
-                echo "# NOTE: Copied version: original is in nixfiles/projects/devshell-utils.nix"
-                echo "# This file is read-only to prevent accidental edits. Edit the original in nixfiles instead."
-                echo ""
-                cat "$UTILS_SOURCE"
-              } > "$TMPFILE"
-              copy_if_changed "$TMPFILE" "$PROJECT_DIR/devshell-utils.nix" "devshell-utils.nix"
-              rm -f "$TMPFILE"
-            else
-              echo "⚠️  devshell-utils.nix not found"
-            fi
-
-            # Copy flake.lock to keep it in sync (Nix doesn't support symlinks for flake.lock)
-            if [ -f "$PROJECT_SOURCE/flake.lock" ]; then
-              if [ -f "$PROJECT_DIR/flake.lock" ]; then
-                if ! cmp -s "$PROJECT_SOURCE/flake.lock" "$PROJECT_DIR/flake.lock"; then
-                  echo "❌ ERROR: flake.lock files differ between nixfiles and project directory"
-                  echo "   Source: $PROJECT_SOURCE/flake.lock"
-                  echo "   Dest:   $PROJECT_DIR/flake.lock"
-                  echo "   Please manually sync these files to avoid losing local changes."
-                  exit 1
-                fi
-                echo "  flake.lock unchanged, skipping"
-              else
-                cp "$PROJECT_SOURCE/flake.lock" "$PROJECT_DIR/flake.lock" && echo "  Copied flake.lock" || echo "⚠️  Failed to copy flake.lock"
-              fi
-            fi
-
-            # Setup development scripts via symlinks
-            nu -c 'print $"(ansi purple_bold)🔗 Setting up development scripts for ${name}...(ansi reset)"'
-            ${lib.concatStringsSep "\n" (
-              lib.mapAttrsToList (
-                projectName: projectConfig:
-                  if projectName == name
-                  then
-                    # Global scripts (symlinked to project dir)
-                    (lib.concatStringsSep "\n" (map (
-                      scriptPath: let
-                        scriptName = lib.last (lib.splitString "/" scriptPath);
-                      in ''
-                        SCRIPT_SOURCE="${homeDir}/nixfiles/scripts/${scriptPath}"
-                        SCRIPT_TARGET="$PROJECT_DIR/${scriptName}"
-                        if [ -f "$SCRIPT_SOURCE" ]; then
-                          ln -sf "$SCRIPT_SOURCE" "$SCRIPT_TARGET" && echo "✅ Linked ${scriptName}" || echo "⚠️  Failed to link ${scriptName}"
-                          chmod +x "$SCRIPT_TARGET" 2>/dev/null || true
-                        else
-                          echo "⚠️  Global script not found: ${scriptPath}"
-                        fi
-                      ''
-                    ) (projectConfig.scripts.global or [])))
-                    +
-                    # Local scripts
-                    (lib.concatStringsSep "\n" (map (
-                      scriptName: ''
-                        LOCAL_SCRIPT_SOURCE="$PROJECT_SOURCE/${scriptName}"
-                        LOCAL_SCRIPT_TARGET="$PROJECT_DIR/${scriptName}"
-                        if [ -f "$LOCAL_SCRIPT_SOURCE" ]; then
-                          ln -sf "$LOCAL_SCRIPT_SOURCE" "$LOCAL_SCRIPT_TARGET" && echo "✅ Linked local ${scriptName}" || echo "⚠️  Failed to link local ${scriptName}"
-                          chmod +x "$LOCAL_SCRIPT_TARGET" 2>/dev/null || true
-                        else
-                          echo "⚠️  Local script not found: ${scriptName}"
-                        fi
-                      ''
-                    ) (projectConfig.scripts.local or [])))
-                  else ""
-              )
-              enabledProjects
-            )}
-
-            # Set permissions and ownership
-            chmod u-w "$PROJECT_DIR/.envrc" 2>/dev/null || true
-            chmod u-w "$PROJECT_DIR/flake.nix" 2>/dev/null || true
-            chmod u-w "$PROJECT_DIR/devshell-utils.nix" 2>/dev/null || true
-            chmod +x "$PROJECT_DIR/startup.nu" 2>/dev/null || true
-            if command -v chown >/dev/null 2>&1; then
-              if [[ "$OSTYPE" == "darwin"* ]]; then
-                chown -R ${username}:staff "$PROJECT_DIR/" 2>/dev/null || true
-              else
-                chown -R ${username}:users "$PROJECT_DIR/" 2>/dev/null || true
-              fi
-            fi
-
-            nu -c 'print $"(ansi dark_gray_dimmed)────────────────────────────────────────(ansi reset)"'
-          ''
+          nu -c 'print $"(ansi dark_gray_dimmed)────────────────────────────────────────(ansi reset)"'
+        ''
       )
-      enabledProjects)}
+      cfg.projects)}
 
     echo ""
     echo "🎉 Project setup complete!"
-    echo "Navigate to ~/Projects/<project> and run 'direnv allow' to enable the development environment."
+    echo "Enter a project worktree (e.g. ~/Projects/<project>/main) — direnv activates the devshell."
   '';
 
-  # Import enabled project modules
-  enabledProjects = lib.listToAttrs (map (projectName: {
-      name = projectName;
-      value = import (../../projects + "/${projectName}") {pkgs = pkgs-stable; inherit lib;};
-    })
-    cfg.projects);
-
-  # Collect all packages from enabled projects
-  projectPackages = lib.flatten (lib.mapAttrsToList (_: project: project.packages or []) enabledProjects);
+  # Project name -> repo URL map (replaces the old per-project default.nix modules).
+  repos = import ../../projects/repos.nix;
 in {
   imports = [
     ./android.nix
@@ -413,7 +242,7 @@ in {
   };
 
   config = lib.mkIf cfg.enable {
-    # Core development tools + project-specific packages + platform packages
+    # Core development tools + platform packages
     environment.systemPackages =
       [
         # Core development tools (stable)
@@ -442,8 +271,7 @@ in {
         devSetupScript
       ]
       ++ (lib.optional cfg.google-cloud-sdk pkgs-dev-tools.google-cloud-sdk)
-      ++ (lib.optional cfg.firebase-tools pkgs-stable.firebase-tools) # Pinned to stable due to unstable build issues
-      ++ projectPackages;
+      ++ (lib.optional cfg.firebase-tools pkgs-stable.firebase-tools); # Pinned to stable due to unstable build issues
 
     # Enable nix-direnv globally
     programs.direnv = {
@@ -466,11 +294,11 @@ in {
     system.activationScripts.postActivation.text = ''
       echo "Setting up development environment..."
 
-      # Create Projects directory structure
-      mkdir -p ${homeDir}/Projects
+      # Create projects directory structure
+      mkdir -p ${homeDir}/projects
 
       # Set ownership, but don't fail if chown doesn't work
-      chown ${username}:${userGroup} ${homeDir}/Projects 2>/dev/null || echo "Warning: Could not set ownership of ${homeDir}/Projects"
+      chown ${username}:${userGroup} ${homeDir}/projects 2>/dev/null || echo "Warning: Could not set ownership of ${homeDir}/projects"
 
       echo "Development environment setup complete!"
       echo "Run 'dev-setup' to clone repositories and setup project files."

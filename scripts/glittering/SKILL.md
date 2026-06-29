@@ -69,7 +69,7 @@ glittering git pull --path <root> [--filter <names>]              # pull parent 
 
 ## Rules
 
-- **Always use an absolute path** for `--path` (e.g. `--path /Users/jimmyff/Projects/foo/workspace`). Relative paths can resolve incorrectly across repeated tool invocations due to CWD shifts
+- **Always use an absolute path** for `--path` (e.g. `--path /Users/jimmyff/projects/foo/workspace`). Relative paths can resolve incorrectly across repeated tool invocations due to CWD shifts
 - **Never pipe through `head`/`tail`/truncate** glittering output — it's already summarised JSON; truncating breaks parsing
 - **After a commit**: exit `3`/`partial: true` means parent files in `parent.left_uncommitted` were NOT committed — resolve before reporting done. On failure, the `hint` field gives the exact recovery command — follow it rather than re-running the whole commit
 - Commit messages: no attribution lines, keep succinct

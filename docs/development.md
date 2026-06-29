@@ -7,7 +7,10 @@
 - Declarative dependency management via Nix
 - On-demand secrets via `sops` wrapper scripts (see `docs/secrets.md`)
 
-**Setup:** Run `dev-setup` to validate and clone projects.
+**Setup:** Run `dev-setup` — bare-clones each enabled repo (`projects/repos.nix`) to
+`~/projects/<project>/.bare`, adds a default-branch worktree, and runs `direnv allow`.
+The flake lives in the repo, so enter the worktree (e.g. `~/projects/<project>/main`)
+to activate the devshell.
 
 ## Flutter & Dart
 

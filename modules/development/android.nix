@@ -85,7 +85,7 @@ EOF
       fi
     }
 
-    # HACKY FIX: Update local.properties for Flutter projects in ~/Projects
+    # HACKY FIX: Update local.properties for Flutter projects in ~/projects
     # This is required because Android Studio's Gradle needs a writable Flutter SDK,
     # but our Nix Flutter SDK is read-only. We maintain two Flutter installations:
     # - Nix Flutter (read-only) for terminal/CLI builds
@@ -93,10 +93,10 @@ EOF
     # This hack automatically updates local.properties to point to the writable Flutter
     # before launching Android Studio, then terminal builds regenerate it back to Nix.
     echo "🔧 Configuring Flutter projects for Android Studio..."
-    if [ -d "${homeDir}/Projects" ]; then
+    if [ -d "${homeDir}/projects" ]; then
       # Find all Flutter projects using ripgrep (much faster than find)
       # Look for pubspec.yaml files, then check if they have android/ directory
-      rg --files-with-matches --type yaml "^name:" "${homeDir}/Projects" 2>/dev/null | \
+      rg --files-with-matches --type yaml "^name:" "${homeDir}/projects" 2>/dev/null | \
         grep "pubspec.yaml$" | \
         while read -r pubspec; do
           project_dir=$(dirname "$pubspec")

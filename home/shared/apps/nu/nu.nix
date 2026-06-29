@@ -132,7 +132,7 @@ in {
           truncate_to_repo = false;
           truncation_length = 8;
           substitutions = {
-            "Projects" = "🚀";
+            "projects" = "🚀";
             "workspace" = "🛠️";
             "apps" = "📱";
             "cloud" = "☁️";
