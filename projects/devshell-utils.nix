@@ -8,16 +8,25 @@ rec {
       value = {default = f system;};
     }) ["x86_64-linux" "aarch64-linux" "aarch64-darwin" "x86_64-darwin"]);
 
-  # Darwin wrappers for system binaries shadowed by Nix
-  # base64: fixes CocoaPods compatibility (coreutils shadows /usr/bin/base64)
-  # xcrun: fixes xcbuild dependency shadowing /usr/bin/xcrun
-  # install_name_tool: Flutter's native-assets host code calls it by bare name
-  #   (not via xcrun) to set dylib install names. The /usr/bin stub dispatches
-  #   via DEVELOPER_DIR, which points at the SDK-only Nix apple-sdk (no cctools),
-  #   so it fails with "tool not found". Unset → falls back to Xcode, like xcrun.
-  # Uses writeScriptBin with #!/bin/sh (not writeShellScriptBin) because Flutter
-  # invokes `arch -arm64e xcrun ...` which requires the interpreter to have an
-  # arm64e slice. Nix's bash doesn't; macOS /bin/sh does.
+  # Darwin fixes for the nixpkgs 25.05 darwin SDK changes. Two distinct problems:
+  #
+  # 1. PATH shadowing — nix packages place their own version of a system binary
+  #    ahead of /usr/bin. We shadow them back with thin wrappers:
+  #    - base64: coreutils shadows /usr/bin/base64, breaking CocoaPods.
+  #    - xcrun:  xcbuild (pulled in transitively by cmake) shadows /usr/bin/xcrun.
+  #
+  # 2. xcode-select shim dispatch — bare Apple tools (install_name_tool, lipo,
+  #    otool, strip, cc, clang, …) are /usr/bin shims that dispatch via
+  #    DEVELOPER_DIR. The devshell's DEVELOPER_DIR/SDKROOT point at the SDK-only
+  #    nix apple-sdk (no cctools/clang), so the shims fail with "tool not found".
+  #    darwinPathHook unsets both so every shim falls back to the real Xcode
+  #    toolchain. This is sturdier than per-tool wrappers: it also covers tools we
+  #    never wrapped (lipo/otool/strip) — e.g. Flutter's native-assets build calls
+  #    install_name_tool/lipo/otool by bare name.
+  #
+  # writeScriptBin uses #!/bin/sh (not writeShellScriptBin) because Flutter runs
+  # `arch -arm64e xcrun ...`, which needs an interpreter with an arm64e slice;
+  # nix's bash lacks one, macOS /bin/sh has it.
   darwinWrappers = pkgs: {
     base64 = pkgs.writeScriptBin "base64" ''
       #!/bin/sh
@@ -25,25 +34,21 @@ rec {
     '';
     xcrun = pkgs.writeScriptBin "xcrun" ''
       #!/bin/sh
-      unset DEVELOPER_DIR SDKROOT
       exec /usr/bin/xcrun "$@"
-    '';
-    install_name_tool = pkgs.writeScriptBin "install_name_tool" ''
-      #!/bin/sh
-      unset DEVELOPER_DIR SDKROOT
-      exec /usr/bin/install_name_tool "$@"
     '';
   };
 
-  # Prepend Darwin wrappers to PATH via shellHook.
-  # buildInputs ordering does NOT guarantee PATH priority over transitive
-  # dependencies (e.g. cmake propagates xcbuild which shadows xcrun).
-  # shellHook runs after Nix constructs PATH, so this is the only reliable way.
+  # Prepend the shadowing wrappers to PATH, then unset the nix apple-sdk env vars
+  # so /usr/bin Apple-tool shims dispatch to Xcode. Done in shellHook because
+  # buildInputs ordering doesn't guarantee PATH priority over transitive deps
+  # (e.g. cmake propagates xcbuild's xcrun), and nix sets DEVELOPER_DIR/SDKROOT
+  # during shell construction — shellHook runs after, so this is the reliable seam.
   darwinPathHook = pkgs: let
     wrappers = darwinWrappers pkgs;
   in
     pkgs.lib.optionalString pkgs.stdenv.isDarwin ''
-      export PATH="${wrappers.base64}/bin:${wrappers.xcrun}/bin:${wrappers.install_name_tool}/bin:$PATH"
+      export PATH="${wrappers.base64}/bin:${wrappers.xcrun}/bin:$PATH"
+      unset DEVELOPER_DIR SDKROOT
     '';
 
   # Common shellHook tail: run startup.nu

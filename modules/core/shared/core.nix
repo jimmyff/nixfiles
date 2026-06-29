@@ -18,6 +18,13 @@
     pkgs-stable.bat                      # Cat clone with syntax highlighting
     pkgs-stable.minisign                  # Release signing tool
     pkgs-stable.vim                      # Vi/Vim text editor
+
+    # GNU `timeout` only (missing from macOS BSD base), without
+    # shadowing the BSD coreutils (ls/cp/date/...) in PATH.
+    (pkgs-stable.runCommand "timeout" { } ''
+      mkdir -p $out/bin
+      ln -s ${pkgs-stable.coreutils}/bin/timeout $out/bin/timeout
+    '')
   ];
 
   environment.shells = [ pkgs-stable.bash pkgs-stable.zsh pkgs-dev-tools.nushell ];
