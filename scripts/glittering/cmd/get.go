@@ -39,10 +39,26 @@ func pubCommand(args []string, operation string) int {
 
 	progressf("glittering: running pub %s on %d packages\n", operation, len(packages))
 
-	var results []PubPackageResult
-	for _, pkg := range packages {
-		result := runPubCommand(root, pkg.Path, pkg.Type, operation)
-		results = append(results, result)
+	// Parallel across packages (pub locks the shared cache, so concurrent gets are
+	// safe); indexed results preserve discovery order.
+	const maxJobs = 8
+	type indexed struct {
+		i int
+		r PubPackageResult
+	}
+	ch := make(chan indexed, len(packages))
+	sem := make(chan struct{}, maxJobs)
+	for i, pkg := range packages {
+		sem <- struct{}{}
+		go func(i int, pkg PackageInfo) {
+			defer func() { <-sem }()
+			ch <- indexed{i, runPubCommand(root, pkg.Path, pkg.Type, operation)}
+		}(i, pkg)
+	}
+	results := make([]PubPackageResult, len(packages))
+	for range packages {
+		r := <-ch
+		results[r.i] = r.r
 	}
 
 	out := PubOutput{Path: root, Packages: results}
@@ -65,16 +81,14 @@ func runPubCommand(root, pkgPath, pkgType, operation string) PubPackageResult {
 
 	pkgDir := filepath.Join(root, pkgPath)
 
-	progressf("  %s pub %s (%s)...", pkgPath, operation, pkgType)
-
 	_, stderr, err := runCommand(pkgDir, 120*time.Second, pkgType, "pub", operation)
 	if err != nil {
 		result.Status = "error"
 		result.Error = strings.TrimSpace(stderr)
-		progressf(" error\n")
+		progressf("  %s pub %s (%s): error\n", pkgPath, operation, pkgType)
 	} else {
 		result.Status = "pass"
-		progressf(" ok\n")
+		progressf("  %s pub %s (%s): ok\n", pkgPath, operation, pkgType)
 	}
 
 	return result
