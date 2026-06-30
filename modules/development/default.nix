@@ -164,20 +164,28 @@
           if [ -d "$WT" ]; then
             cd "$WT"
 
-            # Submodules + reattach each to its default branch (avoid detached HEAD).
+            # Submodules: init (checks out the superproject's pinned refs), then
+            # reattach each to the branch that CONTAINS its pinned commit, preferring
+            # main — NOT origin/HEAD (the remote default), which can be a stale
+            # 'master' that has drifted from the pin and won't build. Land on the
+            # branch AT the pinned commit so the checkout always matches what the
+            # superproject records (reproducible/buildable); glitter then shows the
+            # branch as behind when origin has moved past the pin.
             if [ -f .gitmodules ]; then
               echo "🔄 Initializing submodules..."
               if git submodule update --init --recursive; then
-                git submodule foreach '
-                  branch=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed "s@^refs/remotes/origin/@@")
+                git submodule foreach --recursive '
+                  pin=$(git rev-parse HEAD)
+                  cands=$(git for-each-ref --contains "$pin" --format="%(refname)" "refs/remotes/origin/*" 2>/dev/null | grep -v "/origin/HEAD$" | sed "s@^refs/remotes/origin/@@")
+                  branch=$(echo "$cands" | grep -xm1 main || echo "$cands" | head -1)
                   if [ -z "$branch" ]; then
-                    git remote set-head origin --auto >/dev/null 2>&1
-                    branch=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed "s@^refs/remotes/origin/@@")
-                  fi
-                  if [ -n "$branch" ]; then
-                    git checkout "$branch"
+                    echo "  ⚠️  $sm_path: no branch contains the pinned commit; left detached"
+                  elif git show-ref --verify --quiet "refs/heads/$branch"; then
+                    git checkout -q "$branch"
+                    [ "$(git rev-parse HEAD)" = "$pin" ] || echo "  ℹ️  $sm_path: local $branch differs from pinned ref (left as-is)"
                   else
-                    echo "⚠️  Could not determine default branch for $name, staying detached"
+                    git checkout -q -b "$branch" "$pin"
+                    git branch -q --set-upstream-to="origin/$branch" "$branch" 2>/dev/null || true
                   fi
                 '
               else
