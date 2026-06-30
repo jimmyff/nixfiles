@@ -1,0 +1,57 @@
+# herdr — agent-aware terminal multiplexer. Trial default backend for `mux`, alongside zellij.
+# Symlinked live to ~/.config/herdr/config.toml (applies on next herdr start; see herdr.nix).
+# Schema: https://herdr.dev/docs/configuration/ (verified against src/config on master).
+# View upstream defaults any time with: herdr --default-config
+
+onboarding = false
+
+[terminal]
+default_shell = "nu"
+shell_mode    = "auto"     # login | non_login | auto
+new_cwd       = "follow"   # new panes inherit the active pane's cwd
+
+[theme]
+name = "catppuccin"        # closest built-in to the zellij `jimmyff` theme (Mocha base)
+
+[update]
+version_check  = false     # nix owns the version — don't phone home
+manifest_check = false
+
+# herdr natively creates/opens git worktrees at <directory>/<repo>/<branch-slug> — that IS the
+# ~/projects layout (herdr's own default is ~/.herdr/worktrees, so ~ expansion is supported).
+[worktrees]
+directory = "~/projects"
+
+# --- Keybinds -----------------------------------------------------------------
+# Keep zellij muscle memory: the prefix (ctrl+b) stays as a fallback, but herdr is driven by direct
+# ⌘⌥ (cmd+alt) chords that already pass through kitty (no_op'd in kitty.nix). Each binding is an
+# array [prefix-form, direct-chord, …]. herdr grabs ONLY what's bound here — every other Ctrl key
+# flows to the inner TUI (Claude, helix), so no "locked mode" is needed. Unlisted actions keep
+# herdr defaults. After the first build, reconcile against `herdr --default-config`.
+[keys]
+prefix = "ctrl+b"
+
+# panes
+focus_pane_left  = ["prefix+h", "cmd+alt+h"]
+focus_pane_down  = ["prefix+j", "cmd+alt+j"]
+focus_pane_up    = ["prefix+k", "cmd+alt+k"]
+focus_pane_right = ["prefix+l", "cmd+alt+l"]
+split_vertical   = ["prefix+v", "cmd+alt+n"]
+split_horizontal = ["prefix+minus", "cmd+alt+shift+n"]
+zoom             = ["prefix+z", "cmd+alt+f"]
+rename_pane      = ["prefix+shift+p", "cmd+alt+r"]
+
+# tabs (within a worktree) — cmd+ctrl+h/l mirrors the old zellij tab-switch
+new_tab      = ["prefix+c", "cmd+alt+c"]
+previous_tab = ["prefix+p", "cmd+ctrl+h"]
+next_tab     = ["prefix+n", "cmd+ctrl+l"]
+
+# workspaces = worktrees (the new top-level motion)
+previous_workspace = ["cmd+alt+u"]
+next_workspace     = ["cmd+alt+i"]
+workspace_picker   = ["prefix+w", "cmd+alt+w"]
+open_worktree      = ["cmd+alt+o"]   # herdr-native: open an existing worktree as a workspace
+
+# session / ui
+detach         = ["prefix+q", "cmd+alt+d"]
+toggle_sidebar = ["prefix+b", "cmd+alt+b"]   # agent-state sidebar (the headline feature)
