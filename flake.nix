@@ -7,6 +7,12 @@
     pkgs-unstable.url = "github:nixos/nixpkgs/nixos-unstable";      # Desktop, apps, dev tools
     pkgs-ai.url = "github:nixos/nixpkgs/nixpkgs-unstable";          # AI tools, bleeding edge
 
+    # Kanata pinned to a fixed nixpkgs rev so its binary's cdhash never changes —
+    # macOS binds the Input Monitoring (TCC) grant to that cdhash, so freezing the
+    # build keeps home-row mods working across rebuilds and `nix flake update`.
+    # To bump kanata: change this rev, then re-grant Input Monitoring once (see docs).
+    nixpkgs-kanata.url = "github:nixos/nixpkgs/567a49d1913ce81ac6e9582e3553dd90a955875f";
+
     # macOS (nix-darwin-25.11 matches pkgs-stable/home-manager)
     nix-darwin.url = "github:nix-darwin/nix-darwin/nix-darwin-25.11";
     nix-darwin.inputs.nixpkgs.follows = "pkgs-stable";
@@ -53,7 +59,10 @@
       inputs.nixpkgs.follows = "pkgs-stable";
     };
 
-  
+    # herdr — agent-aware terminal multiplexer (mux's trial default backend, alongside zellij).
+    # Standalone Rust binary with a vendored zig VT lib; it pins its own toolchain, so no `follows`.
+    herdr.url = "github:ogulcancelik/herdr";
+
   };
 
   outputs = inputs @ {
@@ -61,6 +70,7 @@
     pkgs-stable,
     pkgs-unstable,
     pkgs-ai,
+    nixpkgs-kanata,
     nix-darwin,
     home-manager,
     nixos-hardware,
@@ -95,6 +105,13 @@
         inherit system;
         config.allowUnfree = true;
       };
+      # Pinned solely for kanata (darwin); see the nixpkgs-kanata input above.
+      pkgs-kanata = import nixpkgs-kanata {
+        inherit system;
+        config.allowUnfree = true;
+      };
+      # herdr multiplexer — prebuilt from its own flake (its own pinned toolchain).
+      pkgs-herdr = inputs.herdr.packages.${system}.default;
     };
 
     # Define once per system

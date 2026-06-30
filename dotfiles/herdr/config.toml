@@ -1,5 +1,6 @@
 # herdr — agent-aware terminal multiplexer. Trial default backend for `mux`, alongside zellij.
-# Symlinked live to ~/.config/herdr/config.toml (applies on next herdr start; see herdr.nix).
+# Symlinked to ~/.config/herdr/config.toml. The persistent server does NOT auto-reload —
+# after editing run: herdr server reload-config  (or `herdr server stop` then relaunch). See herdr.nix.
 # Schema: https://herdr.dev/docs/configuration/ (verified against src/config on master).
 # View upstream defaults any time with: herdr --default-config
 
@@ -13,6 +14,9 @@ new_cwd       = "follow"   # new panes inherit the active pane's cwd
 [theme]
 name = "catppuccin"        # closest built-in to the zellij `jimmyff` theme (Mocha base)
 
+[theme.custom]
+accent = "#ffe27a"         # gold active-pane border + highlights (the old zellij selected gold)
+
 [update]
 version_check  = false     # nix owns the version — don't phone home
 manifest_check = false
@@ -22,36 +26,82 @@ manifest_check = false
 [worktrees]
 directory = "~/projects"
 
+[ui]
+confirm_close = true                       # confirm before closing a workspace
+show_agent_labels_on_pane_borders = true   # agent labels in split pane borders
+
+[ui.sound]
+enabled = false   # no agent state-change notification sounds
+
 # --- Keybinds -----------------------------------------------------------------
-# Keep zellij muscle memory: the prefix (ctrl+b) stays as a fallback, but herdr is driven by direct
-# ⌘⌥ (cmd+alt) chords that already pass through kitty (no_op'd in kitty.nix). Each binding is an
-# array [prefix-form, direct-chord, …]. herdr grabs ONLY what's bound here — every other Ctrl key
-# flows to the inner TUI (Claude, helix), so no "locked mode" is needed. Unlisted actions keep
-# herdr defaults. After the first build, reconcile against `herdr --default-config`.
+# Mirrors your system-wide nav scheme (super = cmd). Each binding is [prefix-fallback, your-chord];
+# prefix is ctrl+b. herdr grabs ONLY bound keys — everything else flows to the inner TUI (Claude, helix).
+#   panes      super+alt+hjkl focus · super+alt+shift+hjkl resize · n right / m down split · f zoom · r rename · d detach
+#   tabs       super+ctrl+h/l prev/next · n new · w close · r rename
+#   worktrees  super+ctrl+j/k down/up · super+ctrl+shift+{n new · w close · r rename} · prefix+w picker
+#   agents     super+ctrl+shift+j/k = focus next/prev agent in the sidebar
+#   sessions   super+alt+space = session navigator (goto)
+#   (super+hjkl = WM windows → left to aerospace/niri)
+# After editing this file, apply it with:  herdr server reload-config
 [keys]
 prefix = "ctrl+b"
 
-# panes
+# panes — super+alt
 focus_pane_left  = ["prefix+h", "cmd+alt+h"]
 focus_pane_down  = ["prefix+j", "cmd+alt+j"]
 focus_pane_up    = ["prefix+k", "cmd+alt+k"]
 focus_pane_right = ["prefix+l", "cmd+alt+l"]
-split_vertical   = ["prefix+v", "cmd+alt+n"]
-split_horizontal = ["prefix+minus", "cmd+alt+shift+n"]
+split_vertical   = ["prefix+v", "cmd+alt+n"]       # n → new pane right (side by side)
+split_horizontal = ["prefix+minus", "cmd+alt+m"]   # m → new pane down (stacked)
 zoom             = ["prefix+z", "cmd+alt+f"]
 rename_pane      = ["prefix+shift+p", "cmd+alt+r"]
+detach           = ["prefix+q", "cmd+alt+d"]
+resize_mode      = ["prefix+r"]                    # modal resize fallback (then h/j/k/l, esc exits)
 
-# tabs (within a worktree) — cmd+ctrl+h/l mirrors the old zellij tab-switch
-new_tab      = ["prefix+c", "cmd+alt+c"]
+# tabs — super+ctrl
 previous_tab = ["prefix+p", "cmd+ctrl+h"]
 next_tab     = ["prefix+n", "cmd+ctrl+l"]
+new_tab      = ["prefix+c", "cmd+ctrl+n"]
+close_tab    = ["prefix+shift+x", "cmd+ctrl+w"]
+rename_tab   = ["prefix+shift+t", "cmd+ctrl+r"]
 
-# workspaces = worktrees (the new top-level motion)
-previous_workspace = ["cmd+alt+u"]
-next_workspace     = ["cmd+alt+i"]
-workspace_picker   = ["prefix+w", "cmd+alt+w"]
-open_worktree      = ["cmd+alt+o"]   # herdr-native: open an existing worktree as a workspace
+# worktrees (herdr workspaces) — super+ctrl+j/k nav, super+ctrl+shift ops, super+alt+space picker
+next_workspace     = ["cmd+ctrl+j"]                        # down
+previous_workspace = ["cmd+ctrl+k"]                        # up
+new_workspace      = ["prefix+shift+n", "cmd+ctrl+shift+n"]
+close_workspace    = ["prefix+shift+d", "cmd+ctrl+shift+w"]
+rename_workspace   = ["prefix+shift+w", "cmd+ctrl+shift+r"]
+workspace_picker   = ["prefix+w"]
 
-# session / ui
-detach         = ["prefix+q", "cmd+alt+d"]
-toggle_sidebar = ["prefix+b", "cmd+alt+b"]   # agent-state sidebar (the headline feature)
+# agents — cycle focus through the agent sidebar (super+ctrl+shift+j/k)
+next_agent     = ["cmd+ctrl+shift+j"]   # down
+previous_agent = ["cmd+ctrl+shift+k"]   # up
+
+# sessions — super+alt+space opens the session navigator (jump between herdr sessions)
+goto = ["prefix+g", "cmd+alt+space"]
+
+# resize — herdr has no native per-direction resize keybind (only resize_mode), so these are
+# custom commands shelling out to `herdr pane resize`. super+alt+shift+h/j/k/l = left/down/up/right.
+[[keys.command]]
+key = "cmd+alt+shift+h"
+type = "shell"
+command = "herdr pane resize --direction left --current"
+description = "resize pane left"
+
+[[keys.command]]
+key = "cmd+alt+shift+j"
+type = "shell"
+command = "herdr pane resize --direction down --current"
+description = "resize pane down"
+
+[[keys.command]]
+key = "cmd+alt+shift+k"
+type = "shell"
+command = "herdr pane resize --direction up --current"
+description = "resize pane up"
+
+[[keys.command]]
+key = "cmd+alt+shift+l"
+type = "shell"
+command = "herdr pane resize --direction right --current"
+description = "resize pane right"
