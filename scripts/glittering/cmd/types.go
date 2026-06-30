@@ -355,6 +355,72 @@ type DiffOutput struct {
 	Summary DiffSummary      `json:"summary"`
 }
 
+// --- Worktree command ---
+
+type WorktreeInfo struct {
+	Name              string `json:"name"`     // path rel to projectDir ("main", "feat/foo")
+	Path              string `json:"path"`     // absolute
+	Branch            string `json:"branch"`   // "" when detached
+	Current           bool   `json:"current"`
+	Dirty             bool   `json:"dirty"`
+	Detached          bool   `json:"detached"`
+	HeadOnRemote      bool   `json:"head_on_remote"`
+	Removable         bool   `json:"removable"`
+	AheadRemote       int    `json:"ahead_remote"`
+	BehindRemote      int    `json:"behind_remote"`
+	AheadBase         int    `json:"ahead_base"`
+	BehindBase        int    `json:"behind_base"`
+	UntrackedCount    int    `json:"untracked_count"`
+	UninitSubmodules  int    `json:"uninit_submodules"`    // >0 ⇒ half-built/degraded
+	LastCommit        string `json:"last_commit"`
+	LastCommitAgeSecs int64  `json:"last_commit_age_secs"` // -1 when unknown
+	Stale             bool   `json:"stale,omitempty"`      // --cached row with no git.json
+}
+
+type WorktreeListOutput struct {
+	Project    string         `json:"project"`
+	ProjectDir string         `json:"project_dir"`
+	BaseBranch string         `json:"base_branch"`
+	Current    string         `json:"current"`     // current worktree Name, or ""
+	StashCount int            `json:"stash_count"` // project-level: refs/stash is shared
+	Worktrees  []WorktreeInfo `json:"worktrees"`
+}
+
+type WorktreeAddOutput struct {
+	Name                  string             `json:"name"`
+	Path                  string             `json:"path"`
+	Branch                string             `json:"branch"`
+	Base                  string             `json:"base"`
+	Success               bool               `json:"success"` // false ⇒ usable but degraded
+	CreatedBranch         bool               `json:"created_branch"`
+	CacheSeeded           bool               `json:"cache_seeded"`
+	SubmodulesExpected    int                `json:"submodules_expected"`
+	SubmodulesInitialised int                `json:"submodules_initialised"`
+	PubGet                []PubPackageResult `json:"pub_get"`
+	Warnings              []string           `json:"warnings"`
+}
+
+type WorktreeRemoveOutput struct {
+	Removed       bool     `json:"removed"`
+	BranchDeleted bool     `json:"branch_deleted"`
+	Name          string   `json:"name"`
+	Path          string   `json:"path"`
+	Reasons       []string `json:"reasons"`
+}
+
+type WorktreePruneEntry struct {
+	Name   string `json:"name"`
+	Path   string `json:"path"`
+	Branch string `json:"branch"`
+	Reason string `json:"reason"`
+}
+
+type WorktreePruneOutput struct {
+	DryRun  bool                 `json:"dry_run"`
+	Pruned  []WorktreePruneEntry `json:"pruned"`
+	Skipped []WorktreePruneEntry `json:"skipped"`
+}
+
 // --- NDJSON event types (for dart test parsing) ---
 
 type ndjsonGenericEvent struct {

@@ -360,6 +360,159 @@ def "main git diff" [--path: string = "." --staged --filter: string = ""] {
   null
 }
 
+# --- worktree commands ---
+
+def "main worktree" [--path: string = "." --filter: string = "" --cached --fetch] {
+  worktree-list-render $path $filter $cached $fetch
+}
+
+def "main worktree list" [--path: string = "." --filter: string = "" --cached --fetch] {
+  worktree-list-render $path $filter $cached $fetch
+}
+
+def worktree-list-render [path: string, filter: string, cached: bool, fetch: bool] {
+  let args = (build-args $path $filter)
+  mut extra = []
+  if $cached { $extra = ($extra | append [--cached]) }
+  if $fetch { $extra = ($extra | append [--fetch]) }
+  let result = (glittering worktree list --verbose ...$args ...$extra | from json)
+  if ($result.worktrees | is-empty) {
+    print "No worktrees."
+    return
+  }
+  $result.worktrees | each { |w| format-worktree-row $w } | print
+  print (worktree-footer $result)
+}
+
+def "main worktree add" [
+  name: string
+  --path: string = "."
+  --from: string = ""
+  --no-get
+  --no-share-objects
+] {
+  let abs = ($path | path expand)
+  mut args = [--verbose --path $abs]
+  if $from != "" { $args = ($args | append [--from $from]) }
+  if $no_get { $args = ($args | append [--no-get]) }
+  if $no_share_objects { $args = ($args | append [--no-share-objects]) }
+  $args = ($args | append $name)
+  let out = (glittering worktree add ...$args | complete)
+  if ($out.stderr != "") { print -e ($out.stderr | str trim --right --char "\n") }
+  if (($out.stdout | str trim) == "") {
+    error make {msg: $"worktree add failed \(exit ($out.exit_code))"}
+  }
+  let r = ($out.stdout | from json)
+  let icon = if $r.success { $"(ansi green)\u{2713}(ansi reset)" } else { $"(ansi yellow)\u{26a0}(ansi reset)" }
+  let created = if $r.created_branch { "created" } else { "checked out" }
+  print $"($icon) ($r.name) — ($created) branch (ansi cyan)($r.branch)(ansi reset) off ($r.base)"
+  print $"  (ansi dark_gray)path:(ansi reset) ($r.path)"
+  if $r.submodules_expected > 0 {
+    print $"  (ansi dark_gray)submodules:(ansi reset) ($r.submodules_initialised)/($r.submodules_expected) initialised"
+  }
+  if $r.cache_seeded { print $"  (ansi dark_gray)cache:(ansi reset) seeded from base worktree" }
+  let pg = ($r.pub_get? | default [])
+  if (not ($pg | is-empty)) {
+    let ok = ($pg | where status == "pass" | length)
+    print $"  (ansi dark_gray)pub get:(ansi reset) ($ok)/($pg | length) ok"
+  }
+  for w in ($r.warnings? | default []) { print $"  (ansi yellow)warning:(ansi reset) ($w)" }
+}
+
+def "main worktree remove" [name: string --path: string = "." --force --delete-branch] {
+  let abs = ($path | path expand)
+  mut args = [--verbose --path $abs]
+  if $force { $args = ($args | append [--force]) }
+  if $delete_branch { $args = ($args | append [--delete-branch]) }
+  $args = ($args | append $name)
+  let out = (glittering worktree remove ...$args | complete)
+  if ($out.stderr != "") { print -e ($out.stderr | str trim --right --char "\n") }
+  let r = ($out.stdout | from json)
+  if $r.removed {
+    let b = if $r.branch_deleted { " (branch deleted)" } else { "" }
+    print $"(ansi green)\u{2713}(ansi reset) removed ($r.name)($b)"
+  } else {
+    print $"(ansi red)\u{2717}(ansi reset) not removed: ($r.name)"
+    for reason in ($r.reasons? | default []) { print $"  (ansi yellow)·(ansi reset) ($reason)" }
+  }
+}
+
+def "main worktree prune" [--path: string = "." --dry-run --force] {
+  let abs = ($path | path expand)
+  mut args = [--verbose --path $abs]
+  if $dry_run { $args = ($args | append [--dry-run]) }
+  if $force { $args = ($args | append [--force]) }
+  let r = (glittering worktree prune ...$args | from json)
+  let verb = if $r.dry_run { "would prune" } else { "pruned" }
+  let pruned = ($r.pruned? | default [])
+  if ($pruned | is-empty) {
+    print "Nothing to prune."
+  } else {
+    for e in $pruned { print $"(ansi green)\u{2713}(ansi reset) ($verb) ($e.name)" }
+  }
+  for e in ($r.skipped? | default []) {
+    print $"(ansi dark_gray)\u{00b7} skipped ($e.name): ($e.reason)(ansi reset)"
+  }
+}
+
+def "main worktree path" [name: string --path: string = "."] {
+  glittering worktree path --path ($path | path expand) $name
+}
+
+# One formatted row for a worktree status table.
+def format-worktree-row [w: record]: nothing -> record {
+  let cur = if $w.current { $"(ansi cyan_bold)*(ansi reset)" } else { " " }
+  let dirty = if $w.dirty { $" (ansi red)\u{25cf}(ansi reset)" } else { "" }
+  let warn = if ($w.uninit_submodules? | default 0) > 0 {
+    $" (ansi yellow)\u{26a0} uninit(ansi reset)"
+  } else if ($w.stale? | default false) {
+    $" (ansi yellow)stale(ansi reset)"
+  } else { "" }
+  let name = if $w.removable { $"(ansi dark_gray)($w.name)(ansi reset)" } else { $w.name }
+  let branch = if $w.detached { $"(ansi red_bold)DETACHED(ansi reset)" } else { $w.branch }
+  let remote = (format-tracking ($w.ahead_remote? | default 0) ($w.behind_remote? | default 0) true)
+  let push = if (not ($w.head_on_remote? | default true)) { $" (ansi red)unpushed(ansi reset)" } else { "" }
+  let state = if $w.removable { $"(ansi green)removable(ansi reset)" } else { "" }
+  {
+    worktree: $"($cur) ($name)($dirty)($warn)"
+    branch: $branch
+    remote: ($"($remote)($push)" | str trim)
+    base: (format-tracking ($w.ahead_base? | default 0) ($w.behind_base? | default 0) true)
+    age: (format-age-secs ($w.last_commit_age_secs? | default (-1)))
+    state: $state
+  }
+}
+
+def worktree-footer [result: record]: nothing -> string {
+  let n = ($result.worktrees | length)
+  let cur = if ($result.current | is-empty) { "—" } else { $result.current }
+  let stash = ($result.stash_count? | default 0)
+  let stash_str = if $stash > 0 { $" (ansi yellow)\u{00b7} ($stash) stash(ansi reset)" } else { "" }
+  $"(ansi dark_gray)($n) worktrees \u{00b7} base ($result.base_branch) \u{00b7} current ($cur)(ansi reset)($stash_str)"
+}
+
+# Format an age in seconds (-1 = unknown) as a compact string.
+def format-age-secs [secs: int]: nothing -> string {
+  if $secs < 0 { return "?" }
+  let mins = ($secs / 60 | math floor)
+  if $mins < 60 { return $"($mins)min" }
+  let hrs = ($mins / 60 | math floor)
+  if $hrs < 24 { return $"($hrs)hr" }
+  $"($hrs / 24 | math floor)d"
+}
+
+# One-line worktree header for overview; "" unless the project has >1 worktree.
+def worktree-header [path: string]: nothing -> string {
+  let r = (do -i { glittering worktree list --verbose --cached --path ($path | path expand) | from json })
+  if ($r == null) or (($r.worktrees? | default [] | length) <= 1) { return "" }
+  let cur = ($r.current | default "")
+  let others = ($r.worktrees | where name != $cur | get name)
+  let cur_row = ($r.worktrees | where name == $cur)
+  let mark = if (not ($cur_row | is-empty)) and (($cur_row | first | get dirty)) { $" (ansi red)\u{25cf}(ansi reset)" } else { "" }
+  let cur_str = if ($cur | is-empty) { "(none)" } else { $cur }
+  $"(ansi cyan_bold)worktree(ansi reset) ($cur_str)($mark) (ansi dark_gray)\u{00b7} ($others | length) other: ($others | str join ', ')(ansi reset)"
+}
+
 def "main overview" [--path: string = "." --refresh --force --compact] {
   # Refresh caches if requested (--force implies --refresh, ignores freshness)
   if $refresh or $force {
@@ -409,6 +562,8 @@ def "main overview" [--path: string = "." --refresh --force --compact] {
   let flutter = ($status.packages | where type == "flutter" | length)
   let dart = ($status.packages | where type == "dart" | length)
   let testable = ($status.packages | where has_tests == true | length)
+  let wt = (worktree-header $path)
+  if ($wt | is-not-empty) { print $wt }
   print $"Packages: ($total) \(($flutter) flutter, ($dart) dart, ($testable) testable\)"
 
   # Build unified table
@@ -485,6 +640,7 @@ Commands:
   git diff       Structured diff summary (staged/unstaged/untracked)
   git commit    Commit submodules and auto-update parent ref
   git pull       Pull parent, checkout branches, pull all submodules
+  worktree       List/add/remove/prune worktrees (list | add <name> | remove <name> | prune | path <name>)
   overview       Combined dashboard: git + test + analyze + stats (--refresh to update, --compact for rollup rows)
   clean          Remove old session directories
 

@@ -16,6 +16,7 @@ Commands:
   get          Run pub get across all packages
   upgrade      Run pub upgrade across all packages
   git          Git status, check, push, commits, diffs across parent + submodules
+  worktree     List/add/remove/prune worktrees in a bare-repo project layout
   clean        Remove old session directories
 
 Common flags:
@@ -51,6 +52,8 @@ func main() {
 		os.Exit(cmd.Upgrade(args))
 	case "git":
 		os.Exit(cmd.Git(args))
+	case "worktree":
+		os.Exit(cmd.Worktree(args))
 	case "clean":
 		os.Exit(cmd.Clean(args))
 	default:

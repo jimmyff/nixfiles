@@ -174,7 +174,7 @@ func Stats(args []string) int {
 		mu.Unlock()
 		go func(i int, pkg PackageInfo) {
 			result, logs := runStatsPackage(root, session, pkg.Path, *threshold)
-			result.Path = filepath.Join(root, pkg.Path)
+			result.Path = pkg.Path // relative: worktree-portable cache, consistent with --cached
 			result.Timestamp = nowTimestamp()
 			writeCache(filepath.Join(root, pkg.Path), "stats.json", result)
 			mu.Lock()

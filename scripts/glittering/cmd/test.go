@@ -133,7 +133,7 @@ func Test(args []string) int {
 		mu.Unlock()
 		go func(i int, pkg PackageInfo, runner string) {
 			result, logs := runTestPackage(root, session, pkg.Path, runner, *timeout)
-			result.Path = filepath.Join(root, pkg.Path)
+			result.Path = pkg.Path // relative: worktree-portable cache, consistent with --cached
 			result.Timestamp = nowTimestamp()
 			writeCache(filepath.Join(root, pkg.Path), "test.json", result)
 			mu.Lock()

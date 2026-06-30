@@ -78,6 +78,87 @@ func deleteCache(absDir, filename string) {
 	os.Remove(path)
 }
 
+// guardCacheRoot rejects an empty or filesystem-root path. cachePath("", "")
+// resolves to the whole cache root, so an empty argument to copyCacheTree /
+// deleteCacheTree would blast every project's caches.
+func guardCacheRoot(absDir string) error {
+	if strings.TrimPrefix(absDir, string(filepath.Separator)) == "" {
+		return fmt.Errorf("refusing cache operation on empty/root path %q", absDir)
+	}
+	return nil
+}
+
+// copyCacheTree copies cached results from one absolute root (worktree) to
+// another, for seeding a freshly-created worktree. Skips git.json (branch-
+// specific — recomputed per worktree) and any file whose package dir is absent
+// in dstAbs (the feature branch may have a different package set). Preserves
+// mtimes so staleness reporting stays honest. Returns the count of files copied.
+func copyCacheTree(srcAbs, dstAbs string) (int, error) {
+	if err := guardCacheRoot(srcAbs); err != nil {
+		return 0, err
+	}
+	if err := guardCacheRoot(dstAbs); err != nil {
+		return 0, err
+	}
+	srcRoot, err := cachePath(srcAbs, "")
+	if err != nil {
+		return 0, err
+	}
+	dstRoot, err := cachePath(dstAbs, "")
+	if err != nil {
+		return 0, err
+	}
+	if _, err := os.Stat(srcRoot); os.IsNotExist(err) {
+		return 0, nil
+	}
+	copied := 0
+	err = filepath.Walk(srcRoot, func(path string, info os.FileInfo, err error) error {
+		if err != nil || info.IsDir() || info.Name() == "git.json" {
+			return nil
+		}
+		rel, err := filepath.Rel(srcRoot, path)
+		if err != nil {
+			return nil
+		}
+		// Skip caches for packages that don't exist in the destination worktree.
+		if _, err := os.Stat(filepath.Join(dstAbs, filepath.Dir(rel))); os.IsNotExist(err) {
+			return nil
+		}
+		dst := filepath.Join(dstRoot, rel)
+		if err := os.MkdirAll(filepath.Dir(dst), 0755); err != nil {
+			logf("  cache copy warning: mkdir %v\n", err)
+			return nil
+		}
+		data, err := os.ReadFile(path)
+		if err != nil {
+			logf("  cache copy warning: read %v\n", err)
+			return nil
+		}
+		if err := os.WriteFile(dst, data, 0644); err != nil {
+			logf("  cache copy warning: write %v\n", err)
+			return nil
+		}
+		mt := info.ModTime()
+		os.Chtimes(dst, mt, mt) // honest staleness: keep the source run's age
+		copied++
+		return nil
+	})
+	return copied, err
+}
+
+// deleteCacheTree removes the entire cache subtree for an absolute root. Cache
+// files only — never touches the worktree itself.
+func deleteCacheTree(absRoot string) error {
+	if err := guardCacheRoot(absRoot); err != nil {
+		return err
+	}
+	root, err := cachePath(absRoot, "")
+	if err != nil {
+		return err
+	}
+	return os.RemoveAll(root)
+}
+
 // readCache reads a cached JSON file. Returns nil, nil if the file doesn't exist.
 func readCache(absDir, filename string) ([]byte, error) {
 	path, err := cachePath(absDir, filename)

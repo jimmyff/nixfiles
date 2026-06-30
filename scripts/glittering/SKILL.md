@@ -25,6 +25,7 @@ In a multi-package workspace (cue: `.gitmodules` and/or multiple `pubspec.yaml` 
 | pull latest / sync repos | `glittering git pull` |
 | review changes / file-level detail | `glittering git diff` — per-file staged/unstaged/untracked + patch `details_file` |
 | understand package layout / size | `glittering status`, `glittering stats` |
+| assess / create / clean up worktrees | `glittering worktree list / add / remove / prune` |
 
 `glittering git` reports at repo level (dirty, ahead/behind); for which *files* changed, use `glittering git diff` — not raw `git status`.
 
@@ -67,6 +68,25 @@ glittering git commit --parent-only -f <file>... -m "msg" --path <root>  # commi
 glittering git pull --path <root> [--filter <names>]              # pull parent + subs
 ```
 
+### Worktree subcommands
+
+For the bare-repo + worktree layout (`<proj>/.bare` + `<proj>/main`, `<proj>/<feature>`…). `--path` may be any worktree, the project root, or the bare dir.
+
+```
+glittering worktree list --path <proj> [--cached] [--fetch] [--filter <n>]  # per-worktree status (JSON)
+glittering worktree add <name> --path <proj> [--from <ref>] [--no-get] [--no-share-objects]
+glittering worktree remove <name> --path <proj> [--force] [--delete-branch]
+glittering worktree prune --path <proj> [--dry-run] [--force]
+glittering worktree path <name> --path <proj>     # prints absolute path as PLAIN TEXT (not JSON), for cd
+```
+
+- **`list`** is the fast orientation primitive. Each row carries `removable` (safe to delete) plus the components (`dirty`, `ahead_remote`, `head_on_remote`, `ahead_base`/`behind_base`, `uninit_submodules`, `last_commit_age_secs`). `--cached` reads each worktree's `git.json` (rows with none get `stale:true`).
+- **`add`** checks out an existing branch (local, then `origin/<name>`) or creates one off the base; inits submodules (object-shared from the base worktree, parallel), seeds test/analyze/stats cache, runs `pub get`. `success:false` + exit `3` means usable-but-degraded — read `warnings` (e.g. uninitialised submodules, pub-get failures).
+- **`remove`** refuses base/current and (without `--force`) any worktree with uncommitted/unpushed work in the superproject or a submodule. Policy refusals exit `0` with `removed:false` + `reasons`; only git/IO failure exits `1`. Never deletes the branch unless `--delete-branch` (safe `-d` only).
+- **`prune`** reaps only merged-and-pushed clean worktrees (worktree dirs only — branches survive); `--force` also reaps clean+pushed-but-unmerged.
+
+The three gates differ by design: `removable` (list) keys on **pushed**, `prune` on **merged**, `remove` does the **authoritative deep + submodule** check. So a `removable:true` row may still be skipped by `prune` ("not merged") or refused by `remove` (dirty submodule).
+
 ## Rules
 
 - **Always use an absolute path** for `--path` (e.g. `--path /Users/jimmyff/projects/foo/workspace`). Relative paths can resolve incorrectly across repeated tool invocations due to CWD shifts
@@ -95,6 +115,10 @@ glittering git pull --path <root> [--filter <names>]              # pull parent 
 - **git diff**: `{ repos: [{ path, staged, unstaged, untracked_files, details_file }], summary }`
 - **commit**: `{ success, partial, hint, submodules: [{ path, ref, pushed }], parent: { ref, staged, left_uncommitted, pushed, warnings } }` — `partial: true` means the commit succeeded but parent files listed in `parent.left_uncommitted` were NOT committed
 - **git pull**: `{ branch, submodules: [{ path, new_commits, was_dirty }], warnings }`
+- **worktree list**: `{ project, project_dir, base_branch, current, stash_count, worktrees: [{ name, path, branch, current, dirty, removable, head_on_remote, ahead_remote, behind_remote, ahead_base, behind_base, uninit_submodules, last_commit_age_secs, stale }] }`
+- **worktree add**: `{ name, path, branch, base, success, created_branch, cache_seeded, submodules_expected, submodules_initialised, pub_get: [...], warnings }` — `success:false`/exit 3 = degraded
+- **worktree remove**: `{ removed, branch_deleted, name, path, reasons }` — `removed:false` = refused (see reasons)
+- **worktree prune**: `{ dry_run, pruned: [{ name, path, branch }], skipped: [{ ..., reason }] }`
 
 ## Wrapper
 

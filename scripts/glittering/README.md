@@ -18,6 +18,11 @@ glitter git --cached                       # Git status from cache (instant)
 glitter git check                          # Verify committed, pushed, refs in sync
 glitter git push                           # Push all repos with unpushed commits
 glitter git diff                           # Diff summary for dirty repos
+
+glitter worktree list                       # All worktrees + status (removable flag)
+glitter worktree add <name>                 # Create worktree (submodules, cache seed, pub get)
+glitter worktree remove <name>              # Remove a worktree (safety-gated)
+glitter worktree prune                      # Reap merged-and-pushed worktrees
 ```
 
 ### JSON output (`glittering`)
@@ -57,6 +62,22 @@ Git 7min ago · Tests 2hr ago · Analysis 2hr ago · Stats 2hr ago
 ```
 
 **Indicators:** `●` dirty · `↑N` ahead · `↓N` behind · `·` zero · failures in red · `XL` oversized files
+
+## Worktrees
+
+For projects in a bare-repo + worktree layout (`<proj>/.bare` + `<proj>/main`, `<proj>/<feature>`…):
+
+```bash
+glittering worktree list --path <proj>             # JSON: per-worktree status + `removable`
+glittering worktree add <name> --path <proj>       # existing branch else off base; inits submodules
+                                                   #   (object-shared via --reference --dissociate,
+                                                   #   parallel), seeds test/analyze/stats cache, pub get
+glittering worktree remove <name> --path <proj>    # refuses base/current/dirty/unpushed; --force overrides
+glittering worktree prune --path <proj>            # remove merged+pushed worktrees (--dry-run)
+glittering worktree path <name> --path <proj>      # print absolute path (plain text, for cd)
+```
+
+`add` makes a fresh worktree usable fast: submodule objects copied from the base worktree (self-contained, no network re-download of objects), slow test/analyze/stats caches seeded, `pub get` run. `--no-get` / `--no-share-objects` opt out.
 
 ## Architecture
 
