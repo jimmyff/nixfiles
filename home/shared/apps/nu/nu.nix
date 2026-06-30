@@ -85,6 +85,15 @@ in {
           }
           rm -fp $tmp
         }
+${lib.optionalString pkgs-apps.stdenv.isDarwin ''
+        # Homebrew upgrades are decoupled from darwin-rebuild (see homebrew.nix).
+        # Run this deliberately to refresh the index and upgrade casks.
+        def brew-up [] {
+          brew update
+          brew upgrade
+          brew cleanup
+        }
+''}
 
         # Atuin nushell integration is configured in atuin.nix
 

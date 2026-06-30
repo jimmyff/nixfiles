@@ -7,6 +7,12 @@
     fi
   '';
 
+  # Remind that brew upgrades are decoupled from rebuilds (darwin-only).
+  # Bold-cyan the command so it stands out without padding/blank lines.
+  system.activationScripts.postActivation.text = ''
+    printf 'Homebrew: casks reconciled, versions unchanged — run \033[1;36mbrew-up\033[0m to upgrade.\n'
+  '';
+
   # Quiet down Homebrew's auto-update noise (interactive brew use).
   # Note: not forwarded to the sudo'd brew bundle during activation, so the
   # "New Formulae/Casks" list can still appear on darwin-rebuild switch.
@@ -20,8 +26,12 @@
 
     onActivation = {
       cleanup = "zap"; # remove anything not declared
-      autoUpdate = true;
-      upgrade = true;
+      # Decoupled from rebuilds: a switch only reconciles the declared cask set
+      # (install missing, zap undeclared). Index refresh + version upgrades are a
+      # deliberate, separate step — run `brew-up` (see nu.nix). Keeps rebuilds
+      # fast and deterministic.
+      autoUpdate = false; # no `brew update` during rebuild
+      upgrade = false; # no `brew upgrade` during rebuild
       # brew 5.1.14+ requires explicit confirmation before a --cleanup;
       # --force-cleanup cleans up without prompting (non-interactive activation).
       extraFlags = [ "--force-cleanup" ];
