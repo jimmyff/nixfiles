@@ -3,10 +3,10 @@
 # binary path (macOS TCC binds Input Monitoring to the binary's cdhash, so a
 # /nix/store path bump would silently revoke the grant). See docs/darwin-install.md
 # for the one-time manual driver install + permission ritual.
-{ lib, config, pkgs, pkgs-apps, ... }:
+{ lib, config, pkgs, pkgs-kanata, ... }:
 let
   cfg = config.kanata;
-  kanata = pkgs-apps.kanata; # unstable 1.11.x → targets Karabiner v6 driver
+  kanata = pkgs-kanata.kanata; # pinned nixpkgs input (frozen cdhash keeps the TCC grant); 1.11.x → Karabiner v6 driver
   installedDriverVersion = "6.2.0"; # the manually-installed .pkg (manual setup step 1)
   kanataBin = "/usr/local/bin/kanata";
   cfgFile = import ../../../dotfiles/kanata/mkConfig.nix {

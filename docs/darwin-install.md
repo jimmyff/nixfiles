@@ -59,6 +59,9 @@ permission grants can't be done by Nix — one-time setup, in order:
 5. Confirm the device name: `sudo /usr/local/bin/kanata -l` → `Apple Internal Keyboard / Trackpad`
    (else set `kanata.includeDevices` — if NO name matches, kanata grabs **all** keyboards).
 
-**On kanata version bumps** the binary's cdhash changes, silently voiding the TCC grants — the
-activation script prints a warning at switch time. Re-grant (step 4) + kickstart. Health check:
+**Kanata is pinned** to a fixed nixpkgs rev via the `nixpkgs-kanata` flake input, so its cdhash
+stays constant and macOS keeps the Input Monitoring + Accessibility grants across rebuilds and
+`nix flake update`. To **deliberately** bump kanata, change that input's rev in `flake.nix`; the
+cdhash then changes, so re-grant (step 4) + kickstart afterwards (the activation script also warns
+at switch time whenever the binary changes). Health check:
 `sudo launchctl print system/org.nixos.kanata | grep -E 'state|exit'` + `tail -5 /var/log/kanata.log`.
