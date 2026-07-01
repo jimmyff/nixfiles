@@ -185,6 +185,11 @@ func TestWorktreeAddAndList(t *testing.T) {
 		t.Errorf("submodule should be dissociated, found alternates at %s", alt)
 	}
 
+	// Submodule should be reattached to its branch, not left on detached HEAD.
+	if b := strings.TrimSpace(gitOut(t, filepath.Join(proj, "feat", "sub"), "branch", "--show-current")); b != "main" {
+		t.Errorf("submodule should be reattached to 'main', got %q (detached?)", b)
+	}
+
 	// List shows both; feat is removable (fresh off main, nothing unique), not current.
 	_, lout := runWorktree(t, "list", "--path", proj)
 	var list WorktreeListOutput

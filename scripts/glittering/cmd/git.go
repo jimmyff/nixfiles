@@ -348,8 +348,34 @@ func getUninitialisedSubmodules(root string) []string {
 	return paths
 }
 
+// branchForCommit returns the origin-tracked branch that contains commit,
+// preferring main, or "" if none. Used to attach a detached submodule to the
+// branch its pinned ref lives on — never origin/HEAD, which can be a stale
+// 'master' that has drifted from the pin.
+func branchForCommit(dir, commit string) string {
+	out, err := runGit(dir, "for-each-ref", "--contains", commit, "--format=%(refname)", "refs/remotes/origin/*")
+	if err != nil {
+		return ""
+	}
+	var first string
+	for _, line := range strings.Split(out, "\n") {
+		name := strings.TrimPrefix(strings.TrimSpace(line), "refs/remotes/origin/")
+		if name == "" || name == "HEAD" {
+			continue
+		}
+		if name == "main" {
+			return "main"
+		}
+		if first == "" {
+			first = name
+		}
+	}
+	return first
+}
+
 // getSubmoduleBranch determines the correct branch for a submodule.
-// Priority: .gitmodules config > current branch > "main" fallback.
+// Priority: .gitmodules config > current branch > branch containing HEAD (prefer
+// main) > "main".
 func getSubmoduleBranch(root, subPath string) string {
 	// 1. Check .gitmodules for configured tracking branch
 	configKey := fmt.Sprintf("submodule.%s.branch", subPath)
@@ -363,7 +389,11 @@ func getSubmoduleBranch(root, subPath string) string {
 		return branch
 	}
 
-	// 3. Fall back to "main"
+	// 3. Detached: the branch containing the checked-out (pinned) commit, prefer
+	// main; never assume a bare "main" (a master-only submodule has none).
+	if branch := branchForCommit(subDir, "HEAD"); branch != "" {
+		return branch
+	}
 	return "main"
 }
 
