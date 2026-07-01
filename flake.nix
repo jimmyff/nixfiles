@@ -59,7 +59,7 @@
       inputs.nixpkgs.follows = "pkgs-stable";
     };
 
-    # herdr — agent-aware terminal multiplexer (mux's trial default backend, alongside zellij).
+    # herdr — agent-aware terminal multiplexer (mux's default backend).
     # Standalone Rust binary with a vendored zig VT lib; it pins its own toolchain, so no `follows`.
     herdr.url = "github:ogulcancelik/herdr";
 

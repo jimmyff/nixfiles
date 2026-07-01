@@ -1,4 +1,4 @@
-# herdr — agent-aware terminal multiplexer. Trial default backend for `mux`, alongside zellij.
+# herdr — agent-aware terminal multiplexer. Default backend for `mux`.
 # Symlinked to ~/.config/herdr/config.toml. The persistent server does NOT auto-reload —
 # after editing run: herdr server reload-config  (or `herdr server stop` then relaunch). See herdr.nix.
 # Schema: https://herdr.dev/docs/configuration/ (verified against src/config on master).
@@ -12,10 +12,10 @@ shell_mode    = "auto"     # login | non_login | auto
 new_cwd       = "follow"   # new panes inherit the active pane's cwd
 
 [theme]
-name = "catppuccin"        # closest built-in to the zellij `jimmyff` theme (Mocha base)
+name = "catppuccin"        # Catppuccin Mocha base
 
 [theme.custom]
-accent = "#ffe27a"         # gold active-pane border + highlights (the old zellij selected gold)
+accent = "#ffe27a"         # gold active-pane border + highlights
 
 [update]
 version_check  = false     # nix owns the version — don't phone home
@@ -30,6 +30,7 @@ directory = "~/projects"
 confirm_close = true                       # confirm before closing a workspace
 show_agent_labels_on_pane_borders = true   # agent labels in split pane borders
 
+agent_panel_sort = "spaces"
 [ui.sound]
 enabled = false   # no agent state-change notification sounds
 

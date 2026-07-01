@@ -23,7 +23,7 @@ pkgs-stable = [
 # Unstable packages (desktop, apps, dev tools, Flutter, Rust, Android)
 pkgs-unstable = [
   # Dev tools (editors, LSPs, formatters, shell)
-  "helix", "zed-editor", "nushell", "zellij", "go",
+  "helix", "zed-editor", "nushell", "go",
   # "direnv",
   # Flutter / Android
   "flutter", "dart", "android-studio",

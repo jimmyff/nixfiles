@@ -1,117 +1,88 @@
-# Multiplexing — kitty + zellij + mux
+# Multiplexing — kitty + herdr + mux
 
-One kitty window, zellij as the only multiplexer, one named session per project
-(**session = workspace**). Launch with `mux` (alias `x`).
+One kitty window, [herdr](https://herdr.dev) as the multiplexer, one named session per project.
+Launch with `mux` (alias `x`).
+
+herdr's hierarchy is **session → workspace → tab → pane**. mux maps the git-worktree project
+layout onto it:
+
+| herdr | is |
+| ----- | -- |
+| session | a project — the `~/projects/<name>` dir holding `.bare` |
+| workspace | a git worktree (herdr owns the worktree↔workspace binding via `[worktrees] directory`) |
+| tab / pane | views within a worktree |
+
+The always-running **`default`** session doubles as the cross-project hub (`mux dash`).
 
 ## Keyboard layering
 
+herdr grabs **only its bound chords** — everything else (all `Ctrl`, etc.) flows to the focused
+TUI (Claude, Helix). No "locked mode" to toggle.
+
 | Keys | Go to |
 | ---- | ----- |
-| ⌃ (anything) | the focused TUI — zellij is **locked by default** (Claude, Helix) |
-| ⌘⌥ + anything | **zellij** — nav, panes, tabs, resize, detach (works while locked) |
-| ⌘ / ⌘⇧ + `hjkl` | aerospace — window focus / move |
-| ⌥ / ⌥⇧ + `j` `k` | aerospace — switch / move window to workspace (mirrors niri) |
-| ⌥ / ⌥⇧ + space | aerospace — monitor focus / move |
-| ⌃ in Chromium | menu shortcuts — tabs, address bar |
+| ⌃ (anything) | the focused TUI — herdr ignores it (except its `ctrl+b` prefix) |
+| ⌘⌥ + … | **herdr panes** — focus, split, zoom, rename, detach, resize |
+| ⌘⌃ + … | **herdr tabs + workspaces** — switch / new / close / rename |
+| ⌘⌥ space | **herdr** — session navigator (goto) |
+| ⌘ / ⌘⇧ + `hjkl` | aerospace / niri — window focus / move |
+| ⌥ / ⌥⇧ + `j` `k` | aerospace / niri — switch / move workspace |
 
-kanata makes the modifiers from home-row holds: `a`/`;`=⌘, `s`/`l`=⌥, `d`/`k`=⌃, `f`/`j`=⇧.
-So `Ctrl+s` = hold `d` + tap `s`. The **internal keyboard** gets these from the kanata daemon
-(see `docs/darwin-install.md`); the **Moonlander** has the same mods baked into its QMK firmware.
+kanata makes the modifiers from home-row holds: `a`/`;`=⌘, `s`/`l`=⌥, `d`/`k`=⌃, `f`/`j`=⇧
+(see `docs/darwin-install.md`). `ctrl+b` is herdr's prefix fallback for every chord below.
 
-## zellij keys
+## herdr keys
 
-Sessions start **locked**, so every `Ctrl` reaches the TUI. To drive zellij:
+| Keys | Action |
+| ---- | ------ |
+| ⌘⌥ `hjkl` | focus pane (left/down/up/right) |
+| ⌘⌥ `n` / `m` | split right / down |
+| ⌘⌥⇧ `hjkl` | resize pane |
+| ⌘⌥ `f` / `r` / `d` | zoom / rename / detach pane |
+| ⌘⌃ `h` / `l` | previous / next tab |
+| ⌘⌃ `n` / `w` / `r` | new / close / rename tab |
+| ⌘⌃ `j` / `k` | previous / next workspace (worktree) |
+| ⌘⌃⇧ `n` / `w` / `r` | new / close / rename workspace |
+| `ctrl+b` `w` | workspace picker |
+| ⌘⌃⇧ `j` / `k` | focus next / prev agent in the sidebar |
+| ⌘⌥ space | session navigator (jump between sessions) |
 
-| Key | Action |
-| --- | ------ |
-| `Ctrl+g` | toggle locked ↔ normal (then `Ctrl+t` tabs, `Ctrl+p` panes, …) |
-| ⌘⌥ `hjkl` / arrows | move focus, or switch tab at the edge |
-| ⌘⌥ `+ − =` / `[ ]` | resize / swap layout |
-| ⌘⌃ `h` `l` | previous / next tab |
-| ⌘⌥ `d` | detach |
-| `Ctrl+g` → `Ctrl+o` `w` | session-manager (switch sessions) |
-
-`Ctrl+g` shadows Claude's external-editor, so that's rebound to `Ctrl+E`
-(`dotfiles/claude/keybindings.json`).
+Bindings live in `dotfiles/herdr/config.toml`; each is `[ctrl+b fallback, ⌘-chord]`. Apply edits
+with **`herdr server reload-config`** — the persistent server does not auto-reload.
 
 ## mux
 
-`mux` resolves a session name + layout from the cwd, then attaches or creates it.
+`mux` resolves a herdr session + landing dir from the cwd, then attaches or creates it.
 
 | Command | Action |
 | ------- | ------ |
-| `mux` / `x` | launch or attach the workspace for the cwd |
-| `mux reset` | delete the session, then relaunch (escape a bad resurrection) |
-| `mux init` | scaffold a `.zellij.kdl` session layout here |
-| `mux dash` | open/attach `dash` — one tab per active project |
-| `mux dash reset` | delete `dash`, rescan projects, relaunch fresh |
+| `mux` / `x` | launch or attach the project session for the cwd |
+| `mux reset` | delete the session, then relaunch (run from **outside** herdr) |
+| `mux dash` | populate the `default` session with a terminal per project root, then attach |
 
-- **Session name:** `$ZJ_SESSION` → `~/projects/<name>/workspace` → git repo → cwd basename.
-- **Layout:** `$ZJ_LAYOUT` → nearest `.zellij.kdl` → the `default_layout` fallback. That
-  fallback is `jimmyff` (`dotfiles/zellij/layouts/jimmyff.kdl`, classic tab + status bar),
-  used *only* when no `.zellij.kdl` is found.
+- **Session name:** `$MUX_SESSION` → the project (the `~/projects/<name>` dir holding `.bare`) →
+  cwd basename for anything outside `~/projects`.
+- **Worktree:** enumerated from `glittering worktree list --cached` (raw `git worktree list`
+  fallback); `mux` lands in the cwd's worktree, or `main` at a project root. herdr then owns
+  worktree create/switch (⌘⌃ `j`/`k`, the workspace picker, new-workspace).
+- herdr can't populate a session before its (blocking) attach, so `mux` lands herdr's default
+  pane — run `glitter overview` for worktree status.
 
-`jimmyff.kdl` is the **single source of truth** for the bar chrome (`default_tab_template`).
-Project `.zellij.kdl` files hold **only tabs/panes**; mux injects the current `default_tab_template`
-from `jimmyff.kdl` at launch (and defensively strips any stale one a project still carries). So
-editing `jimmyff.kdl` reaches every *new* session — no re-scaffolding. (Zellij has no cross-file
-template inheritance, hence the launch-time injection; already-running/serialized sessions keep
-their birth chrome until `mux reset`. `dev.nu` in osdn does the same injection for its dev layout.)
+## mux dash
 
-A project's `.zellij.kdl` lives at its repo root, in the **private** repo (layouts hold launch
-commands; nixfiles is public). `~/nixfiles/.zellij.kdl` is the committed scaffold `mux init` writes.
-
-## `mux dash`
-
-A single session `dash`, one tab per active project — scan every workspace
-without leaving zellij. One tab body per folder; bar chrome injected at launch.
-
-| Command | Action |
-| ------- | ------ |
-| `mux dash` | open/attach `dash` (attaching keeps shell state) |
-| `mux dash reset` | delete `dash`, rescan, relaunch with a fresh layout |
-| `mux dash init` | scaffold a `.zellij-dash.kdl` tab override in the cwd |
-
-- **Projects:** directory scan of `~/projects/*/workspace` requiring `workspace/.git`
-  (no Nix manifest), sorted by name — whatever is cloned shows up.
-- **Each tab (one per folder):** split — left a **suspended** shell (Enter to start its
-  devshell), right `glitter overview --compact` (cached; Enter to re-run). Suspending keeps
-  launch fast and skips the duplicate `startup.nu` overview.
-- **Per-folder override:** a `<workspace>/.zellij-dash.kdl` replaces that tab's body (the
-  panes inside `tab name=… { … }`); `mux dash init` scaffolds the default. Panes inherit the
-  tab's `cwd` (no hardcoded paths); `start_suspended true` pre-fills a command. It lives in
-  the folder's repo, so keep secrets out (`~/nixfiles` is public). Example — jimmyff-website
-  adds a `zola serve` pane:
-
-  ```kdl
-  pane split_direction="vertical" {
-      pane {
-          command "nu"
-          start_suspended true
-      }
-      pane split_direction="horizontal" {
-          pane {
-              command "glitter"
-              args "overview" "--compact"
-          }
-          pane {
-              command "zola"
-              args "serve"
-              start_suspended true
-          }
-      }
-  }
-  ```
-- **`~/nixfiles`:** always included (the `DASH_EXTRA` const in `mux.nu`) — its `glitter
-  overview` shows the repo's git status. Add more always-on folders by editing that const.
-- `mux dash` attaches the preserved session; use `mux dash reset` after cloning a
-  new project. Run from **outside** zellij (can't nest a session).
+The always-running **`default`** session is the cross-project hub. `mux dash` ensures it has one
+workspace — a terminal at the project root — for every `~/projects/*/.bare` project plus
+`DASH_EXTRA` (`~/nixfiles`), deduped by label, then attaches. Re-run any time; only missing
+projects are added. Navigate with **⌘⌥ space** (goto, across sessions) and **`ctrl+b` `w`**
+(workspace picker, within). Add always-on folders via the `DASH_EXTRA` const in `mux.nu`.
 
 ## Applying changes
 
-- **Live symlinks** — `dotfiles/zellij`, `dotfiles/aerospace`, `.zellij.kdl`: apply on the next
-  zellij start / `aerospace reload-config`, not `darwin-rebuild`. Revert via git.
-- **kitty / mux / Chromium** — `darwin-rebuild switch` (Chromium also needs `killall cfprefsd`).
+- **herdr config** (`dotfiles/herdr/config.toml`) — `herdr server reload-config` (or
+  `herdr server stop` + relaunch). Live-symlinked; no rebuild.
+- **mux** (`mux.nu`) — `darwin-rebuild switch` (baked into a `writeScriptBin`).
+- **aerospace / niri** — live-reload on save / `aerospace reload-config`.
 - **kanata home-row mods** — edit `dotfiles/kanata/kanata-layers.kbd`, then `darwin-rebuild switch`
   (macOS) / `nixos-rebuild switch` (Linux); the daemon restarts automatically.
-- Persistence is on; resurrecting **re-runs pane commands** — `mux reset` to start clean.
+- **Headless** — herdr is desktop-only (gated on S7 verification); headless boxes have no
+  multiplexer (SSH tunnels only).

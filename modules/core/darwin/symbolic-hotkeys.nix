@@ -1,6 +1,6 @@
 # macOS system keyboard shortcuts (com.apple.symbolichotkeys), pulled verbatim from
 # live `defaults read`. Nearly every default system shortcut is disabled so they don't
-# collide with the kanata/aerospace/zellij layer; IDs 80/82 (window focus) stay enabled.
+# collide with the kanata/aerospace/herdr layer; IDs 80/82 (window focus) stay enabled.
 #
 # Each entry: { enabled; value = { type = "standard"; parameters = [ key code modifiers ]; }; }
 # (65535 = unbound). Disabling only needs `enabled = false`; values are kept for fidelity.

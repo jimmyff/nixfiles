@@ -151,7 +151,7 @@ cmd-equal = 'resize smart +50'
 # See: https://nikitabobko.github.io/AeroSpace/commands#workspace
 # Workspace axis = Alt+j/k (mirrors niri). Each monitor owns a fixed strip via
 # [workspace-to-monitor-force-assignment] above; j/k cycles the focused strip.
-# Window axis = Cmd+hjkl above. The ⌘⌥ layer is left free for zellij (the
+# Window axis = Cmd+hjkl above. The ⌘⌥ layer is left free for herdr (the
 # multiplexer). See docs/multiplexing.md.
 alt-j = 'workspace --wrap-around next'
 alt-k = 'workspace --wrap-around prev'

@@ -6,7 +6,7 @@
 //   Alt          = workspace axis (niri workspaces are a vertical strip)
 //   +Shift       = move instead of focus
 // Super+Alt+hjkl and Super+Ctrl+hjkl are deliberately LEFT UNBOUND so they
-// pass through to kitty/zellij (the multiplexer layer — see docs/multiplexing.md).
+// pass through to kitty/herdr (the multiplexer layer — see docs/multiplexing.md).
 
 input {
     keyboard {
@@ -40,8 +40,8 @@ layout {
     }
     border {
         width 2
-        active-color "#8bbef4"     // focused — zellij frame_highlight (blue)
-        inactive-color "#7d7db4"   // unfocused — zellij frame_unselected
+        active-color "#8bbef4"     // focused (blue)
+        inactive-color "#7d7db4"   // unfocused
     }
     // New windows open at this width; Mod+R cycles the presets below.
     // Use `fixed 1200` for a pixel width instead of a proportion.

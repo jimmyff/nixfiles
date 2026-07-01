@@ -20,7 +20,7 @@
       ];
 
       keybindings = {
-        # Disabled for zellij multiplexing
+        # Disabled for herdr multiplexing
         # "cmd+ctrl+p" = "previous_window";
         # "cmd+ctrl+n" = "next_window";
         # "cmd+ctrl+enter" = "new_window";
@@ -33,7 +33,7 @@
         # "alt+ctrl+j" = "move_window down";
         # "alt+ctrl+k" = "move_window up";
         # "alt+ctrl+l" = "move_window right";
-        # Disable keybindings for zellij multiplexing
+        # Disable keybindings for herdr multiplexing
         "cmd+enter" = "no_op";
         "cmd+t" = "no_op";
         "cmd+n" = "no_op";
@@ -42,16 +42,16 @@
         "cmd+alt+j" = "no_op";
         "cmd+alt+k" = "no_op";
         "cmd+alt+l" = "no_op";
-        "cmd+alt+d" = "no_op"; # → zellij Detach
-        "cmd+alt+r" = "no_op"; # → zellij rename pane (was kitty reset_terminal, macOS opt+cmd+r)
+        "cmd+alt+d" = "no_op"; # → herdr Detach
+        "cmd+alt+r" = "no_op"; # → herdr rename pane (was kitty reset_terminal, macOS opt+cmd+r)
         "ctrl+shift+delete" = "no_op"; # kitty default reset_terminal (Linux + macOS) — RIS nukes TUI state
         "ctrl+h" = "no_op";
         "ctrl+j" = "no_op";
         "ctrl+k" = "no_op";
         "ctrl+l" = "no_op";
 
-        # Tab actions also passed through to zellij (no_op, immune to kitty defaults
-        # like ctrl+shift+h=show_scrollback). ⌘⌃h/l tab-switch is restored in zellij.
+        # Tab actions also passed through to herdr (no_op, immune to kitty defaults
+        # like ctrl+shift+h=show_scrollback). ⌘⌃h/l tab-switch is restored in herdr.
         "ctrl+n" = "no_op";
         "ctrl+w" = "no_op";
         "cmd+w" = "close_os_window";

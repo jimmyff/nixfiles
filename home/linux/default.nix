@@ -33,9 +33,7 @@
     chromium_module.enable = lib.mkIf (!config.desktop.enable) (lib.mkForce false);
     iamb_module.enable = lib.mkIf (!config.desktop.enable) (lib.mkForce false);
     zed_module.enable = lib.mkIf (!config.desktop.enable) (lib.mkForce false);
-    # herdr builds from source (Rust + vendored zig) — keep it off headless boxes
-    # (e.g. the gcp-beacon e2-micro would OOM). zellij still covers SSH multiplexing.
-    herdr_module.enable = lib.mkIf (!config.desktop.enable) (lib.mkForce false);
+    # herdr stays on headless — TUI multiplexer, used over SSH.
 
     programs.home-manager.enable = true;
   };

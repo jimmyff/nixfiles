@@ -1,371 +1,264 @@
-# mux — zellij workspace launcher (sessions = workspaces)
+# mux — herdr workspace launcher (worktree-aware)
 #
-# Resolves a session name + root dir + private layout from the current directory,
-# then attaches to (or creates) the matching zellij session.
+# Resolves a herdr session + landing dir from the current directory, then attaches to (or
+# creates) the matching herdr session. A project (a ~/projects/<name> dir containing `.bare`)
+# maps to a herdr session; each git worktree is a herdr workspace — herdr manages the
+# worktree↔workspace binding natively (see docs/multiplexing.md).
 #
-#   mux         launch/attach the workspace for the current directory
-#   mux reset [--force]  delete the resolved session then relaunch (escape a bad
-#               resurrection); --force first SIGKILLs a wedged server + drops its stale socket
-#   mux init    scaffold a .zellij.kdl session layout (live shell | overview) here
-#   mux dash    open/attach the dash session — one tab per active project
-#   mux dash reset [--force]  delete dash, rescan projects, relaunch fresh (--force as above)
-#   mux dash init   scaffold a .zellij-dash.kdl dash tab body (suspended shell | overview)
+#   mux         launch/attach the herdr session for the current directory
+#   mux reset [--force]   delete the resolved session then relaunch (run from OUTSIDE herdr)
+#   mux dash [--dry-run]  ensure the always-running `default` session has one terminal per
+#               project root, then attach to it (a cross-project hub)
 #
-# Bar chrome is the single source of truth: project .zellij.kdl files hold only
-# tabs/panes, and mux injects the default_tab_template from jimmyff.kdl at launch
-# (see merge-layout). Editing jimmyff.kdl thus reaches every new session — no
-# re-scaffolding. See dotfiles/zellij/layouts/jimmyff.kdl and docs/multiplexing.md.
+# Worktree enumeration comes from `glittering worktree list --cached` (raw `git worktree list`
+# fallback). herdr can't populate a session before its (blocking) attach, so `mux` lands herdr's
+# default pane — run `glitter overview` for worktree status. Only an already-running session
+# accepts socket builds, so `mux dash` populates the always-on `default` session.
 #
-# Overrides: $env.ZJ_SESSION (session name), $env.ZJ_LAYOUT (layout name or path).
+# Override: $env.MUX_SESSION sets the session name explicitly.
 #
 # Only `const`/`def` at top level — so `nu -c 'source mux.nu'` parse-checks without running.
 
-# Canonical layout supplying the default_tab_template injected at launch (mkOutOfStoreSymlink
-# target of ~/.config/zellij/layouts). See merge-layout.
-const DEFAULT_LAYOUT = '~/.config/zellij/layouts/jimmyff.kdl'
-
-# Always-on `mux dash` workspaces beyond ~/projects/*/workspace (expanded, skipped if absent).
-const DASH_EXTRA = ['~/nixfiles']
-
-# Shared default tab body: left shell | right cached overview. `--suspended` makes the
-# shell lazy (used by `mux dash` — a glance); live otherwise (a working `mux` session).
-# No pane cwd: panes inherit the tab's cwd (dash) or zellij's launch dir (session).
-def default-body [--suspended] {
-    let suspend = (if $suspended { "\n        start_suspended true" } else { "" })
-    $'pane split_direction="vertical" {
-    pane {
-        command "nu"($suspend)
-    }
-    pane {
-        command "glitter"
-        args "overview" "--compact"
-    }
-}'
-}
-
-# --- layout injection -------------------------------------------------------
-
-# Extract a balanced `<keyword> { ... }` block from KDL text, or "" if absent.
-def extract-block [text: string, keyword: string] {
-    let start = ($text | str index-of $keyword)
-    if $start < 0 {
-        return ""
-    }
-    mut depth = 0
-    mut seen = false
-    mut out = ""
-    for c in ($text | str substring $start.. | split chars) {
-        $out = $out + $c
-        if $c == "{" {
-            $depth = $depth + 1
-            $seen = true
-        } else if $c == "}" {
-            $depth = $depth - 1
-            if $seen and ($depth == 0) {
-                break
-            }
-        }
-    }
-    $out
-}
-
-# Merge a project layout with the canonical bar chrome: strip any default_tab_template
-# the project carries (defensive — handles stale frozen copies) and inject jimmyff's.
-def merge-layout [project_layout: string] {
-    let canonical = ($DEFAULT_LAYOUT | path expand)
-    let template = (extract-block (open --raw $canonical) "default_tab_template")
-    if ($template | is-empty) {
-        error make { msg: $"mux: no default_tab_template in ($canonical)" }
-    }
-    let raw = (open --raw $project_layout)
-    let existing = (extract-block $raw "default_tab_template")
-    let stripped = (if ($existing | is-empty) { $raw } else { $raw | str replace $existing "" })
-    $stripped | str replace "layout {" $"layout {\n    ($template)"
-}
-
-# --- resolution -------------------------------------------------------------
-
-# ~/projects/<name>/workspace[/…] → { session: <name>, root: …/workspace }
-def project-workspace [] {
-    let prefix = $"($env.HOME)/projects/"
-    if not ($env.PWD | str starts-with $prefix) {
-        return null
-    }
-    let rel = ($env.PWD | str replace $prefix "" | path split)
-    if (($rel | length) >= 2) and (($rel | get 1) == "workspace") {
-        let name = ($rel | get 0)
-        {
-            session: $name,
-            root: ([$env.HOME "projects" $name "workspace"] | path join),
-        }
-    } else {
-        null
-    }
-}
-
-# git toplevel of the cwd, or null when not in a repo
-def git-root [] {
-    let res = (do -i { ^git rev-parse --show-toplevel | complete })
-    if ($res != null) and ($res.exit_code == 0) {
-        $res.stdout | str trim
-    } else {
-        null
-    }
-}
+# Always-on `mux dash` folders beyond ~/projects/*/.bare (expanded; skipped if absent).
+const DASH_EXTRA = ["~/nixfiles"]
 
 # session names must be [A-Za-z0-9_-]; collapse runs and strip edge dashes
-def sanitize [name: string] {
-    $name
+def sanitize []: string -> string {
+    $in
     | str replace --all --regex '[^A-Za-z0-9_-]' '-'
     | str replace --all --regex '-+' '-'
     | str trim --char '-'
 }
 
-# nearest .zellij.kdl walking from cwd up to (and including) root, else null
-def find-layout [root: string] {
-    if ($env.ZJ_LAYOUT? | is-not-empty) {
-        return $env.ZJ_LAYOUT
-    }
-    mut dir = $env.PWD
+# --- resolution (backend-neutral, glittering-backed) ------------------------
+
+# Walk up from `dir` to the first ancestor containing `.bare`, bounded to ~/projects/*.
+# Structural + submodule-safe (never calls `git rev-parse`). Returns abs path or null.
+def project-root [dir: string] {
+    let base = ([$env.HOME "projects"] | path join)
+    mut d = ($dir | path expand)
     loop {
-        let candidate = ([$dir ".zellij.kdl"] | path join)
-        if ($candidate | path exists) {
-            return $candidate
-        }
-        if $dir == $root {
-            break
-        }
-        let parent = ($dir | path dirname)
-        if $parent == $dir {
-            break
-        }
-        $dir = $parent
+        if (([$d ".bare"] | path join) | path exists) { return $d }
+        let parent = ($d | path dirname)
+        if ($d == $base) or ($parent == $d) or (not ($d | str starts-with $base)) { break }
+        $d = $parent
     }
     null
 }
 
-# { session, root, layout } resolved from cwd; first match wins
-def resolve [] {
-    let picked = (
-        if ($env.ZJ_SESSION? | is-not-empty) {
-            { session: $env.ZJ_SESSION, root: $env.PWD }
-        } else {
-            let proj = (project-workspace)
-            if ($proj != null) {
-                $proj
-            } else {
-                let gr = (git-root)
-                if ($gr != null) {
-                    { session: ($gr | path basename), root: $gr }
-                } else {
-                    { session: ($env.PWD | path basename), root: $env.PWD }
-                }
-            }
+# Authoritative worktrees for a project root. glittering when present; raw-git fallback.
+# Rows: glittering's full record, or fallback {name, path, branch}.
+def worktrees [root: string] {
+    if (which glittering | is-not-empty) {
+        let r = (do -i { ^glittering worktree list --cached --path $root | complete })
+        if ($r != null) and ($r.exit_code == 0) and (($r.stdout | str trim) | is-not-empty) {
+            return ($r.stdout | from json | get worktrees)
         }
-    )
-    let session = (sanitize $picked.session)
-    if ($session | is-empty) {
-        error make { msg: $"mux: could not derive a valid session name from ($env.PWD)" }
     }
+    # fallback: parse `git worktree list --porcelain`, drop the bare entry
+    let gitdir = ([$root ".bare"] | path join)
+    let r = (do -i { ^git --git-dir $gitdir worktree list --porcelain | complete })
+    if ($r == null) or ($r.exit_code != 0) { return [] }
+    $r.stdout
+    | split row "\n\n"
+    | each {|blk|
+        let lines = ($blk | lines)
+        let wline = ($lines | where {|l| $l | str starts-with "worktree " })
+        if ($wline | is-empty) or ($lines | any {|l| $l == "bare" }) {
+            null
+        } else {
+            let wpath = ($wline | first | str replace "worktree " "")
+            let brl = ($lines | where {|l| $l | str starts-with "branch " })
+            let branch = (if ($brl | is-empty) { "" } else { $brl | first | str replace "branch refs/heads/" "" })
+            { name: ($wpath | path basename), path: ($wpath | path expand), branch: $branch }
+        }
+    }
+    | compact
+}
+
+# Longest path-prefix match of pwd against worktree paths (handles nested submodule cwd).
+def current-worktree [pwd: string, wts: list<any>] {
+    let p = ($pwd | path expand)
+    let matches = ($wts
+        | where {|w| ($p == $w.path) or ($p | str starts-with ($w.path + "/")) }
+        | sort-by {|w| $w.path | str length })
+    if ($matches | is-empty) { null } else { $matches | last }
+}
+
+# { kind, project, root, worktree, worktrees, session_override } resolved from cwd.
+def resolve [] {
+    let pwd = ($env.PWD | path expand)
+    let root = (project-root $pwd)
+    let override = ($env.MUX_SESSION? | default null)
+    if ($root == null) {
+        return {
+            kind: "other",
+            project: ($pwd | path basename | sanitize),
+            root: $pwd,
+            worktree: null,
+            worktrees: [],
+            session_override: $override,
+        }
+    }
+    let wts = (worktrees $root)
+    let cur = (current-worktree $pwd $wts)
     {
-        session: $session,
-        root: $picked.root,
-        layout: (find-layout $picked.root),
+        kind: (if ($cur != null) { "worktree" } else { "project" }),
+        project: ($root | path basename | sanitize),
+        root: $root,
+        worktree: $cur,
+        worktrees: $wts,
+        session_override: $override,
     }
 }
 
-# --- zellij helpers ---------------------------------------------------------
-
-# running + EXITED session names (clean, one per line); [] on any failure
-def zellij-sessions [] {
-    let res = (do -i { ^zellij list-sessions -ns | complete })
-    if ($res == null) or ($res.exit_code != 0) {
-        return []
-    }
-    $res.stdout | lines | str trim | where {|l| $l | is-not-empty }
+# Session name for a resolved record ($env.MUX_SESSION wins; else the project name).
+def target-session [r: record] {
+    ($r.session_override | default $r.project) | sanitize
 }
 
-# [{pid, sock}] for every running server of <session>, parsed from `ps`. zellij launches
-# its server as `zellij --server <sock>`, so the socket to remove is right there in the
-# cmdline — no IPC and no cache-path guessing, which is what lets this work when the server
-# is wedged (unresponsive to zellij's own commands).
-def server-entries [session: string] {
-    let out = (do -i { ^ps -axww -o pid=,command= | complete })
-    if ($out == null) or ($out.exit_code != 0) { return [] }
-    $out.stdout
-    | lines
-    | each {|l| $l | parse --regex '^\s*(?<pid>\d+)\s+.*zellij --server (?<sock>\S+)' }
-    | flatten
-    | where {|r| ($r.sock | path basename) == $session }
+# --- herdr backend (Tier 0: create/attach only — no socket build) -----------
+
+# Socket path for an existing named session, or null. Source of truth for scoping.
+def session-socket [name: string] {
+    let r = (do -i { ^herdr session list --json | complete })
+    if ($r == null) or ($r.exit_code != 0) { return null }
+    let m = ($r.stdout | from json | get sessions | where name == $name)
+    if ($m | is-empty) { null } else { $m | first | get socket_path }
 }
 
-# Forcibly tear down a wedged session: SIGKILL its server and delete the stale socket, so a
-# normal delete-session + relaunch can proceed. For when `zellij delete-session` itself hangs.
-# Uses only ps/kill/rm — never zellij IPC. Returns the killed pids (empty if none found).
-def force-kill-session [session: string] {
-    let entries = (server-entries $session)
-    for e in $entries {
-        do -i { ^kill -9 $e.pid }
-        do -i { ^rm -f $e.sock }
-    }
-    if ($entries | is-empty) { [] } else { $entries | get pid }
+# Is a named session listed at all (running or stopped/resurrectable)?
+def herdr-session-exists [name: string] {
+    let r = (do -i { ^herdr session list --json | complete })
+    if ($r == null) or ($r.exit_code != 0) { return false }
+    $name in ($r.stdout | from json | get sessions | each {|s| $s.name })
 }
 
-# attach if the session exists (running or resurrectable), else create it
-def launch [r: record] {
-    cd $r.root
-    if ($r.session in (zellij-sessions)) {
-        # attach (running) or resurrect (exited); --create guards against a race/miss
-        ^zellij attach --create $r.session
-    } else if ($r.layout != null) {
-        # Inject the canonical bar chrome (jimmyff.kdl) into the project's tabs-only
-        # layout at launch, so every new session tracks the single source of truth.
-        let merged = (($env.TMPDIR? | default "/tmp") | path join $"mux-($r.session).kdl")
-        merge-layout $r.layout | save -f $merged
-        # --new-session-with-layout (NOT --layout): the latter + --session is read as
-        # "add tabs to an existing session" and errors when the session doesn't exist
-        ^zellij --session $r.session --new-session-with-layout $merged
+# Is a named session's server currently running (socket live)?
+def herdr-running [name: string] {
+    let r = (do -i { ^herdr session list --json | complete })
+    if ($r == null) or ($r.exit_code != 0) { return false }
+    let m = ($r.stdout | from json | get sessions | where name == $name)
+    if ($m | is-empty) { false } else { $m | first | get running }
+}
+
+# Run a herdr socket command scoped to an EXISTING session (pins HERDR_SOCKET_PATH).
+# Returns the `complete` record, or null if the session/socket is absent.
+def herdr-ctl [session: string, args: list<string>] {
+    let sock = (session-socket $session)
+    if ($sock == null) { return null }
+    with-env { HERDR_SOCKET_PATH: $sock } { do -i { ^herdr ...$args | complete } }
+}
+
+# Landing dir for a resolved record (worktree path; else prefer `main`; else root).
+def landing-dir [r: record] {
+    if ($r.worktree != null) {
+        $r.worktree.path
+    } else if (($r.worktrees | length) > 0) {
+        let main = ($r.worktrees | where name == "main")
+        if ($main | is-not-empty) { $main | first | get path } else { $r.worktrees | first | get path }
     } else {
-        ^zellij --session $r.session
+        $r.root
     }
 }
 
-# --- dash -------------------------------------------------------------------
-
-# Active projects: ~/projects/*/workspace dirs that are git repos, sorted by name.
-def dash-projects [] {
-    let base = ([$env.HOME "projects"] | path join)
-    if not ($base | path exists) { return [] }
-    ls $base
-    | where type == dir
-    | get name
-    | each {|p| { name: ($p | path basename), ws: ([$p "workspace"] | path join) } }
-    | where {|r| ([$r.ws ".git"] | path join) | path exists }
-    | sort-by name
+# Create-or-attach the session, landing at the right dir. BLOCKING (TUI handover).
+def launch-herdr [r: record] {
+    let session = (target-session $r)
+    if (herdr-running $session) {
+        ^herdr session attach $session
+    } else {
+        cd (landing-dir $r)
+        ^herdr --session $session
+    }
 }
 
-# All dash folders: discovered projects plus existing DASH_EXTRA workspaces, in order.
-def dash-folders [] {
+# --- dash (cross-project hub: one terminal per project root) ----------------
+
+# All dash entries: ~/projects/*/ containing `.bare`, plus existing DASH_EXTRA folders.
+def all-projects [] {
+    let base = ([$env.HOME "projects"] | path join)
+    let projects = (if ($base | path exists) {
+        ls $base | where type == dir | get name
+        | where {|d| ([$d ".bare"] | path join) | path exists }
+        | each {|d| { project: ($d | path basename | sanitize), root: $d } }
+        | sort-by project
+    } else { [] })
     let extra = ($DASH_EXTRA
         | each {|p| $p | path expand }
         | where {|d| $d | path exists }
-        | each {|d| { name: ($d | path basename), ws: $d } })
-    (dash-projects) | append $extra
+        | each {|d| { project: ($d | path basename | sanitize), root: $d } })
+    $projects | append $extra
 }
 
-# One dash tab for a folder. Body = the folder's optional .zellij-dash.kdl (a tab-body
-# pane subtree) if present, else the suspended default body. Tab-level cwd makes the
-# panes start in the workspace, so bodies hold no hardcoded paths.
-def dash-tab [r: record] {
-    let custom = ([$r.ws ".zellij-dash.kdl"] | path join)
-    let body = (if ($custom | path exists) {
-        open --raw $custom | str trim
-    } else {
-        default-body --suspended
-    })
-    $'    tab name="($r.name)" cwd="($r.ws)" {
-($body)
-    }'
+# Labels of the workspaces currently in <session> (idempotent dedupe), or [] if absent.
+def session-workspaces [session: string] {
+    let r = (herdr-ctl $session ["workspace" "list"])
+    if ($r == null) or ($r.exit_code != 0) { return [] }
+    $r.stdout | from json | get result.workspaces | each {|w| $w.label }
 }
 
-# Pure builder: tabs-only layout string (chrome injected later by merge-layout).
-def dash-layout [folders: list<any>] {
-    let tabs = ($folders | each {|r| dash-tab $r } | str join "\n")
-    $"layout {\n($tabs)\n}\n"
-}
-
-# Guard + optional delete + (generate when creating) + launch the `dash` session.
-def open-dash [--reset, --force, --dry-run] {
+# Cross-project hub. herdr can't build a session before attaching, so the hub lives in the
+# always-running `default` session: ensure a workspace (a terminal at the project root) for every
+# project, then attach. Idempotent — only missing projects are added (dedupe by label).
+def open-dash [--dry-run] {
+    if (which herdr | is-empty) {
+        error make { msg: "mux dash: herdr not found on PATH." }
+    }
+    let running = (herdr-running "default")
+    let existing = (if $running { session-workspaces "default" } else { [] })
+    let missing = (all-projects | where {|p| $p.project not-in $existing })
     if $dry_run {
-        print (dash-layout (dash-folders))
+        print { hub: "default", running: $running, existing: $existing, would_add: ($missing | get project) }
         return
     }
-    if ($env.ZELLIJ? | is-not-empty) {
-        error make { msg: "mux dash: run from outside a zellij session." }
+    if not $running {
+        # Can't socket-build before the (blocking) attach, so just start `default`; the next
+        # `mux dash` (with the server up) populates it.
+        print "mux dash: 'default' not running — starting it; re-run `mux dash` to add projects."
+        ^herdr
+        return
     }
-
-    # --force: SIGKILL a wedged server + drop its stale socket before the normal reset,
-    # for when the session is unresponsive and `delete-session` would otherwise hang.
-    if $force {
-        let killed = (force-kill-session "dash")
-        if ($killed | is-not-empty) { print $"mux dash: force-killed wedged server — pids ($killed | str join ', ')" }
+    for p in $missing {
+        herdr-ctl "default" ["workspace" "create" "--cwd" $p.root "--label" $p.project "--no-focus"]
     }
-
-    let sessions = (zellij-sessions)
-    if $reset and ("dash" in $sessions) {
-        ^zellij delete-session "dash" --force
-    }
-
-    # Create when resetting or when no preserved session exists; otherwise attach.
-    let creating = ($reset or ("dash" not-in $sessions))
-    let layout = (if $creating {
-        let folders = (dash-folders)
-        if ($folders | is-empty) {
-            error make { msg: $"mux dash: nothing to show — no ($env.HOME)/projects/*/workspace and no DASH_EXTRA dirs." }
-        }
-        let tmp = (($env.TMPDIR? | default "/tmp") | path join "mux-dash-input.kdl")
-        (dash-layout $folders) | save -f $tmp
-        $tmp
+    if ($env.HERDR_ENV? == "1") {
+        print $"dash: added ($missing | length) workspace\(s\) to 'default'. cmd+alt+space \(goto\) → default."
     } else {
-        null   # attach preserved session — launch ignores layout anyway
-    })
-
-    launch { session: "dash", root: $env.HOME, layout: $layout }
+        ^herdr session attach "default"
+    }
 }
 
 # --- entry points -----------------------------------------------------------
 
 def main [] {
+    if (which herdr | is-empty) {
+        error make { msg: "mux: herdr not found on PATH — mux requires herdr." }
+    }
     let r = (resolve)
-    if ($env.ZELLIJ? | is-not-empty) {
-        let current = ($env.ZELLIJ_SESSION_NAME? | default "")
-        if $current == $r.session {
-            print $"Already in session '($r.session)'."
-        } else {
-            print $"In session '($current)'. Toggle with Ctrl g, then Ctrl o w to switch to '($r.session)'."
-        }
+    let session = (target-session $r)
+    if ($env.HERDR_ENV? == "1") {
+        print $"In herdr. Press cmd+alt+space \(goto\) and pick '($session)' — or run mux from outside herdr to attach."
     } else {
-        launch $r
+        launch-herdr $r
     }
 }
 
 def "main reset" [--force] {
-    if ($env.ZELLIJ? | is-not-empty) {
-        error make { msg: "mux reset: run from outside a zellij session." }
+    if (which herdr | is-empty) {
+        error make { msg: "mux reset: herdr not found on PATH." }
+    }
+    if ($env.HERDR_ENV? == "1") {
+        error make { msg: "mux reset: run from outside herdr — deleting the attached session would kill this pane." }
     }
     let r = (resolve)
-    # --force: SIGKILL a wedged server + drop its stale socket first, so the delete below
-    # can't hang on an unresponsive session.
-    if $force {
-        let killed = (force-kill-session $r.session)
-        if ($killed | is-not-empty) { print $"mux reset: force-killed wedged server — pids ($killed | str join ', ')" }
+    let session = (target-session $r)
+    # Full teardown: a running session can't be deleted, so stop first, then delete.
+    if (herdr-session-exists $session) {
+        do -i { ^herdr session stop $session }
+        do -i { ^herdr session delete $session }
     }
-    if ($r.session in (zellij-sessions)) {
-        ^zellij delete-session $r.session --force
-    }
-    launch $r
-}
-
-def "main init" [] {
-    let target = ([$env.PWD ".zellij.kdl"] | path join)
-    if ($target | path exists) {
-        error make { msg: $"mux init: ($target) already exists — refusing to overwrite." }
-    }
-    # Single working tab (live shell | overview); bar chrome injected at launch (merge-layout).
-    let body = (default-body | lines | each {|l| $"        ($l)" } | str join "\n")
-    $"layout {\n    tab name=\"edit\" {\n($body)\n    }\n}\n" | save $target
-    print $"Wrote ($target)"
+    launch-herdr $r
 }
 
 def "main dash" [--dry-run] { open-dash --dry-run=$dry_run }
-def "main dash reset" [--force] { open-dash --reset --force=$force }
-
-def "main dash init" [] {
-    let target = ([$env.PWD ".zellij-dash.kdl"] | path join)
-    if ($target | path exists) {
-        error make { msg: $"mux dash init: ($target) already exists — refusing to overwrite." }
-    }
-    # Dash tab body (suspended shell | overview); used as a folder's dash tab via dash-tab.
-    default-body --suspended | save $target
-    print $"Wrote ($target)"
-}

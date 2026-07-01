@@ -97,71 +97,7 @@
   "enabledMcpjsonServers": [
     "github"
   ],
-  "hooks": {
-    "UserPromptSubmit": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "sh -c '[ -n \"$ZELLIJ\" ] && zellij pipe --name \"zellij-attention::working::$ZELLIJ_PANE_ID\" || true'"
-          }
-        ]
-      }
-    ],
-    "PreToolUse": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "sh -c '[ -n \"$ZELLIJ\" ] && zellij pipe --name \"zellij-attention::working::$ZELLIJ_PANE_ID\" || true'"
-          }
-        ]
-      }
-    ],
-    "PostToolUse": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "sh -c '[ -n \"$ZELLIJ\" ] && zellij pipe --name \"zellij-attention::working::$ZELLIJ_PANE_ID\" || true'"
-          }
-        ]
-      }
-    ],
-    "PermissionRequest": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "sh -c '[ -n \"$ZELLIJ\" ] && zellij pipe --name \"zellij-attention::attention::$ZELLIJ_PANE_ID\" || true'"
-          }
-        ]
-      }
-    ],
-    "Stop": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "sh -c '[ -n \"$ZELLIJ\" ] && zellij pipe --name \"zellij-attention::done::$ZELLIJ_PANE_ID\" || true'"
-          }
-        ]
-      }
-    ],
-    "SessionEnd": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "sh -c '[ -n \"$ZELLIJ\" ] && zellij pipe --name \"zellij-attention::clear::$ZELLIJ_PANE_ID\" || true'"
-          }
-        ]
-      }
-    ]
-  },
+  "hooks": {},
   "statusLine": {
     "type": "command",
     "command": "~/.claude/statusline.sh",

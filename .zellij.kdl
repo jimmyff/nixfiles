@@ -1,8 +1,0 @@
-layout {
-    tab name="edit" {
-        pane
-    }
-    tab name="git" {
-        pane
-    }
-}

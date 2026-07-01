@@ -10,7 +10,6 @@
     ./kitty/kitty.nix
     ./rio/rio.nix
     ./alacritty/alacritty.nix
-    ./zellij/zellij.nix
     ./herdr/herdr.nix
     ./mux/mux.nix
     ./chromium/chromium.nix
@@ -44,7 +43,6 @@
   kitty_module.enable = lib.mkDefault true;
   rio_module.enable = lib.mkDefault false;
   alacritty_module.enable = lib.mkDefault false;
-  zellij_module.enable = lib.mkDefault true;
   herdr_module.enable = lib.mkDefault true;
   mux_module.enable = lib.mkDefault true;
 

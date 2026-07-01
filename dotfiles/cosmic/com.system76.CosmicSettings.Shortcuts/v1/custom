@@ -9,7 +9,7 @@
     // ── Disable window stacking (the "tabs") ──────────────────────────────
     (modifiers: [Super], key: "s"): Disable,
 
-    // ── Free Super+Alt+hjkl/arrows for zellij pane nav + workspace moves ──
+    // ── Free Super+Alt+hjkl/arrows for herdr pane nav + workspace moves ──
     //    (COSMIC default: SwitchOutput / MoveToOutput)
     (modifiers: [Super, Alt], key: "h"): Disable,
     (modifiers: [Super, Alt], key: "j"): Disable,
@@ -28,7 +28,7 @@
     (modifiers: [Super, Shift, Alt], key: "Up"): Disable,
     (modifiers: [Super, Shift, Alt], key: "Right"): Disable,
 
-    // ── Free Super+Ctrl+hjkl for zellij tab switching ─────────────────────
+    // ── Free Super+Ctrl+hjkl for herdr tab switching ──────────────────────
     //    (COSMIC default: Previous/NextWorkspace)
     (modifiers: [Super, Ctrl], key: "h"): Disable,
     (modifiers: [Super, Ctrl], key: "j"): Disable,
