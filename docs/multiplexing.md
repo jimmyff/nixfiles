@@ -59,12 +59,19 @@ with **`herdr server reload-config`** — the persistent server does not auto-re
 | `mux` / `x` | launch or attach the project session for the cwd |
 | `mux reset` | delete the session, then relaunch (run from **outside** herdr) |
 | `mux dash` | populate the `default` session with a terminal per project root, then attach |
+| `mux worktree open <name>` | open (or focus) a worktree as a workspace (run **inside** herdr) |
+| `mux worktree add <name>` | `glitter worktree add <name>`, then open it (**inside** herdr) |
+| `mux worktree all` | open every worktree of the current project (**inside** herdr) |
 
 - **Session name:** `$MUX_SESSION` → the project (the `~/projects/<name>` dir holding `.bare`) →
   cwd basename for anything outside `~/projects`.
 - **Worktree:** enumerated from `glittering worktree list --cached` (raw `git worktree list`
-  fallback); `mux` lands in the cwd's worktree, or `main` at a project root. herdr then owns
-  worktree create/switch (⌘⌃ `j`/`k`, the workspace picker, new-workspace).
+  fallback); `mux` lands in the cwd's worktree, or `main` at a project root. Switch open worktrees
+  with ⌘⌃ `j`/`k` or the workspace picker.
+- **Adding worktrees:** `glitter worktree add <name>` (sets up submodules/cache/`pub get`), then
+  `mux worktree open <name>`. herdr's native `worktree open`/`new_worktree` **don't** work with the
+  bare-repo layout (`linked_worktree_source` — no non-linked parent), so `mux worktree` opens them
+  as plain workspaces (`workspace create --cwd`).
 - herdr can't populate a session before its (blocking) attach, so `mux` lands herdr's default
   pane — run `glitter overview` for worktree status.
 

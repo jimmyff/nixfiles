@@ -9,6 +9,9 @@
 #   mux reset [--force]   delete the resolved session then relaunch (run from OUTSIDE herdr)
 #   mux dash [--dry-run]  ensure the always-running `default` session has one terminal per
 #               project root, then attach to it (a cross-project hub)
+#   mux worktree open <name>   open (or focus) a worktree as a workspace here (run inside herdr)
+#   mux worktree add <name>    delegate to `glitter worktree add`, then open it (run inside herdr)
+#   mux worktree all           open every worktree of the current project (run inside herdr)
 #
 # Worktree enumeration comes from `glittering worktree list --cached` (raw `git worktree list`
 # fallback). herdr can't populate a session before its (blocking) attach, so `mux` lands herdr's
@@ -162,6 +165,28 @@ def landing-dir [r: record] {
     }
 }
 
+# Background: once <session> comes up with a single (fresh) workspace, label it <session> so the
+# sidebar shows the project. Create-path only; runs during the blocking attach, then exits. Silent
+# (socket calls only). Skips multi-workspace sessions so per-worktree labels aren't clobbered.
+def label-workspace-bg [session: string] {
+    job spawn {
+        mut tries = 0
+        loop {
+            $tries = $tries + 1
+            if $tries >= 50 { return }
+            sleep 100ms
+            if not (herdr-running $session) { continue }
+            let r = (herdr-ctl $session ["workspace" "list"])
+            if ($r == null) or ($r.exit_code != 0) { continue }
+            let wss = ($r.stdout | from json | get result.workspaces)
+            if ($wss | is-empty) { continue }
+            if (($wss | length) != 1) { return }        # multi-worktree → leave labels alone
+            let rr = (herdr-ctl $session ["workspace" "rename" ($wss | first | get workspace_id) $session])
+            if ($rr != null) and ($rr.exit_code == 0) { return }
+        }
+    }
+}
+
 # Create-or-attach the session, landing at the right dir. BLOCKING (TUI handover).
 def launch-herdr [r: record] {
     let session = (target-session $r)
@@ -169,6 +194,7 @@ def launch-herdr [r: record] {
         ^herdr session attach $session
     } else {
         cd (landing-dir $r)
+        label-workspace-bg $session
         ^herdr --session $session
     }
 }
@@ -229,6 +255,39 @@ def open-dash [--dry-run] {
     }
 }
 
+# --- worktree ops (open worktrees as workspaces in the CURRENT running session) -------------
+
+# Guard/context for `mux worktree *`: require herdr + being inside a session + a project.
+def worktree-ctx [] {
+    if (which herdr | is-empty) {
+        error make { msg: "mux worktree: herdr not found on PATH." }
+    }
+    if ($env.HERDR_ENV? != "1") {
+        error make { msg: "mux worktree: run inside herdr — it opens in the current session." }
+    }
+    let r = (resolve)
+    if ($r.kind == "other") {
+        error make { msg: "mux worktree: not inside a ~/projects/* project." }
+    }
+    $r
+}
+
+# Open <path> as a workspace labelled <label> in the current session (HERDR_SOCKET_PATH inherited
+# from the pane), or focus it if a workspace with that label already exists. The `.bare` layout
+# can't use `herdr worktree open` (linked_worktree_source), so this uses plain `workspace create`.
+def open-worktree-ws [path: string, label: string, --focus] {
+    let cur = (do -i { ^herdr workspace list | complete })
+    let open = (if ($cur != null) and ($cur.exit_code == 0) {
+        $cur.stdout | from json | get result.workspaces | where label == $label | get 0?
+    } else { null })
+    if ($open != null) {
+        if $focus { ^herdr workspace focus $open.workspace_id }
+    } else {
+        let foc = (if $focus { "--focus" } else { "--no-focus" })
+        ^herdr workspace create --cwd $path --label $label $foc
+    }
+}
+
 # --- entry points -----------------------------------------------------------
 
 def main [] {
@@ -262,3 +321,45 @@ def "main reset" [--force] {
 }
 
 def "main dash" [--dry-run] { open-dash --dry-run=$dry_run }
+
+def "main worktree" [] {
+    print "mux worktree: open <name> | add <name> [glitter flags] | all"
+}
+
+# Open (or focus) an existing worktree as a workspace in the current session.
+def "main worktree open" [name: string] {
+    let r = (worktree-ctx)
+    let wt = ($r.worktrees | where name == $name | get 0?)
+    if ($wt == null) {
+        error make { msg: $"mux worktree: no '($name)' in '($r.project)' — create it with: glitter worktree add ($name)" }
+    }
+    open-worktree-ws $wt.path $name --focus
+}
+
+# Delegate creation to glittering (owns lifecycle; extra flags pass through), then open it.
+def "main worktree add" [name: string, ...rest: string] {
+    let r = (worktree-ctx)
+    let res = (do -i { ^glittering worktree add --path $r.root ...$rest $name | complete })
+    if ($res == null) {
+        error make { msg: "mux worktree add: could not run glittering." }
+    }
+    if ($res.exit_code not-in [0 3]) {
+        error make { msg: $"mux worktree add: glittering failed \(exit ($res.exit_code)\): ($res.stderr)" }
+    }
+    let out = ($res.stdout | from json)
+    if ($res.exit_code == 3) {
+        print $"⚠ created '($out.name)' \(degraded\): ($out.warnings? | default [] | str join '; ')"
+    } else {
+        print $"created worktree '($out.name)'"
+    }
+    open-worktree-ws $out.path $out.name --focus
+}
+
+# Open every worktree of the current project as a workspace (dedupe by label).
+def "main worktree all" [] {
+    let r = (worktree-ctx)
+    for wt in $r.worktrees {
+        open-worktree-ws $wt.path $wt.name
+    }
+    print $"($r.worktrees | length) worktree\(s\) open in '($r.project)'."
+}
