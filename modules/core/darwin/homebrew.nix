@@ -39,6 +39,7 @@
 
     casks = [
       "camo-studio"
+      "inkscape"
       "signal"
       "ungoogled-chromium"
     ];
