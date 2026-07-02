@@ -144,7 +144,8 @@ ${lib.optionalString pkgs-apps.stdenv.isDarwin ''
             "projects" = "🚀";
             "workspace" = "🛠️";
             "apps" = "📱";
-            "cloud" = "☁️";
+            "/cloud/" = "/☁️/"; # cloud as a directory component (~/cloud/…, …/cloud/run/…)
+            "~/cloud" = "~/☁️"; # the ~/cloud mount, incl. when it's the current dir
             "packages" = "📦";
           };
         };

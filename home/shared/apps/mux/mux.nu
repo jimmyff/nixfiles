@@ -1,29 +1,33 @@
-# mux — herdr workspace launcher (worktree-aware)
+# mux — herdr hub launcher (worktree-aware)
 #
-# Resolves a herdr session + landing dir from the current directory, then attaches to (or
-# creates) the matching herdr session. A project (a ~/projects/<name> dir containing `.bare`)
-# maps to a herdr session; each git worktree is a herdr workspace — herdr manages the
-# worktree↔workspace binding natively (see docs/multiplexing.md).
+# One always-on `hub` session you curate: `pin` a project to add all its git worktrees as
+# workspaces (labelled `<project>/<worktree>`), `unpin` to remove them. A project is a
+# ~/projects/<name> dir containing `.bare`; each worktree is a herdr workspace. One hub ⇒ one
+# agent sidebar across every project you're actively working on (see docs/multiplexing.md).
 #
-#   mux         launch/attach the herdr session for the current directory
-#   mux reset [--force]   delete the resolved session then relaunch (run from OUTSIDE herdr)
-#   mux dash [--dry-run]  ensure the always-running `default` session has one terminal per
-#               project root, then attach to it (a cross-project hub)
-#   mux worktree open <name>   open (or focus) a worktree as a workspace here (run inside herdr)
-#   mux worktree add <name>    delegate to `glitter worktree add`, then open it (run inside herdr)
-#   mux worktree all           open every worktree of the current project (run inside herdr)
+#   mux                    attach (or create) the hub
+#   mux <project>          pin <project> if absent, focus its main, then attach the hub
+#   mux pin <project>      add a hub workspace per worktree of <project> (idempotent)
+#   mux unpin <project>    close the hub's <project>/* workspaces (view-only — git untouched)
+#   mux --project [name]   dedicated per-project session, all worktrees (cwd if no name)
+#   mux reset | --reset    delete the hub then recreate it (run from OUTSIDE herdr)
+#   mux --project --reset  same, for the resolved project session
+#   mux worktree open <name>   open (or focus) a worktree as a workspace (run inside herdr)
+#   mux worktree add <name>    delegate to `glitter worktree add`, then open it (inside herdr)
+#   mux worktree all           open every worktree of the current project (inside herdr)
 #
-# Worktree enumeration comes from `glittering worktree list --cached` (raw `git worktree list`
-# fallback). herdr can't populate a session before its (blocking) attach, so `mux` lands herdr's
-# default pane — run `glitter overview` for worktree status. Only an already-running session
-# accepts socket builds, so `mux dash` populates the always-on `default` session.
+# pin/unpin and `mux <project>` are HUB-SCOPED: they target the hub's socket directly (via
+# herdr-ctl), so they behave identically from inside the hub, another session, or outside herdr —
+# the hub must already be running (`mux` creates it). Worktree enumeration comes from
+# `glittering worktree list --cached` (raw `git worktree list` fallback).
 #
-# Override: $env.MUX_SESSION sets the session name explicitly.
+# Override: $env.MUX_SESSION sets the per-project session name explicitly.
 #
 # Only `const`/`def` at top level — so `nu -c 'source mux.nu'` parse-checks without running.
 
-# Always-on `mux dash` folders beyond ~/projects/*/.bare (expanded; skipped if absent).
-const DASH_EXTRA = ["~/nixfiles"]
+# The always-on hub session `mux` attaches by default and curates via pin/unpin. Named `hub`
+# (not `default`) so it's cleanly resettable and leaves herdr's `default` as scratch.
+const HUB = "hub"
 
 # session names must be [A-Za-z0-9_-]; collapse runs and strip edge dashes
 def sanitize []: string -> string {
@@ -120,6 +124,22 @@ def target-session [r: record] {
     ($r.session_override | default $r.project) | sanitize
 }
 
+# Resolve a project BY NAME (~/projects/<name>) to a `resolve`-shaped record, or null if it has no
+# `.bare`. Raw name for the path; sanitized for labels/session. Used by pin, the `mux <project>`
+# sugar, and `mux --project <name>`.
+def project-by-name [name: string] {
+    let root = ([$env.HOME "projects" $name] | path join)
+    if not (([$root ".bare"] | path join) | path exists) { return null }
+    {
+        kind: "project",
+        project: ($name | sanitize),
+        root: $root,
+        worktree: null,
+        worktrees: (worktrees $root),
+        session_override: ($env.MUX_SESSION? | default null),
+    }
+}
+
 # --- herdr backend (Tier 0: create/attach only — no socket build) -----------
 
 # Socket path for an existing named session, or null. Source of truth for scoping.
@@ -153,6 +173,33 @@ def herdr-ctl [session: string, args: list<string>] {
     with-env { HERDR_SOCKET_PATH: $sock } { do -i { ^herdr ...$args | complete } }
 }
 
+# Guard for hub-scoped ops: the hub must be running (socket builds need a live server — a session
+# can't be populated before its first blocking attach). `mux` creates it.
+def require-hub [] {
+    if (which herdr | is-empty) {
+        error make { msg: "mux: herdr not found on PATH." }
+    }
+    if not (herdr-running $HUB) {
+        error make { msg: $"mux: the hub is not running — run `mux` once to create it, then retry." }
+    }
+}
+
+# Full teardown of a session: stop (a running session can't be deleted) then delete. Idempotent.
+def teardown-session [session: string] {
+    if (herdr-session-exists $session) {
+        do -i { ^herdr session stop $session }
+        do -i { ^herdr session delete $session }
+    }
+}
+
+# Pre-authorize <path>/.envrc (if present + direnv installed) so a just-CREATED worktree's devshell
+# loads without a manual `direnv allow`. Only called for worktrees mux itself creates (`worktree add`).
+def direnv-allow [path: string] {
+    if (which direnv | is-empty) { return }
+    let rc = ([$path ".envrc"] | path join)
+    if ($rc | path exists) { do -i { ^direnv allow $rc } }
+}
+
 # Landing dir for a resolved record (worktree path; else prefer `main`; else root).
 def landing-dir [r: record] {
     if ($r.worktree != null) {
@@ -165,10 +212,23 @@ def landing-dir [r: record] {
     }
 }
 
-# Background: once <session> comes up with a single (fresh) workspace, label it <session> so the
-# sidebar shows the project. Create-path only; runs during the blocking attach, then exits. Silent
-# (socket calls only). Skips multi-workspace sessions so per-worktree labels aren't clobbered.
-def label-workspace-bg [session: string] {
+# Worktree NAME mux would land on (cwd's worktree; else `main`; else first; else null when there
+# are no worktrees). Mirrors `landing-dir`'s preference so the initial label and landing agree.
+def landing-worktree-name [r: record] {
+    if ($r.worktree != null) {
+        $r.worktree.name
+    } else if (($r.worktrees | length) > 0) {
+        let main = ($r.worktrees | where name == "main")
+        if ($main | is-not-empty) { "main" } else { $r.worktrees | first | get name }
+    } else {
+        null
+    }
+}
+
+# Background: once <session> comes up with a single (fresh) workspace, rename it to <label> so the
+# sidebar shows `<project>/<worktree>`. Create-path only; runs during the blocking attach, then
+# exits. Silent (socket calls only). Skips multi-workspace sessions so labels aren't clobbered.
+def label-workspace-bg [session: string, label: string] {
     job spawn {
         mut tries = 0
         loop {
@@ -180,41 +240,37 @@ def label-workspace-bg [session: string] {
             if ($r == null) or ($r.exit_code != 0) { continue }
             let wss = ($r.stdout | from json | get result.workspaces)
             if ($wss | is-empty) { continue }
-            if (($wss | length) != 1) { return }        # multi-worktree → leave labels alone
-            let rr = (herdr-ctl $session ["workspace" "rename" ($wss | first | get workspace_id) $session])
+            if (($wss | length) != 1) { return }        # multi-workspace → leave labels alone
+            let rr = (herdr-ctl $session ["workspace" "rename" ($wss | first | get workspace_id) $label])
             if ($rr != null) and ($rr.exit_code == 0) { return }
         }
     }
 }
 
-# Create-or-attach the session, landing at the right dir. BLOCKING (TUI handover).
+# Create-or-attach the per-project session, landing at the right dir. BLOCKING (TUI handover).
 def launch-herdr [r: record] {
     let session = (target-session $r)
     if (herdr-running $session) {
         ^herdr session attach $session
     } else {
+        let land = (landing-worktree-name $r)
+        let label = (if ($land == null) { $session } else { $"($r.project)/($land)" })
         cd (landing-dir $r)
-        label-workspace-bg $session
+        label-workspace-bg $session $label
         ^herdr --session $session
     }
 }
 
-# --- dash (cross-project hub: one terminal per project root) ----------------
+# --- hub (curated cross-project session: pin/unpin projects as worktree workspaces) ---------
 
-# All dash entries: ~/projects/*/ containing `.bare`, plus existing DASH_EXTRA folders.
+# All pinnable projects: ~/projects/*/ containing `.bare`. Used for "available projects" hints.
 def all-projects [] {
     let base = ([$env.HOME "projects"] | path join)
-    let projects = (if ($base | path exists) {
-        ls $base | where type == dir | get name
-        | where {|d| ([$d ".bare"] | path join) | path exists }
-        | each {|d| { project: ($d | path basename | sanitize), root: $d } }
-        | sort-by project
-    } else { [] })
-    let extra = ($DASH_EXTRA
-        | each {|p| $p | path expand }
-        | where {|d| $d | path exists }
-        | each {|d| { project: ($d | path basename | sanitize), root: $d } })
-    $projects | append $extra
+    if not ($base | path exists) { return [] }
+    ls $base | where type == dir | get name
+    | where {|d| ([$d ".bare"] | path join) | path exists }
+    | each {|d| { project: ($d | path basename | sanitize), root: $d } }
+    | sort-by project
 }
 
 # Labels of the workspaces currently in <session> (idempotent dedupe), or [] if absent.
@@ -224,35 +280,108 @@ def session-workspaces [session: string] {
     $r.stdout | from json | get result.workspaces | each {|w| $w.label }
 }
 
-# Cross-project hub. herdr can't build a session before attaching, so the hub lives in the
-# always-running `default` session: ensure a workspace (a terminal at the project root) for every
-# project, then attach. Idempotent — only missing projects are added (dedupe by label).
-def open-dash [--dry-run] {
-    if (which herdr | is-empty) {
-        error make { msg: "mux dash: herdr not found on PATH." }
-    }
-    let running = (herdr-running "default")
-    let existing = (if $running { session-workspaces "default" } else { [] })
-    let missing = (all-projects | where {|p| $p.project not-in $existing })
-    if $dry_run {
-        print { hub: "default", running: $running, existing: $existing, would_add: ($missing | get project) }
-        return
-    }
-    if not $running {
-        # Can't socket-build before the (blocking) attach, so just start `default`; the next
-        # `mux dash` (with the server up) populates it.
-        print "mux dash: 'default' not running — starting it; re-run `mux dash` to add projects."
-        ^herdr
-        return
-    }
-    for p in $missing {
-        herdr-ctl "default" ["workspace" "create" "--cwd" $p.root "--label" $p.project "--no-focus"]
-    }
+# Full workspace records at a socket (need workspace_id/number for sort/unpin/focus), [] on failure.
+def workspaces-at [sock: string] {
+    if ($sock | is-empty) { return [] }
+    let r = (with-env { HERDR_SOCKET_PATH: $sock } { do -i { ^herdr workspace list | complete } })
+    if ($r == null) or ($r.exit_code != 0) { return [] }
+    $r.stdout | from json | get result.workspaces
+}
+
+# Socket of the session mux is currently inside (from the pane env), or null.
+def current-socket [] { $env.HERDR_SOCKET_PATH? | default null }
+
+def hub-workspaces [] { workspaces-at (session-socket $HUB) }
+
+# Attach (or create) the hub. BLOCKING when it hands over to the TUI. Inside herdr, just hint.
+def open-hub [] {
     if ($env.HERDR_ENV? == "1") {
-        print $"dash: added ($missing | length) workspace\(s\) to 'default'. cmd+alt+space \(goto\) → default."
-    } else {
-        ^herdr session attach "default"
+        print $"In herdr. Press cmd+alt+space \(goto\) and pick '($HUB)'."
+        return
     }
+    if (herdr-running $HUB) {
+        ^herdr session attach $HUB
+    } else {
+        # Fresh hub: land its lone default workspace in ~ (a neutral scratch shell, labelled `~`),
+        # independent of wherever `mux` was launched from.
+        cd $env.HOME
+        label-workspace-bg $HUB "~"
+        ^herdr --session $HUB
+    }
+}
+
+# Add a hub workspace per worktree of <rec>, labelled `<project>/<worktree>`. Idempotent (dedupe by
+# label against the hub). Hub-scoped via herdr-ctl. Returns the number added.
+def pin-project [rec: record] {
+    if ($rec.worktrees | is-empty) {
+        error make { msg: $"mux pin: '($rec.project)' has no worktrees — create one with: glitter worktree add main" }
+    }
+    let existing = (session-workspaces $HUB)
+    mut added = 0
+    for wt in $rec.worktrees {
+        let label = $"($rec.project)/($wt.name)"
+        if ($label in $existing) { continue }
+        herdr-ctl $HUB ["workspace" "create" "--cwd" $wt.path "--label" $label "--no-focus"]
+        $added = $added + 1
+    }
+    $added
+}
+
+# Focus the hub workspace for <project>: prefer `<project>/main`, else the lowest-numbered. No-op
+# if none are pinned. Hub-scoped.
+def focus-first [project: string] {
+    let mine = (hub-workspaces | where {|w| $w.label | str starts-with $"($project)/" })
+    if ($mine | is-empty) { return }
+    let main = ($mine | where label == $"($project)/main")
+    let pick = (if ($main | is-not-empty) { $main | first } else { $mine | sort-by number | first })
+    herdr-ctl $HUB ["workspace" "focus" $pick.workspace_id]
+}
+
+# Reorder the spaces at <sock> alphabetically by label (the `~` scratch shell kept first) via the
+# socket `workspace.move` method — herdr's CLI can't reorder. Best-effort: silent no-op if `nc` or
+# the socket is unavailable, or a move fails (never disrupts the layout). herdr serves one request
+# per connection, so this issues one short-lived `nc` call per moved workspace (~ms each). The
+# working list mirrors herdr's post-removal insert semantics, so only out-of-place spaces move.
+def sort-workspaces [sock: string] {
+    if (which nc | is-empty) { return }
+    if ($sock | is-empty) { return }
+    let wss = (workspaces-at $sock)
+    if (($wss | length) < 2) { return }
+    let desired = ($wss
+        | insert _k {|w| if ($w.label == "~") { "" } else { $w.label }}
+        | sort-by _k
+        | get workspace_id)
+    mut working = ($wss | sort-by number | get workspace_id)
+    for i in 0..(($desired | length) - 1) {
+        let want = ($desired | get $i)
+        if (($working | get $i) == $want) { continue }
+        let from = ($working | enumerate | where item == $want | get 0.index)
+        $working = ($working | drop nth $from | insert $i $want)
+        let body = ({ id: "mux-sort", method: "workspace.move", params: { workspace_id: $want, insert_index: $i } } | to json --raw)
+        do -i { ($body + "\n") | ^nc -U -w 2 $sock | ignore }
+    }
+}
+
+# Sort the hub's spaces (used after pin). Hub-scoped.
+def sort-hub [] { sort-workspaces (session-socket $HUB) }
+
+# Tear down the hub and recreate it fresh (a single `~` shell). Run from OUTSIDE herdr (resetting
+# the attached session would kill this pane).
+def reset-hub [] {
+    if ($env.HERDR_ENV? == "1") {
+        error make { msg: "mux reset: run from outside herdr — resetting the hub would kill this pane." }
+    }
+    teardown-session $HUB
+    open-hub
+}
+
+# Tear down a per-project session and relaunch it. Run from OUTSIDE herdr.
+def reset-project [rec: record] {
+    if ($env.HERDR_ENV? == "1") {
+        error make { msg: "mux --project --reset: run from outside herdr — deleting the attached session would kill this pane." }
+    }
+    teardown-session (target-session $rec)
+    launch-herdr $rec
 }
 
 # --- worktree ops (open worktrees as workspaces in the CURRENT running session) -------------
@@ -290,37 +419,92 @@ def open-worktree-ws [path: string, label: string, --focus] {
 
 # --- entry points -----------------------------------------------------------
 
-def main [] {
+def main [name?: string, --project, --reset] {
     if (which herdr | is-empty) {
         error make { msg: "mux: herdr not found on PATH — mux requires herdr." }
     }
-    let r = (resolve)
-    let session = (target-session $r)
-    if ($env.HERDR_ENV? == "1") {
-        print $"In herdr. Press cmd+alt+space \(goto\) and pick '($session)' — or run mux from outside herdr to attach."
-    } else {
-        launch-herdr $r
+    if $project {
+        # dedicated per-project session, all worktrees (cwd if no name)
+        let rec = (if ($name != null) { project-by-name $name } else { resolve })
+        if ($rec == null) {
+            error make { msg: $"mux --project: no project '($name)' in ~/projects." }
+        }
+        if $reset { reset-project $rec } else { launch-herdr $rec }
+        return
     }
+    # hub mode
+    if $reset { reset-hub; return }
+    if ($name != null) {
+        require-hub
+        let rec = (project-by-name $name)
+        if ($rec == null) {
+            error make { msg: $"mux: no project '($name)' in ~/projects. Available: (all-projects | get project | str join ', ')" }
+        }
+        pin-project $rec
+        sort-hub
+        focus-first $rec.project
+        if ($env.HERDR_ENV? == "1") {
+            print $"pinned & focused '($rec.project)'. cmd+alt+space \(goto\) → '($HUB)'."
+        } else {
+            ^herdr session attach $HUB
+        }
+        return
+    }
+    open-hub
 }
 
+# Add <project>'s worktrees to the hub as workspaces (idempotent). Hub-scoped: works from anywhere
+# (inside the hub, another session, or outside herdr) as long as the hub is running.
+def "main pin" [project: string] {
+    require-hub
+    let rec = (project-by-name $project)
+    if ($rec == null) {
+        error make { msg: $"mux pin: no project '($project)' in ~/projects. Available: (all-projects | get project | str join ', ')" }
+    }
+    let n = (pin-project $rec)
+    sort-hub
+    print $"pin: added ($n) workspace\(s\) for '($rec.project)' to the hub."
+}
+
+# Close the hub's <project>/* workspaces. VIEW-ONLY — never removes git worktrees. Hub-scoped.
+def "main unpin" [project: string] {
+    require-hub
+    let prefix = $"(($project | sanitize))/"
+    let mine = (hub-workspaces | where {|w| $w.label | str starts-with $prefix })
+    if ($mine | is-empty) {
+        print $"unpin: nothing pinned for '($project)'."
+        return
+    }
+    for w in $mine {
+        herdr-ctl $HUB ["workspace" "close" $w.workspace_id]
+    }
+    print $"unpin: closed ($mine | length) workspace\(s\) for '($project)' \(view-only — git worktrees untouched\)."
+}
+
+# Reorder spaces alphabetically. Inside herdr: sorts the current session (hub OR project session).
+# Outside herdr: sorts the hub. (mux already auto-sorts after pin and worktree ops — this is manual.)
+def "main sort" [] {
+    if (which herdr | is-empty) { error make { msg: "mux sort: herdr not found on PATH." } }
+    let sock = (if ($env.HERDR_ENV? == "1") { current-socket } else { session-socket $HUB })
+    if ($sock == null) {
+        error make { msg: "mux sort: no live session — run inside herdr (sorts the current session), or with the hub running (sorts the hub)." }
+    }
+    sort-workspaces $sock
+    print "sorted spaces alphabetically."
+}
+
+# Reset the hub (alias for `mux --reset`). `--force` accepted for compatibility (unused).
 def "main reset" [--force] {
     if (which herdr | is-empty) {
         error make { msg: "mux reset: herdr not found on PATH." }
     }
-    if ($env.HERDR_ENV? == "1") {
-        error make { msg: "mux reset: run from outside herdr — deleting the attached session would kill this pane." }
-    }
-    let r = (resolve)
-    let session = (target-session $r)
-    # Full teardown: a running session can't be deleted, so stop first, then delete.
-    if (herdr-session-exists $session) {
-        do -i { ^herdr session stop $session }
-        do -i { ^herdr session delete $session }
-    }
-    launch-herdr $r
+    reset-hub
 }
 
-def "main dash" [--dry-run] { open-dash --dry-run=$dry_run }
+# Removed: the hub is the default now. Stub kept to redirect muscle memory.
+def "main dash" [] {
+    print "mux dash was removed — the hub is the default now: `mux` attaches it, `mux pin <project>` adds a project (per-worktree), `mux unpin <project>` removes it."
+}
 
 def "main worktree" [] {
     print "mux worktree: open <name> | add <name> [glitter flags] | all"
@@ -333,7 +517,8 @@ def "main worktree open" [name: string] {
     if ($wt == null) {
         error make { msg: $"mux worktree: no '($name)' in '($r.project)' — create it with: glitter worktree add ($name)" }
     }
-    open-worktree-ws $wt.path $name --focus
+    open-worktree-ws $wt.path $"($r.project)/($name)" --focus
+    sort-workspaces (current-socket)
 }
 
 # Delegate creation to glittering (owns lifecycle; extra flags pass through), then open it.
@@ -352,14 +537,17 @@ def "main worktree add" [name: string, ...rest: string] {
     } else {
         print $"created worktree '($out.name)'"
     }
-    open-worktree-ws $out.path $out.name --focus
+    direnv-allow $out.path        # trust the .envrc only for a worktree we just created
+    open-worktree-ws $out.path $"($r.project)/($out.name)" --focus
+    sort-workspaces (current-socket)
 }
 
 # Open every worktree of the current project as a workspace (dedupe by label).
 def "main worktree all" [] {
     let r = (worktree-ctx)
     for wt in $r.worktrees {
-        open-worktree-ws $wt.path $wt.name
+        open-worktree-ws $wt.path $"($r.project)/($wt.name)"
     }
+    sort-workspaces (current-socket)
     print $"($r.worktrees | length) worktree\(s\) open in '($r.project)'."
 }

@@ -19,6 +19,7 @@
     ./nu/nu.nix
     ./yazi/yazi.nix
     ./atuin/atuin.nix
+    ./television/television.nix
     ./thunderbird/thunderbird.nix
     ./iamb.nix
     ./ai.nix
@@ -53,6 +54,7 @@
   git_module.enable = lib.mkDefault true;
   atuin_module.enable = lib.mkDefault true;
   iamb_module.enable = lib.mkDefault true;
+  television_module.enable = lib.mkDefault true;
 
   home.packages = [
     pkgs-stable.wget
