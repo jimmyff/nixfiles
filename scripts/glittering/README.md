@@ -71,13 +71,14 @@ For projects in a bare-repo + worktree layout (`<proj>/.bare` + `<proj>/main`, `
 glittering worktree list --path <proj>             # JSON: per-worktree status + `removable`
 glittering worktree add <name> --path <proj>       # existing branch else off base; inits submodules
                                                    #   (object-shared via --reference --dissociate,
-                                                   #   parallel), seeds test/analyze/stats cache, pub get
+                                                   #   parallel), seeds test/analyze/stats cache, pub get,
+                                                   #   runs on-add hook
 glittering worktree remove <name> --path <proj>    # refuses base/current/dirty/unpushed; --force overrides
 glittering worktree prune --path <proj>            # remove merged+pushed worktrees (--dry-run)
 glittering worktree path <name> --path <proj>      # print absolute path (plain text, for cd)
 ```
 
-`add` makes a fresh worktree usable fast: submodule objects copied from the base worktree (self-contained, no network re-download of objects), slow test/analyze/stats caches seeded, `pub get` run. `--no-get` / `--no-share-objects` opt out.
+`add` makes a fresh worktree usable fast: submodule objects copied from the base worktree (self-contained, no network re-download of objects), slow test/analyze/stats caches seeded, `pub get` run. `--no-get` / `--no-share-objects` / `--no-hook` opt out. Finally it runs two optional on-add hooks (cwd = the new worktree) to provision gitignored local-dev files (secrets, tokens): a user-level `~/.config/glittering/hooks/worktree/on-add` for every project (e.g. to seed a shared `.mcp.json`), then the project's own `.glittering/hooks/worktree/on-add` from the base worktree — base-sourced, so a feature branch can't inject one and it auto-runs without a prompt. `--no-hook` skips both.
 
 ## Architecture
 

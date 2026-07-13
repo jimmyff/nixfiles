@@ -15,6 +15,14 @@ import (
 func setupWorktreeProject(t *testing.T, subNames ...string) string {
 	t.Helper()
 	t.Setenv("XDG_CACHE_HOME", t.TempDir())
+	// Isolate the global on-add hook lookup. This also hides ~/.config/git/config,
+	// so provide an explicit git identity via env (hermetic — no dependency on the
+	// runner's git config).
+	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
+	t.Setenv("GIT_AUTHOR_NAME", "glittering-test")
+	t.Setenv("GIT_AUTHOR_EMAIL", "test@example.com")
+	t.Setenv("GIT_COMMITTER_NAME", "glittering-test")
+	t.Setenv("GIT_COMMITTER_EMAIL", "test@example.com")
 	t.Setenv("GIT_CONFIG_COUNT", "1")
 	t.Setenv("GIT_CONFIG_KEY_0", "protocol.file.allow")
 	t.Setenv("GIT_CONFIG_VALUE_0", "always")
@@ -178,6 +186,9 @@ func TestWorktreeAddAndList(t *testing.T) {
 	if !add.CacheSeeded {
 		t.Error("expected cache seeded from main (main has no cache yet?)")
 	}
+	if add.OnAddHook != "" {
+		t.Errorf("no hook present, on_add_hook should be empty, got %q", add.OnAddHook)
+	}
 
 	// Object sharing was dissociated → no alternates file.
 	alt := filepath.Join(proj, ".bare", "worktrees", "feat", "modules", "sub", "objects", "info", "alternates")
@@ -232,6 +243,200 @@ func TestWorktreeAddCollision(t *testing.T) {
 	}
 	if code, _ := runWorktree(t, "add", "../escape", "--no-get", "--path", proj); code != ExitUsage {
 		t.Errorf("traversing name should be ExitUsage, got %d", code)
+	}
+}
+
+// --- on-add hook ---
+
+// The hook writes the three GLITTER_* env vars to a RELATIVE path; it landing in
+// the new worktree is direct proof cwd was the new worktree. Untracked in main.
+func TestWorktreeAddHookRunsWithEnv(t *testing.T) {
+	proj := setupWorktreeProject(t)
+	main := eval(t, filepath.Join(proj, "main"))
+	writeOnAddHook(t, main, `#!/bin/sh
+printf '%s\n%s\n%s\n' "$GLITTER_WORKTREE_PATH" "$GLITTER_BASE_WORKTREE" "$GLITTER_PROJECT_DIR" > ./hook-env
+`, 0o755)
+
+	code, out := runWorktree(t, "add", "feat", "--no-get", "--path", proj)
+	if code != ExitOK {
+		t.Fatalf("add exit %d: %s", code, out)
+	}
+	var add WorktreeAddOutput
+	mustJSON(t, out, &add)
+	if add.OnAddHook != "ok" {
+		t.Fatalf("on_add_hook = %q, want ok; warnings=%v", add.OnAddHook, add.Warnings)
+	}
+
+	feat := eval(t, filepath.Join(proj, "feat"))
+	data, err := os.ReadFile(filepath.Join(feat, "hook-env"))
+	if err != nil {
+		t.Fatalf("hook-env not written inside new worktree: %v", err)
+	}
+	lines := strings.Split(strings.TrimSpace(string(data)), "\n")
+	if len(lines) != 3 {
+		t.Fatalf("expected 3 env lines, got %d: %q", len(lines), string(data))
+	}
+	if lines[0] != feat {
+		t.Errorf("GLITTER_WORKTREE_PATH = %q, want %q", lines[0], feat)
+	}
+	if lines[1] != main {
+		t.Errorf("GLITTER_BASE_WORKTREE = %q, want %q", lines[1], main)
+	}
+	if lines[2] != eval(t, proj) {
+		t.Errorf("GLITTER_PROJECT_DIR = %q, want %q", lines[2], eval(t, proj))
+	}
+}
+
+func TestWorktreeAddHookFailureNonFatal(t *testing.T) {
+	proj := setupWorktreeProject(t)
+	writeOnAddHook(t, eval(t, filepath.Join(proj, "main")), `#!/bin/sh
+exit 1
+`, 0o755)
+
+	code, out := runWorktree(t, "add", "feat", "--no-get", "--path", proj)
+	var add WorktreeAddOutput
+	mustJSON(t, out, &add)
+	if add.OnAddHook != "failed" {
+		t.Errorf("on_add_hook = %q, want failed", add.OnAddHook)
+	}
+	if !add.Success {
+		t.Error("hook failure must be non-fatal (Success stays true)")
+	}
+	if code != ExitOK {
+		t.Errorf("exit = %d, want ExitOK (hook failure is non-fatal)", code)
+	}
+	if !hasWarning(add.Warnings, "hook") {
+		t.Errorf("expected a warning mentioning the hook, got %v", add.Warnings)
+	}
+}
+
+func TestWorktreeAddHookNotExecutable(t *testing.T) {
+	proj := setupWorktreeProject(t)
+	writeOnAddHook(t, eval(t, filepath.Join(proj, "main")), `#!/bin/sh
+touch ./hook-ran
+`, 0o644)
+
+	_, out := runWorktree(t, "add", "feat", "--no-get", "--path", proj)
+	var add WorktreeAddOutput
+	mustJSON(t, out, &add)
+	if add.OnAddHook != "not_executable" {
+		t.Errorf("on_add_hook = %q, want not_executable", add.OnAddHook)
+	}
+	if !hasWarning(add.Warnings, "hook") {
+		t.Errorf("expected a warning mentioning the hook, got %v", add.Warnings)
+	}
+	if _, err := os.Stat(filepath.Join(eval(t, filepath.Join(proj, "feat")), "hook-ran")); err == nil {
+		t.Error("non-executable hook must not run")
+	}
+}
+
+func TestWorktreeAddHookSkipped(t *testing.T) {
+	proj := setupWorktreeProject(t)
+	writeOnAddHook(t, eval(t, filepath.Join(proj, "main")), `#!/bin/sh
+touch ./hook-ran
+`, 0o755)
+
+	_, out := runWorktree(t, "add", "feat", "--no-get", "--no-hook", "--path", proj)
+	var add WorktreeAddOutput
+	mustJSON(t, out, &add)
+	if add.OnAddHook != "skipped" {
+		t.Errorf("on_add_hook = %q, want skipped", add.OnAddHook)
+	}
+	if hasWarning(add.Warnings, "hook") {
+		t.Errorf("--no-hook should not warn about the hook, got %v", add.Warnings)
+	}
+	if _, err := os.Stat(filepath.Join(eval(t, filepath.Join(proj, "feat")), "hook-ran")); err == nil {
+		t.Error("--no-hook must not run the hook")
+	}
+}
+
+// The global (user-level) hook runs for every project, even with no project hook.
+func TestWorktreeAddGlobalHookRuns(t *testing.T) {
+	proj := setupWorktreeProject(t)
+	writeGlobalOnAddHook(t, `#!/bin/sh
+touch ./global-ran
+`, 0o755)
+
+	code, out := runWorktree(t, "add", "feat", "--no-get", "--path", proj)
+	if code != ExitOK {
+		t.Fatalf("add exit %d: %s", code, out)
+	}
+	var add WorktreeAddOutput
+	mustJSON(t, out, &add)
+	if add.OnAddHook != "ok" {
+		t.Errorf("on_add_hook = %q, want ok; warnings=%v", add.OnAddHook, add.Warnings)
+	}
+	if _, err := os.Stat(filepath.Join(eval(t, filepath.Join(proj, "feat")), "global-ran")); err != nil {
+		t.Errorf("global hook did not run in the new worktree: %v", err)
+	}
+}
+
+// Both layers run, global before project.
+func TestWorktreeAddGlobalAndProjectHooksRunInOrder(t *testing.T) {
+	proj := setupWorktreeProject(t)
+	writeGlobalOnAddHook(t, "#!/bin/sh\necho global >> ./order\n", 0o755)
+	writeOnAddHook(t, eval(t, filepath.Join(proj, "main")), "#!/bin/sh\necho project >> ./order\n", 0o755)
+
+	code, out := runWorktree(t, "add", "feat", "--no-get", "--path", proj)
+	if code != ExitOK {
+		t.Fatalf("add exit %d: %s", code, out)
+	}
+	var add WorktreeAddOutput
+	mustJSON(t, out, &add)
+	if add.OnAddHook != "ok" {
+		t.Fatalf("on_add_hook = %q, want ok; warnings=%v", add.OnAddHook, add.Warnings)
+	}
+	data, err := os.ReadFile(filepath.Join(eval(t, filepath.Join(proj, "feat")), "order"))
+	if err != nil {
+		t.Fatalf("order file missing: %v", err)
+	}
+	got := strings.Fields(strings.TrimSpace(string(data)))
+	if len(got) != 2 || got[0] != "global" || got[1] != "project" {
+		t.Errorf("hook order = %v, want [global project]", got)
+	}
+}
+
+// A failing global hook aggregates to "failed" with a scope-labelled warning,
+// stays non-fatal, and does not stop the project hook.
+func TestWorktreeAddGlobalHookFailureAggregates(t *testing.T) {
+	proj := setupWorktreeProject(t)
+	writeGlobalOnAddHook(t, "#!/bin/sh\nexit 1\n", 0o755)
+	writeOnAddHook(t, eval(t, filepath.Join(proj, "main")), "#!/bin/sh\ntouch ./project-ran\n", 0o755)
+
+	code, out := runWorktree(t, "add", "feat", "--no-get", "--path", proj)
+	var add WorktreeAddOutput
+	mustJSON(t, out, &add)
+	if add.OnAddHook != "failed" {
+		t.Errorf("on_add_hook = %q, want failed (global failed)", add.OnAddHook)
+	}
+	if !add.Success || code != ExitOK {
+		t.Errorf("hook failure must be non-fatal: success=%v exit=%d", add.Success, code)
+	}
+	if !hasWarning(add.Warnings, "global on-add hook failed") {
+		t.Errorf("expected a scope-labelled global warning, got %v", add.Warnings)
+	}
+	if _, err := os.Stat(filepath.Join(eval(t, filepath.Join(proj, "feat")), "project-ran")); err != nil {
+		t.Errorf("project hook should still run after global fails: %v", err)
+	}
+}
+
+// --no-hook skips both layers.
+func TestWorktreeAddNoHookSkipsBothLayers(t *testing.T) {
+	proj := setupWorktreeProject(t)
+	writeGlobalOnAddHook(t, "#!/bin/sh\ntouch ./global-ran\n", 0o755)
+	writeOnAddHook(t, eval(t, filepath.Join(proj, "main")), "#!/bin/sh\ntouch ./project-ran\n", 0o755)
+
+	_, out := runWorktree(t, "add", "feat", "--no-get", "--no-hook", "--path", proj)
+	var add WorktreeAddOutput
+	mustJSON(t, out, &add)
+	if add.OnAddHook != "skipped" {
+		t.Errorf("on_add_hook = %q, want skipped", add.OnAddHook)
+	}
+	feat := eval(t, filepath.Join(proj, "feat"))
+	for _, marker := range []string{"global-ran", "project-ran"} {
+		if _, err := os.Stat(filepath.Join(feat, marker)); err == nil {
+			t.Errorf("--no-hook must skip both layers, but %s exists", marker)
+		}
 	}
 }
 
@@ -365,6 +570,55 @@ func eval(t *testing.T, p string) string {
 		t.Fatalf("evalsymlinks %s: %v", p, err)
 	}
 	return r
+}
+
+// writeOnAddHook installs an untracked on-add hook in the base worktree at the
+// path glittering reads, with the given script body and exact mode (Chmod after
+// write so umask can't strip the execute bits under test).
+func writeOnAddHook(t *testing.T, mainPath, script string, mode os.FileMode) {
+	t.Helper()
+	dir := filepath.Join(mainPath, ".glittering", "hooks", "worktree")
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatalf("mkdir hook dir: %v", err)
+	}
+	hook := filepath.Join(dir, "on-add")
+	if err := os.WriteFile(hook, []byte(script), mode); err != nil {
+		t.Fatalf("write hook: %v", err)
+	}
+	if err := os.Chmod(hook, mode); err != nil {
+		t.Fatalf("chmod hook: %v", err)
+	}
+}
+
+// writeGlobalOnAddHook installs an executable user-level on-add hook under the
+// test's isolated XDG_CONFIG_HOME (set by setupWorktreeProject); it runs for
+// every project.
+func writeGlobalOnAddHook(t *testing.T, script string, mode os.FileMode) {
+	t.Helper()
+	cfg := os.Getenv("XDG_CONFIG_HOME")
+	if cfg == "" {
+		t.Fatal("XDG_CONFIG_HOME not set (setupWorktreeProject should set it)")
+	}
+	dir := filepath.Join(cfg, "glittering", "hooks", "worktree")
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatalf("mkdir global hook dir: %v", err)
+	}
+	hook := filepath.Join(dir, "on-add")
+	if err := os.WriteFile(hook, []byte(script), mode); err != nil {
+		t.Fatalf("write global hook: %v", err)
+	}
+	if err := os.Chmod(hook, mode); err != nil {
+		t.Fatalf("chmod global hook: %v", err)
+	}
+}
+
+func hasWarning(warnings []string, substr string) bool {
+	for _, w := range warnings {
+		if strings.Contains(w, substr) {
+			return true
+		}
+	}
+	return false
 }
 
 func mustJSON(t *testing.T, out string, v interface{}) {

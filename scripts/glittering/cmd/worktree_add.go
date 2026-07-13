@@ -17,6 +17,7 @@ func worktreeAdd(args []string) int {
 	from := fs.String("from", "", "base ref for a new branch (default: project base branch)")
 	noGet := fs.Bool("no-get", false, "skip pub get")
 	noShare := fs.Bool("no-share-objects", false, "clone submodules fresh instead of sharing main's objects")
+	noHook := fs.Bool("no-hook", false, "skip the worktree/on-add hook")
 	fs.BoolVarP(&verbose, "verbose", "v", false, "show progress logs")
 	fs.Parse(args)
 
@@ -113,6 +114,13 @@ func worktreeAdd(args []string) int {
 				break
 			}
 		}
+	}
+
+	// Step 9 — on-add hooks (global user-level + project base-worktree copy; non-fatal).
+	if bw, ok := baseWorktree(metas, proj.BaseBranch); ok {
+		status, warns := runOnAddHook(bw.Path, target, proj.ProjectDir, *noHook)
+		out.OnAddHook = status
+		out.Warnings = append(out.Warnings, warns...)
 	}
 
 	if err := outputJSON(out); err != nil {
@@ -259,4 +267,93 @@ func runWorktreePubGet(target string) []PubPackageResult {
 		results = append(results, runPubCommand(target, pkg.Path, pkg.Type, "get"))
 	}
 	return results
+}
+
+// globalHookPath returns the user-level on-add hook path
+// ($XDG_CONFIG_HOME/glittering/hooks/worktree/on-add, defaulting to ~/.config),
+// or "" if no home dir can be resolved. This hook runs for every project.
+func globalHookPath() string {
+	base := os.Getenv("XDG_CONFIG_HOME")
+	if base == "" {
+		home, err := os.UserHomeDir()
+		if err != nil {
+			return ""
+		}
+		base = filepath.Join(home, ".config")
+	}
+	return filepath.Join(base, "glittering", "hooks", "worktree", "on-add")
+}
+
+// runOnAddHook runs the worktree on-add hooks in order — the global (user-level)
+// hook first, then the project's own (from the base worktree's copy, never the
+// new worktree's, so a checked-out feature branch can't inject one) — and
+// returns the aggregate status plus any warnings. cwd for each is the new
+// worktree; each receives the GLITTER_* env vars. Non-fatal: failures are
+// returned as warnings and never flip Success.
+func runOnAddHook(basePath, target, projectDir string, skip bool) (status string, warnings []string) {
+	hooks := []struct{ scope, path string }{
+		{"global", globalHookPath()},
+		{"project", filepath.Join(basePath, ".glittering", "hooks", "worktree", "on-add")},
+	}
+	for _, h := range hooks {
+		s, w := runOneOnAddHook(h.scope, h.path, target, basePath, projectDir, skip)
+		status = worseHookStatus(status, s)
+		if w != "" {
+			warnings = append(warnings, w)
+		}
+	}
+	return status, warnings
+}
+
+// runOneOnAddHook runs a single on-add hook file, returning one of
+// "" | ok | failed | skipped | not_executable and an optional scope-labelled
+// warning. A missing hook is the silent common case.
+func runOneOnAddHook(scope, hookPath, target, basePath, projectDir string, skip bool) (status, warning string) {
+	if hookPath == "" {
+		return "", ""
+	}
+	info, err := os.Stat(hookPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return "", "" // common case: no hook
+		}
+		return "", fmt.Sprintf("cannot stat %s on-add hook: %v", scope, err)
+	}
+	if skip {
+		return "skipped", ""
+	}
+	if info.IsDir() {
+		return "failed", fmt.Sprintf("%s on-add hook is a directory (not supported): %s", scope, hookPath)
+	}
+	if info.Mode()&0111 == 0 {
+		return "not_executable", fmt.Sprintf("%s on-add hook exists but is not executable: %s", scope, hookPath)
+	}
+	env := []string{
+		"GLITTER_WORKTREE_PATH=" + target,
+		"GLITTER_BASE_WORKTREE=" + basePath,
+		"GLITTER_PROJECT_DIR=" + projectDir,
+	}
+	stdout, stderr, err := runCommandEnv(target, hookTimeout, env, hookPath)
+	if err != nil {
+		detail := strings.TrimSpace(stderr)
+		if detail == "" {
+			detail = strings.TrimSpace(stdout)
+		}
+		if len(detail) > 400 {
+			detail = detail[:400] + "…"
+		}
+		return "failed", fmt.Sprintf("%s on-add hook failed: %v: %s", scope, err, detail)
+	}
+	progressPrint(stdout) // verbose-only; runCommand buffers, no streaming
+	return "ok", ""
+}
+
+// worseHookStatus folds two hook statuses into the more severe one:
+// failed > not_executable > skipped > ok > "" (absent).
+func worseHookStatus(a, b string) string {
+	rank := map[string]int{"": 0, "ok": 1, "skipped": 2, "not_executable": 3, "failed": 4}
+	if rank[b] > rank[a] {
+		return b
+	}
+	return a
 }

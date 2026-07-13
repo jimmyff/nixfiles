@@ -64,11 +64,21 @@ func writeJSONFile(path string, v interface{}) error {
 // runCommand runs a command with the given timeout and working directory.
 // Returns stdout, stderr, and any error.
 func runCommand(dir string, timeout time.Duration, name string, args ...string) (string, string, error) {
+	return runCommandEnv(dir, timeout, nil, name, args...)
+}
+
+// runCommandEnv is runCommand with extra environment variables appended to the
+// inherited environment. When extraEnv is nil the child inherits the parent
+// environment unchanged (cmd.Env stays nil).
+func runCommandEnv(dir string, timeout time.Duration, extraEnv []string, name string, args ...string) (string, string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
 	cmd := exec.CommandContext(ctx, name, args...)
 	cmd.Dir = dir
+	if extraEnv != nil {
+		cmd.Env = append(os.Environ(), extraEnv...)
+	}
 
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
@@ -88,6 +98,9 @@ const (
 	// Generous for slow links and large repos; a huge submodule clone may
 	// still exceed it.
 	gitNetTimeout = 120 * time.Second
+	// hookTimeout bounds the project on-add worktree hook. Pub caches are warm
+	// by this point, so 60s is ample for secrets-seeding.
+	hookTimeout = 60 * time.Second
 )
 
 // runGitCore runs a git command in the given directory with the given

@@ -74,14 +74,14 @@ For the bare-repo + worktree layout (`<proj>/.bare` + `<proj>/main`, `<proj>/<fe
 
 ```
 glittering worktree list --path <proj> [--cached] [--fetch] [--filter <n>]  # per-worktree status (JSON)
-glittering worktree add <name> --path <proj> [--from <ref>] [--no-get] [--no-share-objects]
+glittering worktree add <name> --path <proj> [--from <ref>] [--no-get] [--no-share-objects] [--no-hook]
 glittering worktree remove <name> --path <proj> [--force] [--delete-branch]
 glittering worktree prune --path <proj> [--dry-run] [--force]
 glittering worktree path <name> --path <proj>     # prints absolute path as PLAIN TEXT (not JSON), for cd
 ```
 
 - **`list`** is the fast orientation primitive. Each row carries `removable` (safe to delete) plus the components (`dirty`, `ahead_remote`, `head_on_remote`, `ahead_base`/`behind_base`, `uninit_submodules`, `last_commit_age_secs`). `--cached` reads each worktree's `git.json` (rows with none get `stale:true`).
-- **`add`** checks out an existing branch (local, then `origin/<name>`) or creates one off the base; inits submodules (object-shared from the base worktree, parallel), seeds test/analyze/stats cache, runs `pub get`. `success:false` + exit `3` means usable-but-degraded — read `warnings` (e.g. uninitialised submodules, pub-get failures).
+- **`add`** checks out an existing branch (local, then `origin/<name>`) or creates one off the base; inits submodules (object-shared from the base worktree, parallel), seeds test/analyze/stats cache, runs `pub get`. `success:false` + exit `3` means usable-but-degraded — read `warnings` (e.g. uninitialised submodules, pub-get failures). Finally it runs optional on-add hooks (cwd = new worktree; env `GLITTER_WORKTREE_PATH`/`GLITTER_BASE_WORKTREE`/`GLITTER_PROJECT_DIR`; 60s timeout each; **after** `pub get`, so a hook that changes deps must re-run it): a user-level `${XDG_CONFIG_HOME:-~/.config}/glittering/hooks/worktree/on-add` for every project (e.g. seed a shared `.mcp.json`), then the project's `.glittering/hooks/worktree/on-add` from the **base worktree** (base-sourced so a branch can't inject one). `on_add_hook` is the aggregate of both (worst wins): `ok`/`failed`/`skipped`/`not_executable`/`""`; `--no-hook` skips both. Non-fatal — read `warnings` (scope-labelled `global`/`project`).
 - **`remove`** refuses base/current and (without `--force`) any worktree with uncommitted/unpushed work in the superproject or a submodule. Policy refusals exit `0` with `removed:false` + `reasons`; only git/IO failure exits `1`. Never deletes the branch unless `--delete-branch` (safe `-d` only).
 - **`prune`** reaps only merged-and-pushed clean worktrees (worktree dirs only — branches survive); `--force` also reaps clean+pushed-but-unmerged.
 
@@ -116,7 +116,7 @@ The three gates differ by design: `removable` (list) keys on **pushed**, `prune`
 - **commit**: `{ success, partial, hint, submodules: [{ path, ref, pushed }], parent: { ref, staged, left_uncommitted, pushed, warnings } }` — `partial: true` means the commit succeeded but parent files listed in `parent.left_uncommitted` were NOT committed
 - **git pull**: `{ branch, submodules: [{ path, new_commits, was_dirty }], warnings }`
 - **worktree list**: `{ project, project_dir, base_branch, current, stash_count, worktrees: [{ name, path, branch, current, dirty, removable, head_on_remote, ahead_remote, behind_remote, ahead_base, behind_base, uninit_submodules, last_commit_age_secs, stale }] }`
-- **worktree add**: `{ name, path, branch, base, success, created_branch, cache_seeded, submodules_expected, submodules_initialised, pub_get: [...], warnings }` — `success:false`/exit 3 = degraded
+- **worktree add**: `{ name, path, branch, base, success, created_branch, cache_seeded, submodules_expected, submodules_initialised, pub_get: [...], warnings, on_add_hook }` — `success:false`/exit 3 = degraded; `on_add_hook` (aggregate of the global + project hooks): `""`/`ok`/`failed`/`skipped`/`not_executable`
 - **worktree remove**: `{ removed, branch_deleted, name, path, reasons }` — `removed:false` = refused (see reasons)
 - **worktree prune**: `{ dry_run, pruned: [{ name, path, branch }], skipped: [{ ..., reason }] }`
 

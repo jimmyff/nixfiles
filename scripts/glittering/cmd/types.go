@@ -358,9 +358,9 @@ type DiffOutput struct {
 // --- Worktree command ---
 
 type WorktreeInfo struct {
-	Name              string `json:"name"`     // path rel to projectDir ("main", "feat/foo")
-	Path              string `json:"path"`     // absolute
-	Branch            string `json:"branch"`   // "" when detached
+	Name              string `json:"name"`   // path rel to projectDir ("main", "feat/foo")
+	Path              string `json:"path"`   // absolute
+	Branch            string `json:"branch"` // "" when detached
 	Current           bool   `json:"current"`
 	Dirty             bool   `json:"dirty"`
 	Detached          bool   `json:"detached"`
@@ -371,7 +371,7 @@ type WorktreeInfo struct {
 	AheadBase         int    `json:"ahead_base"`
 	BehindBase        int    `json:"behind_base"`
 	UntrackedCount    int    `json:"untracked_count"`
-	UninitSubmodules  int    `json:"uninit_submodules"`    // >0 ⇒ half-built/degraded
+	UninitSubmodules  int    `json:"uninit_submodules"` // >0 ⇒ half-built/degraded
 	LastCommit        string `json:"last_commit"`
 	LastCommitAgeSecs int64  `json:"last_commit_age_secs"` // -1 when unknown
 	Stale             bool   `json:"stale,omitempty"`      // --cached row with no git.json
@@ -398,6 +398,7 @@ type WorktreeAddOutput struct {
 	SubmodulesInitialised int                `json:"submodules_initialised"`
 	PubGet                []PubPackageResult `json:"pub_get"`
 	Warnings              []string           `json:"warnings"`
+	OnAddHook             string             `json:"on_add_hook"` // "" | "ok" | "failed" | "skipped" | "not_executable"
 }
 
 type WorktreeRemoveOutput struct {
