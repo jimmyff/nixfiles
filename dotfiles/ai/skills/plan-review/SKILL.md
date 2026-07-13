@@ -104,9 +104,11 @@ place to implement from. So emit a **cold-start brief**: a copy-paste fenced blo
 
 - **When** — always, after step 6 — *unless* the verdict is **Reconsider** or the
   plan needs another round; say so and skip.
-- **Recommend, don't decide** — tune one line to how much changed: heavy/structural
-  → "recommend a fresh session, this one's desynced from the revised plan";
-  light/none → "optional — continue here, or use the brief for a clean start."
+- **Always fresh** — per the principle above, the review session carries rejected
+  branches and critic-mode framing; it's a poor place to build from, regardless of
+  how much changed. Recommend a fresh session. Above the fenced block, add one line
+  summarising the review's impact so the user can calibrate the jump — e.g. "Light
+  touch — 2 minor fixes" or "Substantial — 3 blockers reworked the approach."
 - **Pointer, not payload** — the brief points at the plan; the plan is the single
   source of truth. Tempted to put real context in the brief? It belongs *in the
   plan* — fold it into step 6 instead.

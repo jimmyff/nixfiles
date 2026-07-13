@@ -6,6 +6,12 @@
         "-y",
         "chrome-devtools-mcp@latest"
       ]
+    },
+    "dart": {
+      "command": "dart",
+      "args": [
+        "mcp-server"
+      ]
     }
   }
 }

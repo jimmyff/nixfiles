@@ -39,7 +39,8 @@
 
 - CLAUDE.md / AGENTS.md: keep lean and do not edit without showing me the change first; favour tightening over addition.
 - Other docs (readmes, changelogs, roadmaps, trackers, ledgers): keep current as part of the work, avoid drift; flag substantive rewrites first.
-- Files: ideally <100 lines, max 200
+- Files: ideally <150 lines, max 300
+- Markdown: no manual line-wrapping — one line per paragraph, let the viewer/editor wrap.
 - Code should be self-documenting; Readmes provide quick orientation (purpose, structure, components) not comprehensive documentation
 - Agent files: high-level overview, key patterns; reference package READMEs for specifics
 
@@ -61,7 +62,7 @@
 
 ## Shell & tools
 
-- Prefer built-in read/search/list tools, or allowlisted tools like `glittering`, over shelling out to `cat`/`grep`/`find`/`ls`/`git status`; prefer absolute paths over `cd` — compound commands usually require manual approval
+- Prefer built-in read/search/list tools, or `glittering`, over shelling out to `cat`/`grep`/`find`/`ls`/`git status` — structured, clickable output; prefer absolute paths over `cd`.
 
 ## Research
 
@@ -71,6 +72,8 @@
 ## Dart & Flutter
 
 - Use `glittering` for test, analyze, git status/commit/push/pull/diff/check in Dart/Flutter workspaces — handles submodules, parallelism, and caching. Use `/glittering` skill for command reference. Fall back to raw commands for operations glittering doesn't cover. Source: ~/nixfiles/scripts/glittering/
+- For live-app work (launch, hot reload, runtime errors, screenshots, widget inspection) and pub.dev/dependency-source research use the dart MCP server — see /dart-mcp skill; offer to add .mcp.json to Flutter projects missing it
+- Add packages only with explicit consent; prefer internal packages (e.g. rocket_kit) over new third-party dependencies
 - Before committing workspace changes: run analyze on the affected packages; warn on errors
 - Never leave a repo (parent or submodule) in detached HEAD — reattach to the tracking branch after operations that detach
 - Use package:mockito for mocked integration tests

@@ -18,33 +18,14 @@
       "Read(~/.cache/dart-pub/**)",
       "Bash(dart test:*)",
       "Bash(flutter test:*)",
-      "Bash(timeout 10 flutter test:*)",
-      "Bash(timeout 15 flutter test:*)",
-      "Bash(timeout 20 flutter test:*)",
-      "Bash(timeout 30 flutter test:*)",
-      "Bash(timeout 60 flutter test:*)",
-      "Bash(timeout 90 flutter test:*)",
-      "Bash(timeout 120 flutter test:*)",
-      "Bash(timeout 10 dart test:*)",
-      "Bash(timeout 15 dart test:*)",
-      "Bash(timeout 20 dart test:*)",
-      "Bash(timeout 30 dart test:*)",
-      "Bash(timeout 60 dart test:*)",
-      "Bash(timeout 90 dart test:*)",
-      "Bash(timeout 120 dart test:*)",
       "Bash(dart run build_runner build:*)",
       "Bash(dart pub get:*)",
       "Bash(flutter pub get:*)",
       "Bash(dart analyze:*)",
       "Bash(flutter analyze:*)",
+      "mcp__dart",
+      "mcp__chrome-devtools",
       "Bash(go test:*)",
-      "Bash(timeout 10 go test:*)",
-      "Bash(timeout 15 go test:*)",
-      "Bash(timeout 20 go test:*)",
-      "Bash(timeout 30 go test:*)",
-      "Bash(timeout 60 go test:*)",
-      "Bash(timeout 90 go test:*)",
-      "Bash(timeout 120 go test:*)",
       "Bash(go vet:*)",
       "Bash(go build:*)",
       "Bash(go mod tidy:*)",
@@ -92,10 +73,17 @@
       "Read(./.env)",
       "Read(./.env.*)",
       "Read(./secrets/**)"
+    ],
+    "ask": [
+      "Bash(rm:*)",
+      "Bash(git reset:*)",
+      "Bash(git clean:*)"
     ]
   },
+  "model": "opus",
   "enabledMcpjsonServers": [
-    "github"
+    "dart",
+    "chrome-devtools"
   ],
   "hooks": {},
   "statusLine": {
@@ -103,6 +91,88 @@
     "command": "~/.claude/statusline.sh",
     "padding": 0,
     "refreshInterval": 60
+  },
+  "sandbox": {
+    "enabled": true,
+    "autoAllowBashIfSandboxed": true,
+    "filesystem": {
+      "allowWrite": [
+        "~/.pub-cache",
+        "~/.cache/dart-pub"
+      ]
+    },
+    "credentials": {
+      "files": [
+        {
+          "path": "~/.ssh",
+          "mode": "deny"
+        },
+        {
+          "path": "~/.aws",
+          "mode": "deny"
+        },
+        {
+          "path": "~/.config/gcloud",
+          "mode": "deny"
+        },
+        {
+          "path": "~/.config/gh",
+          "mode": "deny"
+        },
+        {
+          "path": "~/.config/sops/age",
+          "mode": "deny"
+        }
+      ],
+      "envVars": [
+        {
+          "name": "GITHUB_TOKEN",
+          "mode": "deny"
+        },
+        {
+          "name": "GH_TOKEN",
+          "mode": "deny"
+        },
+        {
+          "name": "GOOGLE_APPLICATION_CREDENTIALS",
+          "mode": "deny"
+        },
+        {
+          "name": "SOPS_AGE_KEY",
+          "mode": "deny"
+        },
+        {
+          "name": "SOPS_AGE_KEY_FILE",
+          "mode": "deny"
+        }
+      ]
+    },
+    "excludedCommands": [
+      "git push",
+      "git push *",
+      "git pull",
+      "git pull *",
+      "git fetch",
+      "git fetch *",
+      "git clone *",
+      "git ls-remote *",
+      "git remote update",
+      "git remote update *",
+      "git submodule update",
+      "git submodule update *",
+      "glittering *",
+      "gcloud *",
+      "gsutil *",
+      "gh *",
+      "docker *",
+      "firebase *",
+      "flutterfire *"
+    ],
+    "allowedDomains": [
+      "pub.dev",
+      "storage.googleapis.com",
+      "cache.nixos.org"
+    ]
   },
   "alwaysThinkingEnabled": true,
   "effortLevel": "xhigh",

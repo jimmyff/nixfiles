@@ -1,0 +1,17 @@
+#!/bin/sh
+# Nix-managed (source: ~/nixfiles/dotfiles/glittering/worktree-on-add).
+# Symlinked to ~/.config/glittering/hooks/worktree/on-add by home-manager
+# (home/shared/apps/ai.nix). Glittering runs it on `worktree add` with cwd =
+# the new worktree. Seeds the new worktree with the base worktree's .mcp.json,
+# preserving symlinks (cp -P), so fresh worktrees get MCP config immediately
+# instead of waiting for the next home-manager activation.
+set -eu
+
+src="$GLITTER_BASE_WORKTREE/.mcp.json"
+dst="$GLITTER_WORKTREE_PATH/.mcp.json"
+
+if [ -f "$src" ] || [ -L "$src" ]; then
+  rm -f "$dst"        # never write through a pre-existing destination symlink
+  cp -P "$src" "$dst" # -P: copy a symlink as a symlink (BSD + GNU compatible)
+  echo "seeded .mcp.json from base worktree"
+fi

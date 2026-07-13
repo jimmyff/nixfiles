@@ -11,6 +11,13 @@
     programs.git = {
       enable = true;
       lfs.enable = true;
+      # Global excludes (~/.config/git/ignore): machine-managed files that live
+      # in every checkout but never belong in a repo.
+      ignores = [
+        ".mcp.json"
+        ".glittering/"
+        "**/.claude/settings.local.json"
+      ];
       settings = {
         user = {
           name = "jimmyff";
