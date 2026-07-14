@@ -80,6 +80,30 @@ glittering worktree path <name> --path <proj>      # print absolute path (plain 
 
 `add` makes a fresh worktree usable fast: submodule objects copied from the base worktree (self-contained, no network re-download of objects), slow test/analyze/stats caches seeded, `pub get` run. `--no-get` / `--no-share-objects` / `--no-hook` opt out. Finally it runs two optional on-add hooks (cwd = the new worktree) to provision gitignored local-dev files (secrets, tokens): a user-level `~/.config/glittering/hooks/worktree/on-add` for every project (e.g. to seed a shared `.mcp.json`), then the project's own `.glittering/hooks/worktree/on-add` from the base worktree — base-sourced, so a feature branch can't inject one and it auto-runs without a prompt. `--no-hook` skips both.
 
+### Writing a worktree hook
+
+A hook is any executable (`chmod +x`, any shebang). Contract:
+
+- cwd is the new worktree; env: `GLITTER_WORKTREE_PATH` (the new worktree), `GLITTER_BASE_WORKTREE` (the base worktree it was created from), `GLITTER_PROJECT_DIR` (the project root holding all worktrees). Use these instead of hardcoding paths.
+- Runs after `pub get`, 60 seconds per hook. A hook that changes dependencies must re-run `pub get` itself.
+- Non-fatal by design: a non-zero exit or missing `+x` bit becomes a scope-labelled entry in `warnings` and degrades `on_add_hook` (`ok`/`failed`/`not_executable`); the worktree is always kept. stdout appears with `--verbose` only, so `echo` freely.
+- Project hooks live at `<base>/.glittering/hooks/worktree/on-add` and are typically gitignored (machine-local). To commit one for the whole team, `git add -f` it — and then keep it portable: no absolute or machine-specific paths, only the `GLITTER_*` roots.
+
+Typical project hook — seed gitignored local-dev config from the base worktree:
+
+```sh
+#!/bin/sh
+set -eu
+for rel in app/dev.local.json management/dev.local.json; do
+  src="$GLITTER_BASE_WORKTREE/$rel"
+  dst="$GLITTER_WORKTREE_PATH/$rel"
+  [ -f "$src" ] || { echo "missing: $rel" >&2; exit 1; }
+  mkdir -p "$(dirname "$dst")"
+  cp "$src" "$dst"
+  echo "seeded $rel"
+done
+```
+
 ## Architecture
 
 - **`glittering`** (Go binary) — discovery, runners, git ops. JSON to stdout, logs to stderr.
