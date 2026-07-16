@@ -17,6 +17,10 @@
   qemu-guest.enable = true;
   mdns.publish = true; # reachable as nixbox.local regardless of DHCP IP
 
+  # Local DNS cache: parallel Nix builds burst thousands of lookups, which the
+  # router's forwarder drops under load. Upstream stays DHCP-provided.
+  services.resolved.enable = true;
+
   # Development environment configuration
   development = {
     enable = true;

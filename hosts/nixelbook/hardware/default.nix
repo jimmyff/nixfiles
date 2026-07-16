@@ -35,8 +35,8 @@ in
     max98373-topology  # MAX98373 topology file for speakers
   ];
 
-  # Enable all firmware for Intel AVS topology files
-  hardware.enableAllFirmware = true;
+  # Redistributable firmware only — enableAllFirmware pulls in unfree blobs
+  # (e.g. Xbox dongle firmware fetched from windowsupdate.com at build time)
   hardware.enableRedistributableFirmware = true;
 
   # Add ALSA UCM configuration and audio management packages
