@@ -72,11 +72,12 @@ For each package with errors or warnings, spawn a parallel Agent (one per packag
 2. Parse the JSON output from stdout
 3. Present a summary table with columns: package, status, passed, failed, skipped
 4. For packages with `error` status: check the error message. If it's a compilation error, run `glittering analyze` on that package to get details. If it's a missing dependency, re-run `glittering get`. Resolve before proceeding
-5. For packages with `fail` status, read the session detail file (from `details_file` in the JSON) and list: test name, file:line, truncated error (first 2 lines)
-6. If all pass: report success and stop
-7. Run `glittering analyze --path <workspace_root> [--filter <filter>]` on failing packages — analysis errors are often the root cause of test failures. If found, fix analysis errors first and re-run tests before proceeding to Phase 2
-8. If failures remain and `fix` was NOT passed: ask the user whether to auto-fix
-9. If failures remain and `fix` was passed: proceed to Phase 2
+5. For packages with `timeout` status: the package hit the per-package cap and was killed — counts are partial. Read `details_file`: the `incomplete` list names the test(s) that started but never finished, i.e. the hang suspects. Treat as a hang/deadlock to diagnose (missing async completion, un-pumped timers, real infinite loop) — never just raise `--timeout`. After fixing, re-run that package alone with `--filter`
+6. For packages with `fail` status, read the session detail file (from `details_file` in the JSON) and list: test name, file:line, truncated error (first 2 lines)
+7. If all pass: report success and stop
+8. Run `glittering analyze --path <workspace_root> [--filter <filter>]` on failing packages — analysis errors are often the root cause of test failures. If found, fix analysis errors first and re-run tests before proceeding to Phase 2
+9. If failures remain and `fix` was NOT passed: ask the user whether to auto-fix
+10. If failures remain and `fix` was passed: proceed to Phase 2
 
 ### Phase 2 — Fix Failures
 

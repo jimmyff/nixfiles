@@ -61,7 +61,9 @@ Packages: 26 (17 flutter, 9 dart, 26 testable)
 Git 7min ago · Tests 2hr ago · Analysis 2hr ago · Stats 2hr ago
 ```
 
-**Indicators:** `●` dirty · `↑N` ahead · `↓N` behind · `·` zero · failures in red · `XL` oversized files
+**Indicators:** `●` dirty · `↑N` ahead · `↓N` behind · `·` zero · failures in red · `t/o` package timed out · `XL` oversized files
+
+Test packages report `pass`/`fail`/`error`/`timeout`. A `timeout` means the per-package cap was hit and the run was killed: counts are partial, and the detail file's `incomplete` list names tests that started but never finished (the hang suspects). A live `glittering test` exits `1` when any package is not `pass`.
 
 ## Worktrees
 

@@ -21,6 +21,12 @@ func TestParseNDJSON_Pass(t *testing.T) {
 	if !out.success {
 		t.Error("expected success=true")
 	}
+	if !out.sawDone {
+		t.Error("expected sawDone=true")
+	}
+	if len(out.incomplete) != 0 {
+		t.Errorf("expected no incomplete tests, got %d", len(out.incomplete))
+	}
 }
 
 func TestParseNDJSON_Fail(t *testing.T) {
@@ -36,6 +42,9 @@ func TestParseNDJSON_Fail(t *testing.T) {
 	}
 	if out.success {
 		t.Error("expected success=false")
+	}
+	if !out.sawDone {
+		t.Error("expected sawDone=true")
 	}
 	if len(out.failures) != 1 {
 		t.Fatalf("expected 1 failure, got %d", len(out.failures))
@@ -75,8 +84,96 @@ func TestParseNDJSON_Empty(t *testing.T) {
 	if out.total != 0 || out.passed != 0 || out.failed != 0 || out.skipped != 0 {
 		t.Errorf("expected all zeros for empty input, got total=%d passed=%d failed=%d skipped=%d", out.total, out.passed, out.failed, out.skipped)
 	}
-	if !out.success {
-		t.Error("expected success=true for empty input (default)")
+	if out.sawDone {
+		t.Error("expected sawDone=false for empty input")
+	}
+	if out.success {
+		t.Error("expected success=false for empty input (no done event)")
+	}
+}
+
+func TestParseNDJSON_TruncatedNoDone(t *testing.T) {
+	// A run killed mid-flight: one test finished, one started but never
+	// finished, and the terminal done event is missing.
+	data := []byte(`{"type":"suite","suite":{"id":0,"path":"test/hang_test.dart"}}
+{"type":"testStart","test":{"id":1,"name":"finishes","suiteID":0,"line":5,"column":3,"url":""}}
+{"type":"testDone","testID":1,"result":"success","skipped":false,"hidden":false}
+{"type":"testStart","test":{"id":2,"name":"hangs","suiteID":0,"line":9,"column":3,"url":""}}
+`)
+	out := parseNDJSON(data)
+	if out.sawDone {
+		t.Error("expected sawDone=false for truncated stream")
+	}
+	if out.total != 1 || out.passed != 1 {
+		t.Errorf("counts must stay truthful to testDone events, got total=%d passed=%d", out.total, out.passed)
+	}
+	if len(out.incomplete) != 1 {
+		t.Fatalf("expected 1 incomplete test, got %d", len(out.incomplete))
+	}
+	inc := out.incomplete[0]
+	if inc.TestName != "hangs" || inc.TestFile != "test/hang_test.dart" || inc.Line != 9 {
+		t.Errorf("incomplete attribution wrong: %+v", inc)
+	}
+	if inc.Error != "started but never finished" {
+		t.Errorf("expected placeholder error, got %q", inc.Error)
+	}
+}
+
+func TestParseNDJSON_ErrorEventAttachedToIncomplete(t *testing.T) {
+	// A failing expect that hangs before testDone: the error event must not
+	// be dropped — it belongs to the incomplete record.
+	data := []byte(`{"type":"suite","suite":{"id":0,"path":"test/boom_test.dart"}}
+{"type":"testStart","test":{"id":1,"name":"explodes","suiteID":0,"line":4,"column":3,"url":""}}
+{"type":"error","testID":1,"error":"Expected: 2\n  Actual: 3","stackTrace":"test/boom_test.dart 6:5"}
+`)
+	out := parseNDJSON(data)
+	if out.failed != 0 {
+		t.Errorf("no testDone means not counted as failed, got failed=%d", out.failed)
+	}
+	if len(out.incomplete) != 1 {
+		t.Fatalf("expected 1 incomplete test, got %d", len(out.incomplete))
+	}
+	if out.incomplete[0].Error != "Expected: 2\n  Actual: 3" {
+		t.Errorf("expected buffered error attached, got %q", out.incomplete[0].Error)
+	}
+	if out.incomplete[0].StackTrace != "test/boom_test.dart 6:5" {
+		t.Errorf("expected stack trace attached, got %q", out.incomplete[0].StackTrace)
+	}
+}
+
+func TestParseNDJSON_HiddenDoneNotIncomplete(t *testing.T) {
+	// A hidden testDone (e.g. a "loading" pseudo-test) still means finished.
+	data := []byte(`{"type":"testStart","test":{"id":1,"name":"loading test/foo_test.dart","suiteID":0,"line":0,"column":0,"url":""}}
+{"type":"testDone","testID":1,"result":"success","skipped":false,"hidden":true}
+{"type":"done","success":true}
+`)
+	out := parseNDJSON(data)
+	if out.total != 0 {
+		t.Errorf("hidden tests must not count, got total=%d", out.total)
+	}
+	if len(out.incomplete) != 0 {
+		t.Errorf("hidden testDone means finished, got %d incomplete", len(out.incomplete))
+	}
+	if !out.sawDone || !out.success {
+		t.Errorf("expected sawDone && success, got sawDone=%v success=%v", out.sawDone, out.success)
+	}
+}
+
+func TestParseNDJSON_IncompleteDeterministicOrder(t *testing.T) {
+	data := []byte(`{"type":"suite","suite":{"id":0,"path":"test/a_test.dart"}}
+{"type":"testStart","test":{"id":3,"name":"third","suiteID":0,"line":30,"column":1,"url":""}}
+{"type":"testStart","test":{"id":1,"name":"first","suiteID":0,"line":10,"column":1,"url":""}}
+{"type":"testStart","test":{"id":2,"name":"second","suiteID":0,"line":20,"column":1,"url":""}}
+`)
+	out := parseNDJSON(data)
+	if len(out.incomplete) != 3 {
+		t.Fatalf("expected 3 incomplete tests, got %d", len(out.incomplete))
+	}
+	want := []string{"first", "second", "third"}
+	for i, w := range want {
+		if out.incomplete[i].TestName != w {
+			t.Errorf("incomplete[%d] = %q, want %q (must be sorted by test ID)", i, out.incomplete[i].TestName, w)
+		}
 	}
 }
 

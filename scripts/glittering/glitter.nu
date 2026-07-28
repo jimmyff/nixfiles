@@ -8,9 +8,20 @@ def "main status" [--path: string = "." --filter: string = ""] {
   $result.packages | select path name type has_tests dependencies dev_dependencies
 }
 
-def "main test" [--path: string = "." --filter: string = "" --timeout: int = 60] {
+def "main test" [--path: string = "." --filter: string = "" --timeout: int = 120] {
   let args = (build-args $path $filter)
-  let result = (glittering test --verbose ...$args --timeout $timeout | from json)
+  # glittering test exits non-zero when any package fails — capture stdout via
+  # a temp file so stderr progress still streams and the exit code survives.
+  let tmp = (mktemp -t glitter-test-XXXXXX)
+  try { glittering test --verbose ...$args --timeout $timeout out> $tmp } catch { }
+  let code = $env.LAST_EXIT_CODE
+  let raw = (open --raw $tmp | str trim)
+  rm $tmp
+  if ($raw | is-empty) {
+    print -e $"glittering test produced no output \(exit ($code)\)"
+    exit (if $code == 0 { 1 } else { $code })
+  }
+  let result = ($raw | from json)
   let root = $result.path
   $result.packages
     | update path { |p| rel-path $root $p.path }
@@ -18,7 +29,8 @@ def "main test" [--path: string = "." --filter: string = "" --timeout: int = 60]
     | select path runner status total passed failed skipped
     | print
   let s = $result.summary
-  let verdict = if $s.failed_packages > 0 or $s.error_packages > 0 {
+  let timeouts = ($s.timeout_packages? | default 0)
+  let verdict = if $s.failed_packages > 0 or $s.error_packages > 0 or $timeouts > 0 {
     $"(ansi red)\u{2717}(ansi reset)"
   } else {
     $"(ansi green)\u{2713}(ansi reset)"
@@ -26,11 +38,19 @@ def "main test" [--path: string = "." --filter: string = "" --timeout: int = 60]
   mut parts = [$"($s.total_passed) passed"]
   if $s.total_failed > 0 { $parts = ($parts | append $"($s.total_failed) failed") }
   if $s.total_skipped > 0 { $parts = ($parts | append $"($s.total_skipped) skipped") }
+  if $timeouts > 0 { $parts = ($parts | append $"($timeouts) package\(s\) timed out") }
   print $"($verdict) ($s.total_packages) packages, ($s.total_tests) tests \(($parts | str join ', ')\)"
   let failures = ($result.packages | where status != "pass" | where details_file? != null)
   if (not ($failures | is-empty)) {
     $failures | each { |r| print $"  Detail: ($r.details_file)" }
   }
+  let broken = ($result.packages | where status in ["error" "timeout"])
+  if (not ($broken | is-empty)) {
+    $broken | each { |r|
+      print $"  (ansi red)\u{2717}(ansi reset) (rel-path $root $r.path): ($r.error? | default '')"
+    }
+  }
+  exit $code
 }
 
 def "main analyze" [--path: string = "." --filter: string = ""] {
@@ -704,6 +724,10 @@ def format-tests-cell [matched: list<record>]: nothing -> string {
   if $cmd_errors > 0 {
     return $"(ansi red)err(ansi reset)"
   }
+  let timeouts = ($matched | where status == "timeout" | length)
+  if $timeouts > 0 {
+    return $"(ansi red)t/o(ansi reset)"
+  }
   let total = ($matched | get total | math sum)
   let failed = ($matched | get failed | math sum)
   if $failed > 0 {
@@ -1001,6 +1025,8 @@ def format-status [status: string]: nothing -> string {
     $"(ansi green)\u{2713} pass(ansi reset)"
   } else if $status == "fail" {
     $"(ansi red)\u{2717} fail(ansi reset)"
+  } else if $status == "timeout" {
+    $"(ansi red)\u{2717} timeout(ansi reset)"
   } else {
     $"(ansi red)\u{2717} error(ansi reset)"
   }

@@ -7,7 +7,7 @@ description: Dart/Flutter workspace orchestrator (multi-package, git submodules)
 
 Workspace-level orchestrator for Dart/Flutter monorepos — a parent repo containing git submodules and/or multiple packages. Go binary: JSON to stdout, logs to stderr; parallel across packages, with caching. Treat the output as a contract — parse it and branch on its fields rather than skimming the prose.
 
-Exit codes: `0` ok · `1` failure · `2` usage error · `3` partial (commit succeeded but parent files were left behind — see `parent.left_uncommitted`).
+Exit codes: `0` ok · `1` failure · `2` usage error · `3` partial (commit succeeded but parent files were left behind — see `parent.left_uncommitted`). A live `test` run also exits `1` when any package is `fail`/`error`/`timeout` (JSON still on stdout — parse it); `test --cached` always exits `0`.
 
 Source: `~/nixfiles/scripts/glittering/` (this skill lives at the package root).
 
@@ -39,7 +39,7 @@ In a multi-package workspace (cue: `.gitmodules` and/or multiple `pubspec.yaml` 
 
 ```
 glittering status --path <root> [--filter <names>]              # package list (type, tests, deps)
-glittering test --path <root> [--filter <names>] [--timeout 60] # run tests (parallel, cached)
+glittering test --path <root> [--filter <names>] [--timeout 120] # run tests (parallel, cached)
 glittering analyze --path <root> [--filter <names>]             # dart analyze (parallel, cached)
 glittering stats --path <root> [--filter <names>] [--threshold 200] # file/line counts, oversized detection (cached)
 glittering get --path <root> [--filter <names>]                 # pub get all packages
@@ -108,7 +108,7 @@ The three gates differ by design: `removable` (list) keys on **pushed**, `prune`
 
 ## JSON Output Shapes
 
-- **test/analyze**: `{ packages: [{ path, status, details_file, ... }], summary }` — read `details_file` for details
+- **test/analyze**: `{ packages: [{ path, status, details_file, ... }], summary }` — read `details_file` for details. Test statuses: `pass`/`fail`/`error`/`timeout` (analyze has no `timeout`). `timeout` = the package hit the per-package cap and was killed: counts are partial, and its `details_file` carries `failures` plus `incomplete` — tests that started but never finished, i.e. the hang suspects. Summary includes `timeout_packages`.
 - **stats**: `{ threshold, packages: [{ path, source_files, source_lines, test_files, test_lines, oversized_count, details_file }], summary }`
 - **git**: `{ repo: { branch, dirty, ahead_remote, ... }, submodules: [{ ..., ahead_parent, behind_parent }] }`
 - **git check**: `{ clean: bool, issues: [{ repo, severity, type, message, fix }], summary }`

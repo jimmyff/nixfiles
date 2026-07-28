@@ -54,31 +54,33 @@ type TestPackageResult struct {
 	Passed      int     `json:"passed"`
 	Failed      int     `json:"failed"`
 	Skipped     int     `json:"skipped"`
-	Status      string  `json:"status"` // "pass", "fail", "error"
+	Status      string  `json:"status"` // "pass", "fail", "error", "timeout"
 	Error       string  `json:"error,omitempty"`
 	DetailsFile string  `json:"details_file,omitempty"`
 	Timestamp   *string `json:"timestamp,omitempty"`
 }
 
 type TestDetailFile struct {
-	Path     string        `json:"path"`
-	Runner   string        `json:"runner"`
-	Total    int           `json:"total"`
-	Passed   int           `json:"passed"`
-	Failed   int           `json:"failed"`
-	Skipped  int           `json:"skipped"`
-	Failures []TestFailure `json:"failures"`
+	Path       string        `json:"path"`
+	Runner     string        `json:"runner"`
+	Total      int           `json:"total"`
+	Passed     int           `json:"passed"`
+	Failed     int           `json:"failed"`
+	Skipped    int           `json:"skipped"`
+	Failures   []TestFailure `json:"failures"`
+	Incomplete []TestFailure `json:"incomplete,omitempty"` // started but never finished (hang suspects)
 }
 
 type TestSummary struct {
-	TotalPackages  int `json:"total_packages"`
-	PassedPackages int `json:"passed_packages"`
-	FailedPackages int `json:"failed_packages"`
-	ErrorPackages  int `json:"error_packages"`
-	TotalTests     int `json:"total_tests"`
-	TotalPassed    int `json:"total_passed"`
-	TotalFailed    int `json:"total_failed"`
-	TotalSkipped   int `json:"total_skipped"`
+	TotalPackages   int `json:"total_packages"`
+	PassedPackages  int `json:"passed_packages"`
+	FailedPackages  int `json:"failed_packages"`
+	ErrorPackages   int `json:"error_packages"`
+	TimeoutPackages int `json:"timeout_packages"`
+	TotalTests      int `json:"total_tests"`
+	TotalPassed     int `json:"total_passed"`
+	TotalFailed     int `json:"total_failed"`
+	TotalSkipped    int `json:"total_skipped"`
 }
 
 type TestOutput struct {
@@ -457,7 +459,6 @@ type ndjsonErrorEvent struct {
 	TestID     int    `json:"testID"`
 	Error      string `json:"error"`
 	StackTrace string `json:"stackTrace"`
-	IsFailure  bool   `json:"isFailure"`
 }
 
 type ndjsonDoneEvent struct {

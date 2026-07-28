@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	flag "github.com/spf13/pflag"
-	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -55,26 +54,11 @@ func Test(args []string) int {
 		sort.Slice(results, func(i, j int) bool {
 			return results[i].Path < results[j].Path
 		})
-		summary := TestSummary{TotalPackages: len(results)}
-		for _, r := range results {
-			switch r.Status {
-			case "pass":
-				summary.PassedPackages++
-			case "fail":
-				summary.FailedPackages++
-			case "error":
-				summary.ErrorPackages++
-			}
-			summary.TotalTests += r.Total
-			summary.TotalPassed += r.Passed
-			summary.TotalFailed += r.Failed
-			summary.TotalSkipped += r.Skipped
-		}
 		out := TestOutput{
 			Path:      root,
 			Timestamp: oldestTimestamp,
 			Packages:  results,
-			Summary:   summary,
+			Summary:   buildTestSummary(results),
 		}
 		if out.Packages == nil {
 			out.Packages = []TestPackageResult{}
@@ -111,6 +95,10 @@ func Test(args []string) int {
 		logf("error: %v\n", err)
 		return ExitFailure
 	}
+
+	// Setpgid detaches test processes from the terminal's foreground group,
+	// so Ctrl-C must be forwarded to them explicitly.
+	installSignalHandler()
 
 	numJobs := *jobs
 	if numJobs < 1 {
@@ -150,22 +138,7 @@ func Test(args []string) int {
 		results[ir.index] = ir.result
 	}
 
-	// Build summary
-	summary := TestSummary{TotalPackages: len(results)}
-	for _, r := range results {
-		switch r.Status {
-		case "pass":
-			summary.PassedPackages++
-		case "fail":
-			summary.FailedPackages++
-		case "error":
-			summary.ErrorPackages++
-		}
-		summary.TotalTests += r.Total
-		summary.TotalPassed += r.Passed
-		summary.TotalFailed += r.Failed
-		summary.TotalSkipped += r.Skipped
-	}
+	summary := buildTestSummary(results)
 
 	out := TestOutput{
 		Path:      root,
@@ -182,6 +155,9 @@ func Test(args []string) int {
 		return ExitFailure
 	}
 
+	if summary.FailedPackages+summary.ErrorPackages+summary.TimeoutPackages > 0 {
+		return ExitFailure
+	}
 	return ExitOK
 }
 
@@ -231,71 +207,85 @@ func runTestPackage(root, session, pkgPath, runner string, timeout int) (TestPac
 
 	cmd := exec.Command(cmdName, cmdArgs...)
 	cmd.Dir = pkgDir
-	cmd.Stdout = io.Discard
-	cmd.Stderr = io.Discard
+	// Stdout/Stderr stay nil so os/exec wires the child to /dev/null directly:
+	// no pipes, no copy goroutines, so Wait returns as soon as the direct
+	// child is reaped even if grandchildren survive.
+	setProcGroup(cmd)
 
-	// Use a timer goroutine for timeout instead of external timeout command
+	if err := cmd.Start(); err != nil {
+		result.Status = "error"
+		result.Error = fmt.Sprintf("failed to start %s: %v", cmdName, err)
+		fmt.Fprintf(&buf, "  %s: error\n", pkgPath)
+		return result, buf.String()
+	}
+	unregister := registerProcGroup(cmd)
+	defer unregister()
+
 	done := make(chan error, 1)
 	go func() {
-		done <- cmd.Run()
+		done <- cmd.Wait()
 	}()
 
 	timer := time.NewTimer(time.Duration(timeout) * time.Second)
 	defer timer.Stop()
 
 	var runErr error
+	var timedOut bool
 	select {
 	case runErr = <-done:
-		timer.Stop()
 	case <-timer.C:
-		// TODO: kill by process group (-pid) to avoid orphaned child processes on timeout
-		if cmd.Process != nil {
-			cmd.Process.Kill()
+		timedOut = true
+		killProcGroup(cmd)
+		select {
+		case runErr = <-done:
+		case <-time.After(5 * time.Second): // never hang glittering itself
 		}
-		<-done // wait for goroutine
-		runErr = fmt.Errorf("timeout after %ds", timeout)
 	}
 
 	elapsed := time.Since(start).Round(time.Millisecond)
 
-	// Parse JSON report
+	// Parse JSON report; the reporter streams incrementally, so a killed run
+	// leaves a partial (but parseable) file behind.
 	jsonData, readErr := os.ReadFile(jsonPath)
-	if readErr != nil || len(jsonData) == 0 {
-		if runErr != nil {
-			result.Status = "error"
-			result.Error = fmt.Sprintf("test command failed: %v", runErr)
-		} else {
-			result.Status = "error"
-			result.Error = "no test output produced"
-		}
-		fmt.Fprintf(&buf, "  %s: error (%s)\n", pkgPath, elapsed)
-		return result, buf.String()
+	hasReport := readErr == nil && len(jsonData) > 0
+	var parsed parseOutput
+	if hasReport {
+		parsed = parseNDJSON(jsonData)
 	}
 
-	parsed := parseNDJSON(jsonData)
 	result.Total = parsed.total
 	result.Passed = parsed.passed
 	result.Failed = parsed.failed
 	result.Skipped = parsed.skipped
+	result.Status, result.Error = classifyTestRun(parsed, hasReport, timedOut, runErr, timeout)
 
-	if parsed.success && result.Failed == 0 {
-		result.Status = "pass"
+	switch result.Status {
+	case "pass":
 		fmt.Fprintf(&buf, "  %s: %d passed (%s)\n", pkgPath, result.Passed, elapsed)
-	} else {
-		result.Status = "fail"
+	case "fail":
 		fmt.Fprintf(&buf, "  %s: %d failed (%s)\n", pkgPath, result.Failed, elapsed)
+	case "timeout":
+		fmt.Fprintf(&buf, "  %s: TIMEOUT after %ds — %d passed, %d failed, %d never finished (%s)\n",
+			pkgPath, timeout, result.Passed, result.Failed, len(parsed.incomplete), elapsed)
+	default:
+		fmt.Fprintf(&buf, "  %s: error (%s)\n", pkgPath, elapsed)
 	}
 
-	// Write detail file if there are failures
-	if len(parsed.failures) > 0 {
+	// Write detail file if there is anything to attribute
+	if len(parsed.failures) > 0 || len(parsed.incomplete) > 0 {
+		failures := parsed.failures
+		if failures == nil {
+			failures = []TestFailure{}
+		}
 		detail := TestDetailFile{
-			Path:     pkgPath,
-			Runner:   runner,
-			Total:    result.Total,
-			Passed:   result.Passed,
-			Failed:   result.Failed,
-			Skipped:  result.Skipped,
-			Failures: parsed.failures,
+			Path:       pkgPath,
+			Runner:     runner,
+			Total:      result.Total,
+			Passed:     result.Passed,
+			Failed:     result.Failed,
+			Skipped:    result.Skipped,
+			Failures:   failures,
+			Incomplete: parsed.incomplete,
 		}
 		detailName := safePath(pkgPath) + ".json"
 		detailPath := filepath.Join(session, "test", detailName)
@@ -309,23 +299,87 @@ func runTestPackage(root, session, pkgPath, runner string, timeout int) (TestPac
 	return result, buf.String()
 }
 
+// classifyTestRun maps a parsed report plus process outcome to a package
+// status and error message. hasReport is false when the JSON report file was
+// unreadable or empty. timedOut is set only when glittering killed the run at
+// the per-package cap — runErr alone cannot distinguish that from an ordinary
+// failing suite, since the runner exits non-zero on failures too.
+func classifyTestRun(parsed parseOutput, hasReport, timedOut bool, runErr error, timeoutSecs int) (string, string) {
+	switch {
+	case timedOut:
+		if !hasReport {
+			return "timeout", fmt.Sprintf("timeout after %ds; no test output produced", timeoutSecs)
+		}
+		msg := fmt.Sprintf("timeout after %ds; %d passed, %d failed", timeoutSecs, parsed.passed, parsed.failed)
+		if n := len(parsed.incomplete); n > 0 {
+			msg += fmt.Sprintf(", %d started but never finished (first: %s: %s)",
+				n, parsed.incomplete[0].TestFile, parsed.incomplete[0].TestName)
+		}
+		return "timeout", msg
+	case !hasReport && runErr != nil:
+		return "error", fmt.Sprintf("test command failed: %v", runErr)
+	case !hasReport:
+		return "error", "no test output produced"
+	case !parsed.sawDone:
+		// Stream never reached its terminal done event: crashed runner or a
+		// kill that raced the timer — incomplete output must never pass.
+		msg := fmt.Sprintf("test output incomplete (no terminal done event); %d tests never finished", len(parsed.incomplete))
+		if runErr != nil {
+			msg += fmt.Sprintf("; command error: %v", runErr)
+		}
+		return "error", msg
+	case parsed.failed > 0 || !parsed.success:
+		return "fail", ""
+	default:
+		// A complete report is authoritative — a non-zero exit with a clean
+		// done event stays a pass.
+		return "pass", ""
+	}
+}
+
+// buildTestSummary aggregates package results. Unknown statuses count as
+// errors so a future status can never silently render green.
+func buildTestSummary(results []TestPackageResult) TestSummary {
+	summary := TestSummary{TotalPackages: len(results)}
+	for _, r := range results {
+		switch r.Status {
+		case "pass":
+			summary.PassedPackages++
+		case "fail":
+			summary.FailedPackages++
+		case "timeout":
+			summary.TimeoutPackages++
+		default:
+			summary.ErrorPackages++
+		}
+		summary.TotalTests += r.Total
+		summary.TotalPassed += r.Passed
+		summary.TotalFailed += r.Failed
+		summary.TotalSkipped += r.Skipped
+	}
+	return summary
+}
+
 type parseOutput struct {
-	total    int
-	passed   int
-	failed   int
-	skipped  int
-	success  bool
-	failures []TestFailure
+	total      int
+	passed     int
+	failed     int
+	skipped    int
+	success    bool // from the terminal "done" event; meaningful only when sawDone
+	sawDone    bool // terminal {"type":"done"} event was seen — absent when the run was killed
+	failures   []TestFailure
+	incomplete []TestFailure // started (testStart) but never finished (no testDone)
 }
 
 func parseNDJSON(data []byte) parseOutput {
-	out := parseOutput{success: true}
+	var out parseOutput
 
 	suites := map[int]string{}
 	tests := map[int]string{}
 	testSuite := map[int]int{}
 	testLine := map[int]int{}
 	errors := map[int][]ndjsonErrorEvent{}
+	doneIDs := map[int]bool{}
 
 	lines := strings.Split(string(data), "\n")
 	for _, line := range lines {
@@ -353,6 +407,7 @@ func parseNDJSON(data []byte) parseOutput {
 		case "testDone":
 			var e ndjsonTestDoneEvent
 			if json.Unmarshal([]byte(line), &e) == nil {
+				doneIDs[e.TestID] = true // any testDone (hidden included) means finished
 				if e.Hidden {
 					continue
 				}
@@ -386,9 +441,34 @@ func parseNDJSON(data []byte) parseOutput {
 		case "done":
 			var e ndjsonDoneEvent
 			if json.Unmarshal([]byte(line), &e) == nil {
+				out.sawDone = true
 				out.success = e.Success
 			}
 		}
+	}
+
+	// Tests that started but never finished — not counted in the totals
+	// (those stay truthful to testDone events) but surfaced so a hang or
+	// killed run is attributable to its test and file.
+	var unfinished []int
+	for id := range tests {
+		if !doneIDs[id] {
+			unfinished = append(unfinished, id)
+		}
+	}
+	sort.Ints(unfinished)
+	for _, id := range unfinished {
+		f := TestFailure{
+			TestName: tests[id],
+			TestFile: suites[testSuite[id]],
+			Line:     testLine[id],
+			Error:    "started but never finished",
+		}
+		if errs := errors[id]; len(errs) > 0 {
+			f.Error = errs[0].Error
+			f.StackTrace = errs[0].StackTrace
+		}
+		out.incomplete = append(out.incomplete, f)
 	}
 	return out
 }
