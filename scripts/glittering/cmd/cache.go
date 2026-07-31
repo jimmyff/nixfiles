@@ -159,6 +159,43 @@ func deleteCacheTree(absRoot string) error {
 	return os.RemoveAll(root)
 }
 
+// pruneCacheOrphans sweeps the project's cache subtree for directories whose
+// mirrored disk path no longer exists (the cache mirrors absolute paths — see
+// cachePath) and removes each orphaned subtree, topmost first. Catches caches
+// of removed worktrees and of deleted packages inside live worktrees; files
+// are never checked. Only a definite IsNotExist reaps — any other stat
+// outcome keeps the subtree. Returns the mirrored disk paths reaped (or that
+// would be, when dry). Never nil.
+func pruneCacheOrphans(projectDir string, dry bool) ([]string, error) {
+	removed := []string{}
+	if err := guardCacheRoot(projectDir); err != nil {
+		return removed, err
+	}
+	root, err := cachePath(projectDir, "")
+	if err != nil {
+		return removed, err
+	}
+	filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
+		if err != nil || !info.IsDir() || path == root {
+			return nil
+		}
+		rel, err := filepath.Rel(root, path)
+		if err != nil {
+			return nil
+		}
+		mirrored := filepath.Join(projectDir, rel)
+		if _, statErr := os.Stat(mirrored); !os.IsNotExist(statErr) {
+			return nil
+		}
+		removed = append(removed, mirrored)
+		if !dry {
+			os.RemoveAll(path)
+		}
+		return filepath.SkipDir
+	})
+	return removed, nil
+}
+
 // readCache reads a cached JSON file. Returns nil, nil if the file doesn't exist.
 func readCache(absDir, filename string) ([]byte, error) {
 	path, err := cachePath(absDir, filename)

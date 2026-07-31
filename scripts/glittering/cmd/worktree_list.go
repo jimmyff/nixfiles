@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	flag "github.com/spf13/pflag"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -64,7 +66,36 @@ func buildWorktreeList(proj projectInfo, allMetas []worktreeMeta, filters []stri
 		Current:    currentName(proj, allMetas),
 		StashCount: stash,
 		Worktrees:  rows,
+		Orphans:    findOrphanDirs(proj, allMetas),
 	}
+}
+
+// findOrphanDirs scans the project root for visible directories git doesn't
+// list — leftovers from failed removals (see removeWorktreeDir). Hidden
+// entries (.bare, .git) and symlinks are skipped; ancestors of nested
+// worktrees are live, not orphans. One level deep by design: an orphan nested
+// under a live ancestor is still reachable via `worktree remove <a>/<b>`.
+func findOrphanDirs(proj projectInfo, metas []worktreeMeta) []WorktreeOrphan {
+	orphans := []WorktreeOrphan{}
+	entries, err := os.ReadDir(proj.ProjectDir)
+	if err != nil {
+		return orphans
+	}
+	for _, e := range entries {
+		if !e.IsDir() || strings.HasPrefix(e.Name(), ".") {
+			continue
+		}
+		path := filepath.Join(proj.ProjectDir, e.Name())
+		if registeredOrAncestor(metas, path) {
+			continue
+		}
+		orphans = append(orphans, WorktreeOrphan{
+			Name: e.Name(),
+			Path: path,
+			Hint: fmt.Sprintf("glittering worktree remove %s --force", e.Name()),
+		})
+	}
+	return orphans
 }
 
 // collectWorktreeRows builds a row per worktree with bounded parallelism,
@@ -185,85 +216,6 @@ func currentName(proj projectInfo, metas []worktreeMeta) string {
 		}
 	}
 	return ""
-}
-
-// worktreePrune removes merged-and-pushed worktrees (worktree dirs only; never
-// deletes branches — they survive in the bare repo).
-func worktreePrune(args []string) int {
-	fs := flag.NewFlagSet("worktree prune", flag.ExitOnError)
-	path := fs.String("path", ".", "path inside the project")
-	dryRun := fs.Bool("dry-run", false, "list candidates without removing")
-	force := fs.Bool("force", false, "also reap clean+pushed but unmerged worktrees")
-	fetch := fs.Bool("fetch", false, "fetch remotes before evaluating")
-	fs.BoolVarP(&verbose, "verbose", "v", false, "show progress logs")
-	fs.Parse(args)
-
-	root, err := resolveRoot(*path)
-	if err != nil {
-		logf("error: %v\n", err)
-		return ExitUsage
-	}
-	proj, metas, err := discoverWorktrees(root)
-	if err != nil {
-		logf("error: %v\n", err)
-		return ExitFailure
-	}
-	if *fetch {
-		if _, err := runGitNet(proj.CommonDir, "fetch", "origin"); err != nil {
-			progressf("  warning: fetch failed: %v\n", err)
-		}
-	}
-	out := WorktreePruneOutput{DryRun: *dryRun, Pruned: []WorktreePruneEntry{}, Skipped: []WorktreePruneEntry{}}
-	for _, row := range collectWorktreeRows(proj, metas, false) {
-		entry := WorktreePruneEntry{Name: row.Name, Path: row.Path, Branch: row.Branch}
-		if ok, reason := pruneEligible(row, proj, *force); !ok {
-			entry.Reason = reason
-			out.Skipped = append(out.Skipped, entry)
-			continue
-		}
-		if *dryRun {
-			out.Pruned = append(out.Pruned, entry)
-			continue
-		}
-		// Eligibility (above) is the safety check; force handles submodule worktrees.
-		if _, err := runGit(proj.CommonDir, "worktree", "remove", "--force", row.Path); err != nil {
-			entry.Reason = fmt.Sprintf("remove failed: %v", err)
-			out.Skipped = append(out.Skipped, entry)
-			continue
-		}
-		runGit(proj.CommonDir, "worktree", "prune")
-		deleteCacheTree(row.Path)
-		out.Pruned = append(out.Pruned, entry)
-	}
-	if err := outputJSON(out); err != nil {
-		logf("error: %v\n", err)
-		return ExitFailure
-	}
-	return ExitOK
-}
-
-// pruneEligible decides whether a worktree can be reaped. Conservative default
-// (merged into base); --force allows clean+pushed-but-unmerged (work is safe on
-// the remote).
-func pruneEligible(row WorktreeInfo, proj projectInfo, force bool) (bool, string) {
-	switch {
-	case row.Current:
-		return false, "current worktree"
-	case row.Name == proj.BaseBranch:
-		return false, "base worktree"
-	case row.Dirty:
-		return false, "dirty"
-	case row.UninitSubmodules > 0:
-		return false, "uninitialised submodules"
-	case !row.HeadOnRemote:
-		return false, "not pushed"
-	case row.AheadBase == 0:
-		return true, ""
-	case force:
-		return true, ""
-	default:
-		return false, "not merged into base"
-	}
 }
 
 // worktreePath prints the absolute path of a named worktree as plain stdout

@@ -1,11 +1,14 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	flag "github.com/spf13/pflag"
 	"os"
 	"path/filepath"
 	"strings"
+	"syscall"
+	"time"
 )
 
 // worktreeRemove removes a worktree behind a safety gate. Policy refusals
@@ -41,7 +44,7 @@ func worktreeRemove(args []string) int {
 	// Resolve first — a non-match returns before any deletion (cache blast guard).
 	target, ok := resolveWorktreeTarget(metas, names[0])
 	if !ok {
-		return finishRemove(&out, fmt.Sprintf("no worktree named %q", names[0]), ExitOK)
+		return removeOrphan(proj, metas, names[0], *force, &out)
 	}
 	out.Name, out.Path = target.Name, target.Path
 
@@ -68,11 +71,9 @@ func worktreeRemove(args []string) int {
 
 	// Our gate (above) is the authoritative safety check; force at the git level
 	// so a clean worktree containing submodules isn't refused by git's own check.
-	if _, err := runGit(proj.CommonDir, "worktree", "remove", "--force", target.Path); err != nil {
-		return finishRemove(&out, fmt.Sprintf("git worktree remove failed: %v", err), ExitFailure)
+	if err := removeWorktreeDir(proj.CommonDir, target.Path); err != nil {
+		return finishRemove(&out, err.Error(), ExitFailure)
 	}
-	runGit(proj.CommonDir, "worktree", "prune")
-	deleteCacheTree(target.Path)
 	out.Removed = true
 
 	if *deleteBranch && target.Branch != "" {
@@ -94,6 +95,83 @@ func finishRemove(out *WorktreeRemoveOutput, reason string, code int) int {
 	out.Reasons = append(out.Reasons, reason)
 	outputJSON(out)
 	return code
+}
+
+// removeWorktreeDir removes a worktree directory via git, falling back to
+// direct deletion when git fails: git deregisters the admin entry even when
+// the working-tree delete fails ("no going back" — builtin/worktree.c), so an
+// external writer recreating a file mid-delete (.DS_Store, IDE metadata) would
+// otherwise leave an orphan dir git no longer lists. Callers must pass a gated
+// path — once git fails, the fallback deletes whatever it was handed. The
+// cache tree is dropped only once the directory is actually gone, so a failed
+// removal stays visible to a later orphan --force cleanup.
+func removeWorktreeDir(commonDir, path string) error {
+	if _, gitErr := runGit(commonDir, "worktree", "remove", "--force", path); gitErr != nil {
+		if rmErr := removeDirRetry(path); rmErr != nil {
+			runGit(commonDir, "worktree", "prune")
+			return fmt.Errorf("git worktree remove failed: %v; fallback removal failed: %v", gitErr, rmErr)
+		}
+		progressf("  git worktree remove failed (%v); removed directory directly\n", gitErr)
+	}
+	runGit(commonDir, "worktree", "prune")
+	deleteCacheTree(path)
+	return nil
+}
+
+// removeDirRetry deletes a directory tree, retrying when a concurrent writer
+// (Finder, an IDE) recreates entries mid-delete — rmdir then fails ENOTEMPTY
+// (or EEXIST; POSIX allows either). Anything else (EACCES…) fails fast.
+// Refuses relative/empty/root paths — the last line of defense against a
+// caller passing an ungated path.
+func removeDirRetry(path string) error {
+	if !filepath.IsAbs(path) || path == string(filepath.Separator) {
+		return fmt.Errorf("refusing to remove non-absolute or root path %q", path)
+	}
+	var err error
+	for attempt := 0; attempt < 3; attempt++ {
+		if attempt > 0 {
+			time.Sleep(150 * time.Millisecond)
+		}
+		if err = os.RemoveAll(path); err == nil || !isRetryableRemoveErr(err) {
+			return err
+		}
+	}
+	return err
+}
+
+// isRetryableRemoveErr reports whether a RemoveAll failure means "something
+// recreated an entry mid-delete". RemoveAll returns *fs.PathError wrapping
+// the errno, so errors.Is compares the errno directly.
+func isRetryableRemoveErr(err error) bool {
+	return errors.Is(err, syscall.ENOTEMPTY) || errors.Is(err, syscall.EEXIST)
+}
+
+// removeOrphan handles a remove of a name git doesn't know. A directory can
+// survive at that path when a prior removal deregistered the worktree but
+// failed to delete its files (see removeWorktreeDir); it has no .git file, so
+// the dirty/unpushed gate cannot assess it — deleting requires --force.
+// Anything else keeps the "no worktree named" answer (policy refusal, exit 0).
+func removeOrphan(proj projectInfo, metas []worktreeMeta, name string, force bool, out *WorktreeRemoveOutput) int {
+	notFound := fmt.Sprintf("no worktree named %q", name)
+	if err := validateWorktreeName(name); err != nil {
+		return finishRemove(out, notFound, ExitOK)
+	}
+	path := filepath.Join(proj.ProjectDir, name)
+	if !isOrphanDir(proj, metas, path) {
+		return finishRemove(out, notFound, ExitOK)
+	}
+	out.Path = path
+	if !force {
+		return finishRemove(out, fmt.Sprintf(
+			"%s is not a registered worktree but its directory still exists (orphan from a failed removal); rerun with --force to delete the directory and its cache", name), ExitOK)
+	}
+	if err := removeDirRetry(path); err != nil {
+		return finishRemove(out, fmt.Sprintf("orphan removal failed: %v", err), ExitFailure)
+	}
+	deleteCacheTree(path)
+	out.Removed = true
+	outputJSON(out)
+	return ExitOK
 }
 
 // isCurrentWorktree refuses the worktree containing --path, or the one the

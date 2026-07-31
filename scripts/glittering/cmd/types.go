@@ -379,13 +379,23 @@ type WorktreeInfo struct {
 	Stale             bool   `json:"stale,omitempty"`      // --cached row with no git.json
 }
 
+// WorktreeOrphan is a directory in the project root that git doesn't list —
+// left behind when a removal deregistered the worktree but failed to delete
+// its files (an external writer recreated entries mid-delete).
+type WorktreeOrphan struct {
+	Name string `json:"name"`
+	Path string `json:"path"`
+	Hint string `json:"hint"` // exact command that reaps it
+}
+
 type WorktreeListOutput struct {
-	Project    string         `json:"project"`
-	ProjectDir string         `json:"project_dir"`
-	BaseBranch string         `json:"base_branch"`
-	Current    string         `json:"current"`     // current worktree Name, or ""
-	StashCount int            `json:"stash_count"` // project-level: refs/stash is shared
-	Worktrees  []WorktreeInfo `json:"worktrees"`
+	Project    string           `json:"project"`
+	ProjectDir string           `json:"project_dir"`
+	BaseBranch string           `json:"base_branch"`
+	Current    string           `json:"current"`     // current worktree Name, or ""
+	StashCount int              `json:"stash_count"` // project-level: refs/stash is shared
+	Worktrees  []WorktreeInfo   `json:"worktrees"`
+	Orphans    []WorktreeOrphan `json:"orphans"`
 }
 
 type WorktreeAddOutput struct {
@@ -422,6 +432,9 @@ type WorktreePruneOutput struct {
 	DryRun  bool                 `json:"dry_run"`
 	Pruned  []WorktreePruneEntry `json:"pruned"`
 	Skipped []WorktreePruneEntry `json:"skipped"`
+	// CacheRemoved lists mirrored disk paths whose orphaned cache subtrees
+	// were reaped (or would be, under --dry-run).
+	CacheRemoved []string `json:"cache_removed"`
 }
 
 // --- NDJSON event types (for dart test parsing) ---

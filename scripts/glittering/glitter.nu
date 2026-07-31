@@ -398,10 +398,13 @@ def worktree-list-render [path: string, filter: string, cached: bool, fetch: boo
   let result = (glittering worktree list --verbose ...$args ...$extra | from json)
   if ($result.worktrees | is-empty) {
     print "No worktrees."
-    return
+  } else {
+    $result.worktrees | each { |w| format-worktree-row $w } | print
+    print (worktree-footer $result)
   }
-  $result.worktrees | each { |w| format-worktree-row $w } | print
-  print (worktree-footer $result)
+  for o in ($result.orphans? | default []) {
+    print $"(ansi yellow)! orphan ($o.name)(ansi reset) (ansi dark_gray)\u{00b7} ($o.hint)(ansi reset)"
+  }
 }
 
 def "main worktree add" [
@@ -472,6 +475,11 @@ def "main worktree prune" [--path: string = "." --dry-run --force] {
   }
   for e in ($r.skipped? | default []) {
     print $"(ansi dark_gray)\u{00b7} skipped ($e.name): ($e.reason)(ansi reset)"
+  }
+  let gc = ($r.cache_removed? | default [])
+  if not ($gc | is-empty) {
+    let gc_verb = if $r.dry_run { "would sweep" } else { "swept" }
+    print $"(ansi dark_gray)($gc_verb) ($gc | length) orphaned cache subtrees(ansi reset)"
   }
 }
 

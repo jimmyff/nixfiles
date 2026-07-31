@@ -198,6 +198,34 @@ func resolveWorktreeTarget(metas []worktreeMeta, name string) (worktreeMeta, boo
 	return worktreeMeta{}, false
 }
 
+// registeredOrAncestor reports whether path is a registered worktree or an
+// ancestor of one — names nest ("feat/foo" lives under "feat"), so a parent
+// dir of a live worktree must never read as an orphan.
+func registeredOrAncestor(metas []worktreeMeta, path string) bool {
+	for _, m := range metas {
+		if m.Path == path || strings.HasPrefix(m.Path, path+string(filepath.Separator)) {
+			return true
+		}
+	}
+	return false
+}
+
+// isOrphanDir reports whether path is a plain directory inside the project
+// that git doesn't know: not the project root or bare dir, not a registered
+// worktree or an ancestor of one, and a real dir (os.Lstat — a file or
+// symlink is never an orphan). Exact string comparison is safe: metas come
+// symlink-resolved from git and ProjectDir derives from the same git output.
+func isOrphanDir(proj projectInfo, metas []worktreeMeta, path string) bool {
+	if path == proj.ProjectDir || path == proj.CommonDir {
+		return false
+	}
+	if registeredOrAncestor(metas, path) {
+		return false
+	}
+	info, err := os.Lstat(path)
+	return err == nil && info.IsDir()
+}
+
 // validateWorktreeName rejects empty/absolute/traversing names and names that
 // aren't valid git branch refs.
 func validateWorktreeName(name string) error {
