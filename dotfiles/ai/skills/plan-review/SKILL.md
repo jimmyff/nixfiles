@@ -16,6 +16,10 @@ Review an implementation plan or design doc: ground it against the real codebase
 
 If no path is given, ask for one. If the file is missing or unreadable, stop and say so.
 
+## Invocation context
+
+Inline from the planning session is the default: when a plan carries risk or sophistication, offer this review while presenting the plan, then run it right after approval (the plan must be written to a file first — plan mode can't write). The fresh eyes live in the sub-agents — pass your grounding map as claims to verify, not facts. A clean review session is the escalation for the highest-stakes designs, where even orchestration bias matters. Either way, all spawned agents (lenses, critic, skeptics) run `model: opus` — the review must not inherit a Fable session's model — and step 7 hands implementation to a fresh session.
+
 ## Principle
 
 A plan review is only as good as its grounding in the real code and how honestly critical it is.
@@ -51,7 +55,7 @@ Build a dependency map and read the key referenced files so the review shares an
 
 First classify the plan — new feature / refactor / migration / bugfix / infra — and weight the lenses to its dominant risks (refactor → behavior-preservation; migration → data integrity & rollback; new feature → API design & tests; infra → blast radius & reversibility). If there's little existing code to ground against (greenfield), shift weight to architecture/risk/completeness and lean on external docs.
 
-At **high/max**, first echo your one-line restated goal for a quick confirm — don't fan out six agents onto a confident misread. Then spawn one Agent per lens in parallel. Give each agent the plan text, your restated goal, the grounding map, and the relevant conventions; agents may read further into the code as needed (subagents don't share your context). Each returns findings as:
+At **high/max**, first echo your one-line restated goal for a quick confirm — don't fan out six agents onto a confident misread. Then spawn one Agent per lens in parallel, pinned to `model: opus` (lens work is grounded reading, not frontier judgment). Give each agent the plan text, your restated goal, the grounding map, and the relevant conventions; agents may read further into the code as needed (subagents don't share your context). Each returns findings as:
 `{severity, type, title, evidence (file:line), why, suggested_fix, confidence}`.
 
 Lenses:
@@ -71,7 +75,7 @@ At **max**, add a dedicated **completeness critic** pass: one agent whose only j
 
 1. Dedupe overlapping findings across lenses.
 2. Assign severity: **Blocker** (must fix — will break or won't meet the goal) / **Major** (should fix) / **Minor** (nice to have) / **Idea** (optional / alternative).
-3. For each **Blocker/Major**, spawn a skeptic Agent to *refute* it against the code. Resolve by evidence, not by default: **drop** only if the code actively refutes it; **demote** to "unverified — worth checking" if it can't be confirmed or refuted; **keep** if confirmed. At **max**, give each blocker two skeptics with different angles (e.g. "does it actually break?" vs "does the assumed code path even run?").
+3. For each **Blocker/Major**, spawn a skeptic Agent (`model: opus`) to *refute* it against the code. Resolve by evidence, not by default: **drop** only if the code actively refutes it; **demote** to "unverified — worth checking" if it can't be confirmed or refuted; **keep** if confirmed. At **max**, give each blocker two skeptics with different angles (e.g. "does it actually break?" vs "does the assumed code path even run?").
 
 ### 5. Report
 

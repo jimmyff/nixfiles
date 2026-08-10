@@ -205,6 +205,8 @@
       "git submodule update",
       "git submodule update *",
       "glittering *",
+      "aerospace",
+      "aerospace *",
       "gcloud *",
       "gsutil *",
       "gh *",

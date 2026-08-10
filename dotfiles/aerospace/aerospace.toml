@@ -51,6 +51,24 @@ default-root-container-orientation = 'auto'
 # Also see: https://nikitabobko.github.io/AeroSpace/goodies#disable-hide-app
 automatically-unhide-macos-hidden-apps = true
 
+# Auto-float Kosmos windows. Tiling fights agent-driven app testing — a freshly
+# launched debug build gets resized/stacked mid-run and breaks screenshots and
+# widget interaction. Floating on detect keeps the window where the app put it.
+# '~=' is a case-insensitive regex match (see 'aerospace test --help'), so this
+# covers every bundle ID starting 'space.kosmos.app' — .direct, flavours, etc.
+#
+# Two gotchas, both learned the hard way:
+#  1. This must stay above the first [table] header — it's a top-level key, and
+#     TOML would otherwise fold it into the preceding table.
+#  2. 'if' is parsed by AeroSpace's own shell lexer (0.21+), where a backslash
+#     is an escape and may only precede whitespace/newline/comment. So the regex
+#     is single-quoted for that lexer, which forces a TOML *basic* string here —
+#     hence the doubled backslashes. Verify edits with 'aerospace reload-config
+#     --dry-run' before trusting them.
+on-window-detected = [
+  { if = "test %{app-bundle-id} ~= '^space\\.kosmos\\.app'", run = 'layout floating' },
+]
+
 # Possible values: (qwerty|dvorak)
 # See https://nikitabobko.github.io/AeroSpace/guide#key-mapping
 [key-mapping]

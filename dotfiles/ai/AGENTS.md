@@ -6,6 +6,7 @@
 - Software Engineer & small-business owner building apps for mobile, web, and desktop
 - Solo developer & architect
 - Primary stack: Dart/Flutter, Nix, Rust, Nushell, SQLite, PostgreSQL, GCP, Firebase
+- Desktop: tiling window managers — AeroSpace (macOS), niri (Linux)
 - Point out learning opportunities when relevant
 
 ## Tone
@@ -59,6 +60,12 @@
 - Always confirm before committing or pushing; if a push fails or conflicts, stop and ask
 - Read URLs when shared
 - My systems are entirely managed by Nix, system configuration is in `~/nixfiles/`. If working in `~/Project/...` you are in a project with its own devshell configured by the project flake.
+
+## Models
+
+- Sub-agents: Opus by default (set explicitly when the session runs Fable); Fable only when the task needs frontier judgment — novel architecture, adversarial verification, subtle correctness. Sonnet for mechanical scans.
+- Sessions: Fable suits architecture/design/planning, Opus execution. Default to planning and executing in one session — splitting costs a second warm-up and risks plan drift. Suggest a fresh implementing session (with recommended model) only when the plan is substantial or the session has grown noisy.
+- Risky or sophisticated plans: when presenting the plan, offer /plan-review before implementation — thorough but token-heavy.
 
 ## Shell & tools
 
