@@ -18,7 +18,8 @@ Subcommands:
   check          Verify everything is committed, pushed, and refs are in sync
   push           Push all repos with unpushed commits
   commit         Commit submodules and auto-update parent ref
-  pull           Pull parent, checkout branches, pull all submodules
+  pull           Pull parent, checkout branches, pull all submodules (to branch tips)
+  sync           Fast-forward submodules to the parent's pinned refs, staying on-branch
   diff           Structured diff summary across all repos
 
 Status flags:
@@ -48,6 +49,8 @@ func Git(args []string) int {
 		return ExitUsage
 	case "pull":
 		return GitPull(args[1:])
+	case "sync":
+		return GitSync(args[1:])
 	case "diff":
 		return GitDiff(args[1:])
 	case "check":
@@ -287,15 +290,7 @@ func getSubmoduleStatus(root, subPath string) GitSubmoduleStatus {
 		sub.Ref = ref
 	}
 
-	// Get parent's recorded ref via ls-tree
-	parentRef, err := runGit(root, "ls-tree", "HEAD", subPath)
-	if err == nil && parentRef != "" {
-		// Format: <mode> commit <sha>\t<path>
-		fields := strings.Fields(parentRef)
-		if len(fields) >= 3 {
-			sub.ParentRef = fields[2]
-		}
-	}
+	sub.ParentRef = getParentPin(root, subPath)
 
 	// Check dirty + count untracked
 	entries, err := statusEntries(subDir)

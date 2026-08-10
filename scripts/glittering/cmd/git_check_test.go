@@ -1,6 +1,9 @@
 package cmd
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 func TestAnalyzeGitIssues_CleanRepo(t *testing.T) {
 	data := GitOutput{
@@ -163,7 +166,7 @@ func TestAnalyzeGitIssues_MultipleIssues(t *testing.T) {
 	issues := analyzeGitIssues(data)
 	// Parent: dirty (error), unpushed (error), stash (warn)
 	// pkg/a: detached (error)
-	// pkg/b: ahead_parent (warn), behind_parent (info)
+	// pkg/b: ahead_parent (warn), behind_parent (warn)
 	errors, warns, infos := 0, 0, 0
 	for _, issue := range issues {
 		switch issue.Severity {
@@ -178,11 +181,57 @@ func TestAnalyzeGitIssues_MultipleIssues(t *testing.T) {
 	if errors != 3 {
 		t.Errorf("expected 3 errors, got %d", errors)
 	}
-	if warns != 2 {
-		t.Errorf("expected 2 warns, got %d", warns)
+	if warns != 3 {
+		t.Errorf("expected 3 warns, got %d", warns)
 	}
-	if infos != 1 {
-		t.Errorf("expected 1 info, got %d", infos)
+	if infos != 0 {
+		t.Errorf("expected 0 infos, got %d", infos)
+	}
+}
+
+// Regression: a submodule behind the parent's pinned ref silently builds stale
+// code (analyzer errors that read as merge bugs) — it must break clean and
+// carry an actionable fix, not vanish as an info.
+func TestAnalyzeGitIssues_SubmoduleBehindParent(t *testing.T) {
+	data := GitOutput{
+		Path: "/workspace",
+		Repo: GitRepoStatus{
+			Path:         ".",
+			Branch:       "main",
+			Upstream:     "origin/main",
+			HeadOnRemote: true,
+		},
+		Submodules: []GitSubmoduleStatus{
+			{
+				Path:         "pkg/stale",
+				Branch:       "main",
+				Ref:          "old456",
+				ParentRef:    "new123",
+				BehindParent: 2,
+				Upstream:     "origin/main",
+				HeadOnRemote: true,
+			},
+		},
+	}
+	issues := analyzeGitIssues(data)
+	found := false
+	for _, issue := range issues {
+		if issue.Type == "behind_parent" && issue.Repo == "pkg/stale" {
+			found = true
+			if issue.Severity != "warn" {
+				t.Errorf("behind_parent should be warn severity (must break clean), got %s", issue.Severity)
+			}
+			if !strings.Contains(issue.Fix, "git sync") {
+				t.Errorf("behind_parent fix should point at git sync, got %q", issue.Fix)
+			}
+		}
+	}
+	if !found {
+		t.Error("expected behind_parent issue for pkg/stale")
+	}
+	out := buildCheckOutput("/workspace", nil, issues)
+	if out.Clean {
+		t.Error("a stale submodule worktree must not report clean")
 	}
 }
 
@@ -204,7 +253,7 @@ func TestBuildCheckOutput_WithErrors(t *testing.T) {
 		{Repo: ".", Severity: "error", Type: "dirty", Message: "dirty"},
 		{Repo: ".", Severity: "error", Type: "unpushed", Message: "unpushed"},
 		{Repo: "pkg/a", Severity: "warn", Type: "stash", Message: "stash"},
-		{Repo: "pkg/b", Severity: "info", Type: "behind_parent", Message: "behind"},
+		{Repo: "pkg/b", Severity: "info", Type: "note", Message: "note"},
 	}
 	ts := "2026-01-01T00:00:00Z"
 	out := buildCheckOutput("/workspace", &ts, issues)
@@ -237,7 +286,7 @@ func TestBuildCheckOutput_WarnsOnly(t *testing.T) {
 
 func TestBuildCheckOutput_InfosOnly(t *testing.T) {
 	issues := []CheckIssue{
-		{Repo: "pkg/a", Severity: "info", Type: "behind_parent", Message: "behind"},
+		{Repo: "pkg/a", Severity: "info", Type: "note", Message: "note"},
 	}
 	out := buildCheckOutput("/workspace", nil, issues)
 	if !out.Clean {

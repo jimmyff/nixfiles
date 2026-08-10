@@ -23,6 +23,7 @@ In a multi-package workspace (cue: `.gitmodules` and/or multiple `pubspec.yaml` 
 | commit parent-repo-only files (docs/plans) | `glittering git commit --parent-only -f <file> -m "msg"` |
 | "is everything committed/pushed?" (end of session) | `glittering git check` |
 | pull latest / sync repos | `glittering git pull` |
+| submodule stale after a parent merge/pull (`behind_parent`, phantom analyzer errors) | `glittering git sync` |
 | review changes / file-level detail | `glittering git diff` — per-file staged/unstaged/untracked + patch `details_file` |
 | understand package layout / size | `glittering status`, `glittering stats` |
 | assess / create / clean up worktrees | `glittering worktree list / add / remove / prune` |
@@ -34,6 +35,7 @@ In a multi-package workspace (cue: `.gitmodules` and/or multiple `pubspec.yaml` 
 - **Raw `git commit`/`git push` in a submodule workspace** leaves parent refs stale and work stranded unpushed on one machine — exactly the failure glittering exists to prevent. Always prefer `glittering git commit` (auto-pushes, verifies, syncs parent refs).
 - **Per-package `dart test`/`dart analyze` for workspace checks** is serial, uncached, and misses cross-package breakage. Go raw only for a single targeted file: `dart test path/to/test.dart`.
 - **Out of scope** — use raw tools for: git branch/checkout/merge/rebase/stash/log · `dart fix/format/run` · `flutter build/create/run` · repos that aren't multi-package workspaces.
+- **After any raw `git merge`/`git pull` in the parent repo**, run `glittering git check`: a merge that moves a gitlink leaves the submodule worktree on the old commit (`behind_parent` — stale builds, phantom analyzer errors). Fix with `glittering git sync`, not `git submodule update` (which detaches HEAD).
 
 ## Commands
 
@@ -65,7 +67,12 @@ glittering git commit <sub>... -m "msg" --path <root> [--all | -f file | --stage
   # and anything already staged in the parent. Other dirty parent files are left behind and
   # reported via partial: true + parent.left_uncommitted — check both before claiming done.
 glittering git commit --parent-only -f <file>... -m "msg" --path <root>  # commit parent-repo-only files (docs, plans); -F also accepted
-glittering git pull --path <root> [--filter <names>]              # pull parent + subs
+glittering git pull --path <root> [--filter <names>]              # pull parent + subs (to branch TIPS)
+glittering git sync --path <root> [--filter <names>] [--skip-fetch] # fast-forward subs to the parent's
+  # PINNED refs, staying on-branch. The fix for behind_parent: a parent merge/pull moves a gitlink but
+  # the submodule worktree stays on the old commit — builds/analysis silently run stale code. Forward-only
+  # (never rewinds an ahead sub; that's `commit --parent-only`), reattaches detached subs at the pin,
+  # skips dirty subs (warning), exits 1 on genuine divergence without touching the worktree.
 ```
 
 ### Worktree subcommands
@@ -115,6 +122,7 @@ The three gates differ by design: `removable` (list) keys on **pushed**, `prune`
 - **git diff**: `{ repos: [{ path, staged, unstaged, untracked_files, details_file }], summary }`
 - **commit**: `{ success, partial, hint, submodules: [{ path, ref, pushed }], parent: { ref, staged, left_uncommitted, pushed, warnings } }` — `partial: true` means the commit succeeded but parent files listed in `parent.left_uncommitted` were NOT committed
 - **git pull**: `{ branch, submodules: [{ path, new_commits, was_dirty }], warnings }`
+- **git sync**: `{ success, submodules: [{ path, branch, action, from_ref, to_ref, new_commits, hint, error }], warnings }` — `action`: `in_sync`/`synced`/`reattached` (good) · `skipped_dirty` (warning) · `ahead` (bump the pin — follow `hint`) · `diverged`/`error` (exit 1, worktree untouched)
 - **worktree list**: `{ project, project_dir, base_branch, current, stash_count, worktrees: [{ name, path, branch, current, dirty, removable, head_on_remote, ahead_remote, behind_remote, ahead_base, behind_base, uninit_submodules, last_commit_age_secs, stale }], orphans: [{ name, path, hint }] }` — `orphans` are directories from failed removals; `hint` is the exact reap command
 - **worktree add**: `{ name, path, branch, base, success, created_branch, cache_seeded, submodules_expected, submodules_initialised, pub_get: [...], warnings, on_add_hook }` — `success:false`/exit 3 = degraded; `on_add_hook` (aggregate of the global + project hooks): `""`/`ok`/`failed`/`skipped`/`not_executable`
 - **worktree remove**: `{ removed, branch_deleted, name, path, reasons }` — `removed:false` = refused (see reasons)

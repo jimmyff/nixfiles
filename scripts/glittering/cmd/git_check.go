@@ -68,13 +68,15 @@ func analyzeGitIssues(data GitOutput) []CheckIssue {
 				Fix:      fmt.Sprintf("glittering git diff --path %s", root),
 			})
 		}
+		// sync (not pull) reattaches to the branch at the pinned ref exactly;
+		// pull would overshoot to the branch tip.
 		if sub.Detached {
 			issues = append(issues, CheckIssue{
 				Repo:     sub.Path,
 				Severity: "error",
 				Type:     "detached",
 				Message:  fmt.Sprintf("%s is in detached HEAD state", sub.Path),
-				Fix:      fmt.Sprintf("glittering git pull --path %s", root),
+				Fix:      fmt.Sprintf("glittering git sync --path %s", root),
 			})
 		}
 		if sub.AheadRemote > 0 && !sub.HeadOnRemote {
@@ -111,12 +113,15 @@ func analyzeGitIssues(data GitOutput) []CheckIssue {
 				Fix:      fmt.Sprintf("glittering git commit --parent-only --path %s %s", root, sub.Path),
 			})
 		}
+		// warn, not info: a worktree behind the pin silently builds stale code
+		// (e.g. after a parent merge moves the gitlink) — it must break clean.
 		if sub.BehindParent > 0 {
 			issues = append(issues, CheckIssue{
 				Repo:     sub.Path,
-				Severity: "info",
+				Severity: "warn",
 				Type:     "behind_parent",
 				Message:  fmt.Sprintf("%s is %d commit(s) behind parent ref", sub.Path, sub.BehindParent),
+				Fix:      fmt.Sprintf("glittering git sync --path %s", root),
 			})
 		}
 	}

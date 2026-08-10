@@ -278,6 +278,33 @@ def "main git pull" [--path: string = "." --filter: string = ""] {
   } | print
 }
 
+def "main git sync" [--path: string = "." --filter: string = "" --skip-fetch] {
+  let args = (build-args $path $filter)
+  let extra_args = if $skip_fetch { [--skip-fetch] } else { [] }
+  let result = (glittering git sync --verbose ...$args ...$extra_args | from json)
+  let warns = ($result.warnings? | default [])
+  if (not ($warns | is-empty)) {
+    for w in $warns { print $"(ansi yellow)warning:(ansi reset) ($w)" }
+    print ""
+  }
+  let subs = ($result.submodules? | default [])
+  if ($subs | is-empty) {
+    print "No submodules."
+    return
+  }
+  $subs | each { |s|
+    let status = match $s.action {
+      "in_sync" => "in sync",
+      "synced" => $"(ansi green)fast-forwarded +($s.new_commits? | default 0)(ansi reset)",
+      "reattached" => $"(ansi green)reattached +($s.new_commits? | default 0)(ansi reset)",
+      "skipped_dirty" => $"(ansi yellow)skipped \(dirty\)(ansi reset)",
+      "ahead" => $"(ansi yellow)ahead of pin(ansi reset) — ($s.hint? | default '')",
+      _ => $"(ansi red)($s.error? | default $s.action)(ansi reset)",
+    }
+    { path: $s.path, branch: ($s.branch? | default ""), status: $status }
+  } | print
+}
+
 def "main git check" [--path: string = "." --skip-fetch --cached --filter: string = ""] {
   let args = (build-args $path $filter)
   let extra_args = if $cached {
@@ -667,7 +694,8 @@ Commands:
   git push       Push all repos with unpushed commits
   git diff       Structured diff summary (staged/unstaged/untracked)
   git commit    Commit submodules and auto-update parent ref
-  git pull       Pull parent, checkout branches, pull all submodules
+  git pull       Pull parent, checkout branches, pull all submodules (to branch tips)
+  git sync       Fast-forward submodules to the parent's pinned refs (stays on-branch)
   worktree       List/add/remove/prune worktrees (list | add <name> | remove <name> | prune | path <name>)
   overview       Combined dashboard: git + test + analyze + stats (--refresh to update, --compact for rollup rows)
   clean          Remove old session directories

@@ -16,6 +16,7 @@ glitter stats                               # File/line counts, oversized detect
 glitter git                                # Git status (fetches by default)
 glitter git --cached                       # Git status from cache (instant)
 glitter git check                          # Verify committed, pushed, refs in sync
+glitter git sync                           # Fast-forward submodules to parent's pinned refs
 glitter git push                           # Push all repos with unpushed commits
 glitter git diff                           # Diff summary for dirty repos
 
@@ -41,7 +42,10 @@ glittering git diff --path workspace [--filter name]
 glittering git commit <sub>... --message "msg" --path workspace [--all|--staged|--files f] [--parent-files f]
 glittering git commit --parent-only --path workspace             # bump out-of-sync submodule refs
 glittering git commit --parent-only -f <file> -m "msg" --path workspace  # commit parent-repo files only
-glittering git pull --path workspace [--filter name]
+glittering git pull --path workspace [--filter name]             # sync to branch tips
+glittering git sync --path workspace [--filter name]             # fast-forward submodules to the
+                                                                 #   parent's pinned refs, on-branch
+                                                                 #   (fixes behind_parent after a merge)
 glittering clean                                 # Tidy old sessions
 ```
 

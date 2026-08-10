@@ -321,6 +321,28 @@ type GitPullResult struct {
 	Error      string             `json:"error,omitempty"`
 }
 
+// --- Git sync command ---
+
+type GitSyncSubmodule struct {
+	Path   string `json:"path"`
+	Branch string `json:"branch,omitempty"`
+	// Action: "in_sync", "synced", "reattached", "skipped_dirty", "ahead",
+	// "diverged", "error"
+	Action     string `json:"action"`
+	FromRef    string `json:"from_ref,omitempty"`
+	ToRef      string `json:"to_ref,omitempty"`
+	NewCommits int    `json:"new_commits,omitempty"`
+	Hint       string `json:"hint,omitempty"`
+	Error      string `json:"error,omitempty"`
+}
+
+type GitSyncOutput struct {
+	Path       string             `json:"path"`
+	Success    bool               `json:"success"`
+	Submodules []GitSyncSubmodule `json:"submodules"`
+	Warnings   []string           `json:"warnings"`
+}
+
 // --- Git diff command ---
 
 type DiffChangedFile struct {

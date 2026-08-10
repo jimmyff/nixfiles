@@ -21,12 +21,8 @@ func getOutOfSyncSubmodules(root string) ([]string, error) {
 		if err != nil {
 			continue
 		}
-		parentRef, err := runGit(root, "ls-tree", "HEAD", subPath)
-		if err != nil || parentRef == "" {
-			continue
-		}
-		fields := strings.Fields(parentRef)
-		if len(fields) >= 3 && fields[2] != head {
+		pin := getParentPin(root, subPath)
+		if pin != "" && pin != head {
 			outOfSync = append(outOfSync, subPath)
 		}
 	}
