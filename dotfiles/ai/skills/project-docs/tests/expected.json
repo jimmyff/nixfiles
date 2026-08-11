@@ -1,0 +1,28 @@
+{
+  "size": [
+    { "severity": "finding", "path": "docs/workstreams/huge.md" },
+    { "severity": "note", "path": "docs/design/fat.md" }
+  ],
+  "brief": [
+    { "severity": "finding", "path": "docs/workstreams/stale.md" }
+  ],
+  "dead-link": [
+    { "severity": "finding", "path": "docs/workstreams/broken.md" }
+  ],
+  "orphan": [
+    { "severity": "finding", "path": "docs/design/orphan.md" }
+  ],
+  "closure": [
+    { "severity": "note", "path": "docs/workstreams/closing.md" }
+  ],
+  "collision": [
+    { "severity": "finding", "path": "docs/workstreams/crossover.md" }
+  ],
+  "open-log": [
+    { "severity": "note", "path": "docs/workstreams/healthy.md" }
+  ],
+  "crossover": [
+    { "severity": "finding", "path": "docs/workstreams/crossover.md" }
+  ],
+  "syntax": []
+}

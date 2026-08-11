@@ -1,0 +1,3 @@
+# Sample tree written by `docs.nu fixture --write`, for reading only.
+# selftest builds its own copy in $TMPDIR, so nothing here is needed to run the tests.
+tests/fixture/

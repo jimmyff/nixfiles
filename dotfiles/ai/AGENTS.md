@@ -39,8 +39,9 @@
 ## Documentation
 
 - CLAUDE.md / AGENTS.md: keep lean and do not edit without showing me the change first; favour tightening over addition.
-- Other docs (readmes, changelogs, roadmaps, trackers, ledgers): keep current as part of the work, avoid drift; flag substantive rewrites first.
-- Files: ideally <150 lines, max 300
+- Project docs (plans, trackers, design docs): the `project-docs` skill is the structure. Session records go in the owning tracker's `## Log`, never a shared session file.
+- Other docs (readmes, changelogs, roadmaps, ledgers): keep current as part of the work, avoid drift; flag substantive rewrites first.
+- Files: ideally <150 lines, max 300 (planning docs capped by bytes instead — see the skill)
 - Markdown: no manual line-wrapping — one line per paragraph, let the viewer/editor wrap.
 - Code should be self-documenting; Readmes provide quick orientation (purpose, structure, components) not comprehensive documentation
 - Agent files: high-level overview, key patterns; reference package READMEs for specifics
