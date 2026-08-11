@@ -67,6 +67,7 @@ func buildWorktreeList(proj projectInfo, allMetas []worktreeMeta, filters []stri
 		StashCount: stash,
 		Worktrees:  rows,
 		Orphans:    findOrphanDirs(proj, allMetas),
+		Overlaps:   computeOverlaps(rows),
 	}
 }
 
@@ -145,7 +146,9 @@ func buildWorktreeRow(proj projectInfo, m worktreeMeta, cached bool) WorktreeInf
 		row.LastCommit = st.LatestCommit
 	}
 	row.BehindBase, row.AheadBase = getRevListCount(m.Path, proj.BaseBranch, "HEAD")
-	row.UninitSubmodules = len(getUninitialisedSubmodules(m.Path))
+	subs := submoduleStatus(m.Path) // one snapshot, both submodule fields
+	row.UninitSubmodules = len(uninitialisedIn(subs))
+	row.SubmodulesAhead = submodulesAheadOfPin(m.Path, subs)
 	if ts, ok := lastCommitUnix(m.Path); ok {
 		row.LastCommitAgeSecs = time.Now().Unix() - ts
 	} else {
@@ -210,10 +213,8 @@ func stashProbePath(proj projectInfo, metas []worktreeMeta) string {
 
 // currentName maps the current worktree path to its Name, or "".
 func currentName(proj projectInfo, metas []worktreeMeta) string {
-	for _, m := range metas {
-		if m.Path == proj.CurrentPath {
-			return m.Name
-		}
+	if m, ok := currentWorktreeMeta(proj, metas); ok {
+		return m.Name
 	}
 	return ""
 }

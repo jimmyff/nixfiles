@@ -43,18 +43,7 @@ func GitPush(args []string) int {
 	// Pre-flight: abort if any repo is dirty or any submodule is detached.
 	// Skip the parent dirty check when --filter is active — the parent isn't
 	// pushed in that mode, so its dirty state is irrelevant.
-	var preflight []string
-	if data.Repo.Dirty && len(filters) == 0 {
-		preflight = append(preflight, "parent repo has uncommitted changes")
-	}
-	for _, sub := range data.Submodules {
-		if sub.Dirty {
-			preflight = append(preflight, fmt.Sprintf("%s has uncommitted changes", sub.Path))
-		}
-		if sub.Detached {
-			preflight = append(preflight, fmt.Sprintf("%s is in detached HEAD state", sub.Path))
-		}
-	}
+	preflight := pushPreflightReasons(data, len(filters) == 0)
 	if len(preflight) > 0 {
 		out := PushOutput{
 			Path:    root,
@@ -68,26 +57,8 @@ func GitPush(args []string) int {
 		return ExitFailure
 	}
 
-	var pushed, skipped, failed []PushRepoResult
-
 	// Push submodules first (so parent can reference pushed refs)
-	for _, sub := range data.Submodules {
-		if sub.AheadRemote == 0 || sub.Upstream == "" || sub.Branch == "" {
-			if sub.AheadRemote > 0 && sub.Upstream == "" {
-				skipped = append(skipped, PushRepoResult{Path: sub.Path, Status: "skipped", Error: "no upstream configured"})
-			} else {
-				skipped = append(skipped, PushRepoResult{Path: sub.Path, Status: "skipped"})
-			}
-			continue
-		}
-		subDir := filepath.Join(root, sub.Path)
-		progressf("  pushing %s...\n", sub.Path)
-		if _, pushErr := runGitNet(subDir, "push"); pushErr != nil {
-			failed = append(failed, PushRepoResult{Path: sub.Path, Status: "failed", Ref: sub.Ref, Error: fmt.Sprintf("%v", pushErr)})
-		} else {
-			pushed = append(pushed, PushRepoResult{Path: sub.Path, Status: "pushed", Ref: sub.Ref})
-		}
-	}
+	pushed, skipped, failed := pushSubmodules(root, data.Submodules)
 
 	// Push parent (skip when filter is active)
 	if len(filters) == 0 {
@@ -134,4 +105,48 @@ func GitPush(args []string) int {
 		return ExitFailure
 	}
 	return ExitOK
+}
+
+// pushPreflightReasons lists every reason a push should be refused: uncommitted
+// changes or a detached HEAD anywhere in the tree. includeParent covers the
+// parent repo (false when only submodules will be pushed). Callers decide
+// whether to report the first reason (`git push`) or all of them
+// (`worktree land`).
+func pushPreflightReasons(data GitOutput, includeParent bool) []string {
+	var reasons []string
+	if includeParent && data.Repo.Dirty {
+		reasons = append(reasons, "parent repo has uncommitted changes")
+	}
+	for _, sub := range data.Submodules {
+		if sub.Dirty {
+			reasons = append(reasons, fmt.Sprintf("%s has uncommitted changes", sub.Path))
+		}
+		if sub.Detached {
+			reasons = append(reasons, fmt.Sprintf("%s is in detached HEAD state", sub.Path))
+		}
+	}
+	return reasons
+}
+
+// pushSubmodules pushes every submodule with unpushed commits, in order, so a
+// parent ref bump can only ever reference commits that are already on the
+// remote. Shared by `git push` and `worktree land`.
+func pushSubmodules(root string, subs []GitSubmoduleStatus) (pushed, skipped, failed []PushRepoResult) {
+	for _, sub := range subs {
+		if sub.AheadRemote == 0 || sub.Upstream == "" || sub.Branch == "" {
+			if sub.AheadRemote > 0 && sub.Upstream == "" {
+				skipped = append(skipped, PushRepoResult{Path: sub.Path, Status: "skipped", Error: "no upstream configured"})
+			} else {
+				skipped = append(skipped, PushRepoResult{Path: sub.Path, Status: "skipped"})
+			}
+			continue
+		}
+		progressf("  pushing %s...\n", sub.Path)
+		if _, pushErr := runGitNet(filepath.Join(root, sub.Path), "push"); pushErr != nil {
+			failed = append(failed, PushRepoResult{Path: sub.Path, Status: "failed", Ref: sub.Ref, Error: fmt.Sprintf("%v", pushErr)})
+		} else {
+			pushed = append(pushed, PushRepoResult{Path: sub.Path, Status: "pushed", Ref: sub.Ref})
+		}
+	}
+	return pushed, skipped, failed
 }

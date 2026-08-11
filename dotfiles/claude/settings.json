@@ -124,7 +124,7 @@
       "Bash(git clean:*)"
     ]
   },
-  "model": "fable",
+  "model": "opus",
   "enabledMcpjsonServers": [
     "dart",
     "chrome-devtools"

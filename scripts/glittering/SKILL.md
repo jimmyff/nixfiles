@@ -27,6 +27,8 @@ In a multi-package workspace (cue: `.gitmodules` and/or multiple `pubspec.yaml` 
 | review changes / file-level detail | `glittering git diff` — per-file staged/unstaged/untracked + patch `details_file` |
 | understand package layout / size | `glittering status`, `glittering stats` |
 | assess / create / clean up worktrees | `glittering worktree list / add / remove / prune` |
+| bring the base branch into a worktree | `glittering worktree update` |
+| finished work in a worktree → into main | `glittering worktree land` |
 
 `glittering git` reports at repo level (dirty, ahead/behind); for which *files* changed, use `glittering git diff` — not raw `git status`.
 
@@ -77,11 +79,13 @@ glittering git sync --path <root> [--filter <names>] [--skip-fetch] # fast-forwa
 
 ### Worktree subcommands
 
-For the bare-repo + worktree layout (`<proj>/.bare` + `<proj>/main`, `<proj>/<feature>`…). `--path` may be any worktree, the project root, or the bare dir.
+For the bare-repo + worktree layout (`<proj>/.bare` + `<proj>/main`, `<proj>/<feature>`…). `--path` may be any worktree, the project root, or the bare dir — except for `update`/`land`, which act on the worktree `--path` is *inside*.
 
 ```
 glittering worktree list --path <proj> [--cached] [--fetch] [--filter <n>]  # per-worktree status (JSON)
 glittering worktree add <name> --path <proj> [--from <ref>] [--no-get] [--no-share-objects] [--no-hook]
+glittering worktree update --path <worktree> [--skip-fetch]  # base ff, then merge the base branch in
+glittering worktree land --path <worktree> [--allow-pin-rewind]  # push, then ff the base branch onto it
 glittering worktree remove <name> --path <proj> [--force] [--delete-branch]
 glittering worktree prune --path <proj> [--dry-run] [--force]
 glittering worktree path <name> --path <proj>     # prints absolute path as PLAIN TEXT (not JSON), for cd
@@ -89,10 +93,14 @@ glittering worktree path <name> --path <proj>     # prints absolute path as PLAI
 
 - **`list`** is the fast orientation primitive. Each row carries `removable` (safe to delete) plus the components (`dirty`, `ahead_remote`, `head_on_remote`, `ahead_base`/`behind_base`, `uninit_submodules`, `last_commit_age_secs`). `--cached` reads each worktree's `git.json` (rows with none get `stale:true`).
 - **`add`** checks out an existing branch (local, then `origin/<name>`) or creates one off the base; inits submodules (object-shared from the base worktree, parallel), seeds test/analyze/stats cache, runs `pub get`. `success:false` + exit `3` means usable-but-degraded — read `warnings` (e.g. uninitialised submodules, pub-get failures). Finally it runs optional on-add hooks (cwd = new worktree; env `GLITTER_WORKTREE_PATH`/`GLITTER_BASE_WORKTREE`/`GLITTER_PROJECT_DIR`; 60s timeout each; **after** `pub get`, so a hook that changes deps must re-run it): a user-level `${XDG_CONFIG_HOME:-~/.config}/glittering/hooks/worktree/on-add` for every project (e.g. seed a shared `.mcp.json`), then the project's `.glittering/hooks/worktree/on-add` from the **base worktree** (base-sourced so a branch can't inject one). `on_add_hook` is the aggregate of both (worst wins): `ok`/`failed`/`skipped`/`not_executable`/`""`; `--no-hook` skips both. Non-fatal — read `warnings` (scope-labelled `global`/`project`). To write a hook, see "Writing a worktree hook" in the package README.
+- **`update`** brings the base branch in: fetch, fast-forward the base worktree to origin, `git merge <base>` into this worktree, then converge submodule pins on **both** worktrees (a fast-forward that moves a gitlink leaves the superproject dirty until its submodule follows). A merge, never a rebase — an already-pushed feature branch is not rewritten. Refuses (exit `1`, nothing touched) when this worktree is dirty or a merge is already in progress. A **conflict is left in progress on purpose**: `merge.status: "conflicts"` with `merge.conflicts` naming the paths (a submodule path there = two worktrees moved the same pin) — resolve, **stage only the conflicted paths**, commit, re-run. Never `git add -A` mid-merge: it re-stages every gitlink at its submodule worktree's HEAD, silently discarding the pins the merge just brought in (update warns if it finds a pin behind the base branch's). A dirty base worktree is a warning, not a failure: its fast-forward is skipped and its current tip is merged instead. Run on the base worktree itself, it degrades to just the fast-forward.
+- **`land`** publishes the worktree and integrates it: pre-flight (every blocker at once), push submodules **then** the feature branch, `merge --ff-only` the base worktree onto it, converge its pins, push the base branch. **Fast-forward only** — the base branch only ever moves to a commit that already contains it, so landing cannot conflict; not fast-forwardable means one remedy: run `worktree update` first (the `hint` says so). Containment covers history, not gitlinks: land also refuses when a submodule pin is **behind or diverged from** the base branch's, which would fast-forward cleanly while reverting published submodule work — `--allow-pin-rewind` overrides it for a deliberate revert (still reported as a warning). Refusals exit `1` with `landed:false` + `reasons` and publish nothing. Never removes the worktree — the success `hint` names `worktree prune` for that.
 - **`remove`** refuses base/current and (without `--force`) any worktree with uncommitted/unpushed work in the superproject or a submodule. Policy refusals exit `0` with `removed:false` + `reasons`; only git/IO failure exits `1`. Never deletes the branch unless `--delete-branch` (safe `-d` only). Also handles **orphans** — directories git no longer lists, left by a failed removal (surfaced by `list` under `orphans`): without `--force` it refuses with an explanatory reason (exit `0`); with `--force` it deletes the directory and its cache. If git's own removal fails mid-delete (e.g. an IDE recreated a file), the directory is removed directly with retries.
 - **`prune`** reaps only merged-and-pushed clean worktrees (worktree dirs only — branches survive); `--force` also reaps clean+pushed-but-unmerged. Also sweeps cache subtrees whose disk path no longer exists, reporting them in `cache_removed` (listed but kept under `--dry-run`).
 
 The three gates differ by design: `removable` (list) keys on **pushed**, `prune` on **merged**, `remove` does the **authoritative deep + submodule** check. So a `removable:true` row may still be skipped by `prune` ("not merged") or refused by `remove` (dirty submodule).
+
+**Concurrency policy** — give concurrent worktrees *disjoint* submodules where you can: two worktrees editing one submodule collide at pin level, not file level. `worktree list` reports `overlaps` (submodules carrying local commits in ≥2 worktrees); check it before spawning a second agent. When it does happen, nothing is lost: `update` surfaces it as a submodule conflict, and `land` refuses in pre-flight with the integrate-then-bump-the-pin remedy.
 
 ## Rules
 
@@ -123,8 +131,10 @@ The three gates differ by design: `removable` (list) keys on **pushed**, `prune`
 - **commit**: `{ success, partial, hint, submodules: [{ path, ref, pushed }], parent: { ref, staged, left_uncommitted, pushed, warnings } }` — `partial: true` means the commit succeeded but parent files listed in `parent.left_uncommitted` were NOT committed
 - **git pull**: `{ branch, submodules: [{ path, new_commits, was_dirty }], warnings }`
 - **git sync**: `{ success, submodules: [{ path, branch, action, from_ref, to_ref, new_commits, hint, error }], warnings }` — `action`: `in_sync`/`synced`/`reattached` (good) · `skipped_dirty` (warning) · `ahead` (bump the pin — follow `hint`) · `diverged`/`error` (exit 1, worktree untouched)
-- **worktree list**: `{ project, project_dir, base_branch, current, stash_count, worktrees: [{ name, path, branch, current, dirty, removable, head_on_remote, ahead_remote, behind_remote, ahead_base, behind_base, uninit_submodules, last_commit_age_secs, stale }], orphans: [{ name, path, hint }] }` — `orphans` are directories from failed removals; `hint` is the exact reap command
+- **worktree list**: `{ project, project_dir, base_branch, current, stash_count, worktrees: [{ name, path, branch, current, dirty, removable, head_on_remote, ahead_remote, behind_remote, ahead_base, behind_base, uninit_submodules, submodules_ahead, last_commit_age_secs, stale }], orphans: [{ name, path, hint }], overlaps: [{ submodule, worktrees: [names] }] }` — `orphans` are directories from failed removals (`hint` is the exact reap command); `submodules_ahead`/`overlaps` are unlanded submodule work, per worktree and where it collides
 - **worktree add**: `{ name, path, branch, base, success, created_branch, cache_seeded, submodules_expected, submodules_initialised, pub_get: [...], warnings, on_add_hook }` — `success:false`/exit 3 = degraded; `on_add_hook` (aggregate of the global + project hooks): `""`/`ok`/`failed`/`skipped`/`not_executable`
+- **worktree update**: `{ worktree, path, branch, base_branch, success, base: { action, from_ref, to_ref, new_commits, submodules }, merge: { status, ref, commits_integrated, conflicts }, submodules: [git sync results for this worktree], reasons, warnings, hint }` — `base.action`: `up_to_date`/`fast_forwarded`/`skipped_dirty`/`missing`/`failed` · `merge.status`: `merged`/`up_to_date`/`conflicts`/`skipped`/`failed`. `reasons` non-empty = refused, nothing touched
+- **worktree land**: `{ worktree, branch, base_branch, landed, success, reasons, pushed/skipped/failed: [{ path, status, ref, error }], base: { action, from_ref, to_ref, new_commits, pushed, submodules }, warnings, hint }` — `pushed` is in publish order (submodules first, then `.` = the feature branch); `landed` = the base branch moved, `success` = that plus everything pushed
 - **worktree remove**: `{ removed, branch_deleted, name, path, reasons }` — `removed:false` = refused (see reasons)
 - **worktree prune**: `{ dry_run, pruned: [{ name, path, branch }], skipped: [{ ..., reason }], cache_removed: [paths] }` — `cache_removed` = orphaned cache subtrees swept (would-be, when `dry_run`)
 

@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	flag "github.com/spf13/pflag"
+	"os"
 	"path/filepath"
 	"strings"
 )
@@ -31,36 +32,20 @@ func GitSync(args []string) int {
 		return ExitUsage
 	}
 
-	submodulePaths, err := getSubmodulePaths(root)
+	sync, err := syncSubmodules(root, !*skipFetch, filters)
 	if err != nil {
 		logf("error: %v\n", err)
 		return ExitFailure
 	}
-	warnUnmatchedFilters(filters, submodulePaths, "submodule")
-	submodulePaths = filterSubmodulePaths(submodulePaths, filters)
-
 	out := GitSyncOutput{
 		Path:       root,
-		Success:    true,
-		Submodules: []GitSyncSubmodule{},
-		Warnings:   []string{},
-	}
-	changed := false
-	for _, subPath := range submodulePaths {
-		res := syncSubmodule(root, subPath, !*skipFetch)
-		switch res.Action {
-		case "synced", "reattached":
-			changed = true
-		case "diverged", "error":
-			out.Success = false
-		case "skipped_dirty":
-			out.Warnings = append(out.Warnings, fmt.Sprintf("%s has uncommitted changes (skipped)", subPath))
-		}
-		out.Submodules = append(out.Submodules, res)
+		Success:    sync.OK,
+		Submodules: sync.Results,
+		Warnings:   sync.Warnings,
 	}
 
 	// Repo state changed — cached status is stale
-	if changed {
+	if sync.Changed {
 		deleteCache(root, "git.json")
 	}
 
@@ -74,12 +59,57 @@ func GitSync(args []string) int {
 	return ExitOK
 }
 
+// submoduleSync is the outcome of converging one repo's submodules on the
+// parent's pinned refs.
+type submoduleSync struct {
+	Results  []GitSyncSubmodule
+	Warnings []string
+	Changed  bool // at least one worktree moved (cached status is stale)
+	OK       bool // no divergence, no error
+}
+
+// syncSubmodules converges every (filtered) submodule under root on the parent's
+// pinned refs. Shared by `git sync`, `worktree update` and `worktree land` — the
+// pin model is identical wherever a parent tree moves.
+func syncSubmodules(root string, fetch bool, filters []string) (submoduleSync, error) {
+	out := submoduleSync{Results: []GitSyncSubmodule{}, Warnings: []string{}, OK: true}
+
+	submodulePaths, err := getSubmodulePaths(root)
+	if err != nil {
+		return out, err
+	}
+	warnUnmatchedFilters(filters, submodulePaths, "submodule")
+	submodulePaths = filterSubmodulePaths(submodulePaths, filters)
+
+	for _, subPath := range submodulePaths {
+		res := syncSubmodule(root, subPath, fetch)
+		switch res.Action {
+		case "synced", "reattached":
+			out.Changed = true
+		case "diverged", "error":
+			out.OK = false
+		case "skipped_dirty":
+			out.Warnings = append(out.Warnings, fmt.Sprintf("%s has uncommitted changes (skipped)", subPath))
+		}
+		out.Results = append(out.Results, res)
+	}
+	return out, nil
+}
+
 // syncSubmodule converges one submodule worktree on the parent's pinned ref.
 // Invariant: the worktree only ever moves TO the pin, and only by fast-forward
 // (or a branch attach at the same/older commit) — never past it, never backwards.
 func syncSubmodule(root, subPath string, fetch bool) GitSyncSubmodule {
 	subDir := filepath.Join(root, subPath)
 	res := GitSyncSubmodule{Path: subPath, Action: "error"}
+
+	// An uninitialised submodule (never cloned, or newly arrived with a merge)
+	// has no HEAD to converge — say so instead of failing on rev-parse.
+	if _, err := os.Stat(filepath.Join(subDir, ".git")); err != nil {
+		res.Error = "submodule not initialised"
+		res.Hint = fmt.Sprintf("git -C %s submodule update --init -- %s", root, subPath)
+		return res
+	}
 
 	pin := getParentPin(root, subPath)
 	if pin == "" {
@@ -187,9 +217,7 @@ func reattachToPin(root, subDir string, res GitSyncSubmodule, pin string) GitSyn
 	res.Branch = branch
 	res.ToRef = pin
 	if res.FromRef != pin {
-		if count, err := runGit(subDir, "rev-list", "--count", res.FromRef+".."+pin); err == nil {
-			fmt.Sscanf(count, "%d", &res.NewCommits)
-		}
+		res.NewCommits = countCommits(subDir, res.FromRef, pin)
 	}
 	progressf("  %s: reattached to %s at pin %s\n", res.Path, branch, shortRef(pin))
 	return res
@@ -210,7 +238,13 @@ func ensureUpstream(subDir, branch string) {
 
 // getParentPin reads the submodule commit recorded in the parent's HEAD tree.
 func getParentPin(root, subPath string) string {
-	out, err := runGit(root, "ls-tree", "HEAD", subPath)
+	return pinAtRef(root, "HEAD", subPath)
+}
+
+// pinAtRef reads the submodule commit recorded in any tree-ish of the parent —
+// HEAD for the working state, a branch ref to compare against.
+func pinAtRef(root, ref, subPath string) string {
+	out, err := runGit(root, "ls-tree", ref, subPath)
 	if err != nil || out == "" {
 		return ""
 	}

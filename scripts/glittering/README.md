@@ -79,6 +79,10 @@ glittering worktree add <name> --path <proj>       # existing branch else off ba
                                                    #   (object-shared via --reference --dissociate,
                                                    #   parallel), seeds test/analyze/stats cache, pub get,
                                                    #   runs on-add hook
+glittering worktree update --path <worktree>       # fast-forward the base worktree, merge the base
+                                                   #   branch in, converge submodule pins both sides
+glittering worktree land --path <worktree>         # push submodules + branch, then fast-forward the
+                                                   #   base branch onto it and push
 glittering worktree remove <name> --path <proj>    # refuses base/current/dirty/unpushed; --force overrides
                                                    #   and also reaps orphan dirs left by a failed removal
 glittering worktree prune --path <proj>            # remove merged+pushed worktrees (--dry-run);
@@ -87,6 +91,10 @@ glittering worktree path <name> --path <proj>      # print absolute path (plain 
 ```
 
 Removal is crash-safe: git deregisters a worktree before its files are fully deleted, so an external writer (IDE metadata, `.DS_Store`) recreating a file mid-delete can strand the directory. `remove`/`prune` retry the deletion directly when git fails, and `list` surfaces any stranded directories under `orphans` with the exact reap command.
+
+`update` and `land` are the round-trip between a feature worktree and the base branch, so agents don't hand-roll it. `update` fetches, fast-forwards the base worktree to origin, merges the base branch into the feature worktree, then converges submodule pins on both — a fast-forward that moves a gitlink leaves the superproject dirty until its submodule follows. Integration is a merge, not a rebase (feature branches may already be pushed), and a conflict is left in progress with the conflicted paths reported: resolve, commit, re-run. `land` is the reverse and is fast-forward only — pre-flight, push submodules then the branch, fast-forward the base worktree onto it, converge its pins, push. The base branch therefore only ever moves to a commit that already contains it, so landing can never conflict; anything else is a refusal whose single remedy is `worktree update`. Containment is checked on gitlinks too: a tree whose submodule pin is behind the base branch's still fast-forwards, so landing it would silently revert published submodule work (the usual cause is `git add -A` while resolving a merge, which re-stages every gitlink at its submodule worktree's HEAD). Land refuses; `update` warns as soon as it sees it; `--allow-pin-rewind` overrides for a deliberate revert. Landing leaves the worktree in place — `worktree prune` reaps it.
+
+Concurrent worktrees are best given disjoint submodules: two of them editing one submodule collide at pin level. `worktree list` reports `overlaps` (submodules with local commits in more than one worktree) so an orchestrator can see the risk before spawning a second agent.
 
 `add` makes a fresh worktree usable fast: submodule objects copied from the base worktree (self-contained, no network re-download of objects), slow test/analyze/stats caches seeded, `pub get` run. `--no-get` / `--no-share-objects` / `--no-hook` opt out. Finally it runs two optional on-add hooks (cwd = the new worktree) to provision gitignored local-dev files (secrets, tokens): a user-level `~/.config/glittering/hooks/worktree/on-add` for every project (e.g. to seed a shared `.mcp.json`), then the project's own `.glittering/hooks/worktree/on-add` from the base worktree — base-sourced, so a feature branch can't inject one and it auto-runs without a prompt. `--no-hook` skips both.
 

@@ -16,7 +16,7 @@ Commands:
   get          Run pub get across all packages
   upgrade      Run pub upgrade across all packages
   git          Git status, check, push, commits, diffs across parent + submodules
-  worktree     List/add/remove/prune worktrees in a bare-repo project layout
+  worktree     List/add/update/land/remove/prune worktrees in a bare-repo project layout
   clean        Remove old session directories
 
 Common flags:

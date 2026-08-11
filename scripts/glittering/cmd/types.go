@@ -399,6 +399,16 @@ type WorktreeInfo struct {
 	LastCommit        string `json:"last_commit"`
 	LastCommitAgeSecs int64  `json:"last_commit_age_secs"` // -1 when unknown
 	Stale             bool   `json:"stale,omitempty"`      // --cached row with no git.json
+	// SubmodulesAhead names submodules whose clone carries commits the parent
+	// pin doesn't — unlanded submodule work. Folded into Overlaps.
+	SubmodulesAhead []string `json:"submodules_ahead,omitempty"`
+}
+
+// WorktreeOverlap flags a submodule carrying local commits in more than one
+// worktree — collision risk before a second agent is spawned on it.
+type WorktreeOverlap struct {
+	Submodule string   `json:"submodule"`
+	Worktrees []string `json:"worktrees"`
 }
 
 // WorktreeOrphan is a directory in the project root that git doesn't list —
@@ -411,13 +421,14 @@ type WorktreeOrphan struct {
 }
 
 type WorktreeListOutput struct {
-	Project    string           `json:"project"`
-	ProjectDir string           `json:"project_dir"`
-	BaseBranch string           `json:"base_branch"`
-	Current    string           `json:"current"`     // current worktree Name, or ""
-	StashCount int              `json:"stash_count"` // project-level: refs/stash is shared
-	Worktrees  []WorktreeInfo   `json:"worktrees"`
-	Orphans    []WorktreeOrphan `json:"orphans"`
+	Project    string            `json:"project"`
+	ProjectDir string            `json:"project_dir"`
+	BaseBranch string            `json:"base_branch"`
+	Current    string            `json:"current"`     // current worktree Name, or ""
+	StashCount int               `json:"stash_count"` // project-level: refs/stash is shared
+	Worktrees  []WorktreeInfo    `json:"worktrees"`
+	Orphans    []WorktreeOrphan  `json:"orphans"`
+	Overlaps   []WorktreeOverlap `json:"overlaps"` // submodules edited in ≥2 worktrees
 }
 
 type WorktreeAddOutput struct {
@@ -457,6 +468,75 @@ type WorktreePruneOutput struct {
 	// CacheRemoved lists mirrored disk paths whose orphaned cache subtrees
 	// were reaped (or would be, under --dry-run).
 	CacheRemoved []string `json:"cache_removed"`
+}
+
+// --- Worktree update / land ---
+
+// WorktreeBaseResult is what happened to the base worktree: a fast-forward
+// (to origin in `update`, to the feature branch in `land`) plus the submodule
+// pin reconvergence that a moved gitlink always requires.
+type WorktreeBaseResult struct {
+	Name   string `json:"name"`
+	Path   string `json:"path"`
+	Branch string `json:"branch"`
+	// Action: "up_to_date", "fast_forwarded", "skipped_dirty", "missing", "failed"
+	Action     string             `json:"action"`
+	FromRef    string             `json:"from_ref,omitempty"`
+	ToRef      string             `json:"to_ref,omitempty"`
+	NewCommits int                `json:"new_commits,omitempty"`
+	Pushed     bool               `json:"pushed,omitempty"` // land only
+	Submodules []GitSyncSubmodule `json:"submodules"`
+	Error      string             `json:"error,omitempty"`
+}
+
+// WorktreeMergeResult is the base-branch → feature-worktree merge. On
+// "conflicts" the merge is deliberately left in progress for the agent to
+// resolve; Conflicts names the unmerged paths (a submodule path here means two
+// worktrees moved the same pin).
+type WorktreeMergeResult struct {
+	// Status: "merged", "up_to_date", "conflicts", "skipped", "failed"
+	Status            string   `json:"status"`
+	Ref               string   `json:"ref,omitempty"` // ref merged in (main / origin/main)
+	CommitsIntegrated int      `json:"commits_integrated"`
+	FromRef           string   `json:"from_ref,omitempty"`
+	ToRef             string   `json:"to_ref,omitempty"`
+	Conflicts         []string `json:"conflicts,omitempty"`
+	Error             string   `json:"error,omitempty"`
+}
+
+type WorktreeUpdateOutput struct {
+	Project    string              `json:"project"`
+	ProjectDir string              `json:"project_dir"`
+	Worktree   string              `json:"worktree"`
+	Path       string              `json:"path"`
+	Branch     string              `json:"branch"`
+	BaseBranch string              `json:"base_branch"`
+	Success    bool                `json:"success"`
+	Base       WorktreeBaseResult  `json:"base"`
+	Merge      WorktreeMergeResult `json:"merge"`
+	// Submodules is the feature worktree's pin convergence after the merge.
+	Submodules []GitSyncSubmodule `json:"submodules"`
+	Reasons    []string           `json:"reasons"` // refusals (nothing was touched)
+	Warnings   []string           `json:"warnings"`
+	Hint       string             `json:"hint,omitempty"`
+}
+
+type WorktreeLandOutput struct {
+	Project    string             `json:"project"`
+	ProjectDir string             `json:"project_dir"`
+	Worktree   string             `json:"worktree"`
+	Path       string             `json:"path"`
+	Branch     string             `json:"branch"`
+	BaseBranch string             `json:"base_branch"`
+	Landed     bool               `json:"landed"`  // base branch fast-forwarded onto the feature
+	Success    bool               `json:"success"` // landed AND everything pushed
+	Reasons    []string           `json:"reasons"` // pre-flight refusals (nothing touched)
+	Pushed     []PushRepoResult   `json:"pushed"`
+	Skipped    []PushRepoResult   `json:"skipped"`
+	Failed     []PushRepoResult   `json:"failed"`
+	Base       WorktreeBaseResult `json:"base"`
+	Warnings   []string           `json:"warnings"`
+	Hint       string             `json:"hint,omitempty"`
 }
 
 // --- NDJSON event types (for dart test parsing) ---

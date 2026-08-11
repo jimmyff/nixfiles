@@ -12,6 +12,8 @@ const worktreeHelpText = `glittering worktree — manage git worktrees in a bare
 Subcommands:
   list           List all worktrees with per-worktree git status (default)
   add <name>     Create a worktree (submodule init, cache seed, pub get)
+  update         Merge the base branch into this worktree (base ff + pin sync)
+  land           Push this worktree and fast-forward the base branch onto it
   remove <name>  Remove a worktree (safety-gated)
   prune          Remove merged-and-pushed worktrees
   path <name>    Print the absolute path of a named worktree (plain text)
@@ -36,6 +38,10 @@ func Worktree(args []string) int {
 		return worktreeList(args[1:])
 	case "add":
 		return worktreeAdd(args[1:])
+	case "update":
+		return worktreeUpdate(args[1:])
+	case "land":
+		return worktreeLand(args[1:])
 	case "remove":
 		return worktreeRemove(args[1:])
 	case "prune":
@@ -239,6 +245,42 @@ func validateWorktreeName(name string) error {
 		return fmt.Errorf("invalid branch name %q", name)
 	}
 	return nil
+}
+
+// resolveWorktreeCommand resolves the project and the worktree containing
+// --path, for the commands that act on "the worktree you are in" (update,
+// land). Logs its own diagnostics; ExitOK means the target is usable.
+func resolveWorktreeCommand(path string) (projectInfo, []worktreeMeta, worktreeMeta, int) {
+	root, err := resolveRoot(path)
+	if err != nil {
+		logf("error: %v\n", err)
+		return projectInfo{}, nil, worktreeMeta{}, ExitUsage
+	}
+	proj, metas, err := discoverWorktrees(root)
+	if err != nil {
+		logf("error: %v\n", err)
+		return projectInfo{}, nil, worktreeMeta{}, ExitFailure
+	}
+	target, ok := currentWorktreeMeta(proj, metas)
+	if !ok {
+		logf("error: --path must be inside a worktree (%s has no working tree — pass a worktree path)\n", root)
+		return proj, metas, worktreeMeta{}, ExitUsage
+	}
+	return proj, metas, target, ExitOK
+}
+
+// currentWorktreeMeta returns the worktree containing --path. False when --path
+// resolved to the project root or the bare dir (no working tree there).
+func currentWorktreeMeta(proj projectInfo, metas []worktreeMeta) (worktreeMeta, bool) {
+	if proj.CurrentPath == "" {
+		return worktreeMeta{}, false
+	}
+	for _, m := range metas {
+		if m.Path == proj.CurrentPath {
+			return m, true
+		}
+	}
+	return worktreeMeta{}, false
 }
 
 // baseWorktree returns the worktree on the project's base branch (usually main).

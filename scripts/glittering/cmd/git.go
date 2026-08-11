@@ -89,24 +89,7 @@ func collectGitData(root string, fetch bool) (GitOutput, error) {
 		if _, err := runGitNet(root, "fetch", "origin"); err != nil {
 			progressf("  warning: fetch failed for parent: %v\n", err)
 		}
-		sem := make(chan struct{}, maxJobs)
-		var wg sync.WaitGroup
-		var mu sync.Mutex
-		for _, subPath := range submodulePaths {
-			wg.Add(1)
-			sem <- struct{}{}
-			go func(sp string) {
-				defer wg.Done()
-				defer func() { <-sem }()
-				subDir := filepath.Join(root, sp)
-				if _, err := runGitNet(subDir, "fetch", "origin"); err != nil {
-					mu.Lock()
-					progressf("  warning: fetch failed for %s: %v\n", sp, err)
-					mu.Unlock()
-				}
-			}(subPath)
-		}
-		wg.Wait()
+		fetchSubmodules(root, submodulePaths)
 	}
 
 	// Phase 2: Parallel status collection (indexed results preserve ordering)
@@ -249,26 +232,75 @@ func getRepoStatus(root string) (GitRepoStatus, error) {
 	return status, nil
 }
 
+// fetchSubmodules fetches origin in every submodule of root concurrently.
+// Best-effort: a failing fetch is a verbose-only warning (the caller's status or
+// sync step reports the consequence).
+func fetchSubmodules(root string, subPaths []string) {
+	const maxJobs = 8
+	sem := make(chan struct{}, maxJobs)
+	var wg sync.WaitGroup
+	var mu sync.Mutex
+	for _, subPath := range subPaths {
+		wg.Add(1)
+		sem <- struct{}{}
+		go func(sp string) {
+			defer wg.Done()
+			defer func() { <-sem }()
+			if _, err := runGitNet(filepath.Join(root, sp), "fetch", "origin"); err != nil {
+				mu.Lock()
+				progressf("  warning: fetch failed for %s: %v\n", sp, err)
+				mu.Unlock()
+			}
+		}(subPath)
+	}
+	wg.Wait()
+}
+
+// submoduleStatusEntry is one parsed line of `git submodule status`.
+// Flag: ' ' in sync · '+' checked-out commit differs from the parent's pin ·
+// '-' not initialised · 'U' merge conflicts.
+type submoduleStatusEntry struct {
+	Flag byte
+	Path string
+}
+
+// parseSubmoduleStatus parses `git submodule status` output. Pure — unit-tested.
+// Format: [ +-U]<sha1> <path> [(describe)]
+func parseSubmoduleStatus(output string) []submoduleStatusEntry {
+	var entries []submoduleStatusEntry
+	for _, line := range strings.Split(output, "\n") {
+		if strings.TrimSpace(line) == "" {
+			continue
+		}
+		flag := byte(' ')
+		if line[0] == '+' || line[0] == '-' || line[0] == 'U' || line[0] == ' ' {
+			flag = line[0]
+			line = line[1:]
+		}
+		if parts := strings.Fields(line); len(parts) >= 2 {
+			entries = append(entries, submoduleStatusEntry{Flag: flag, Path: parts[1]})
+		}
+	}
+	return entries
+}
+
+// submoduleStatus returns the parsed `git submodule status` entries for root.
+func submoduleStatus(root string) []submoduleStatusEntry {
+	output, err := runGit(root, "submodule", "status")
+	if err != nil || output == "" {
+		return nil
+	}
+	return parseSubmoduleStatus(output)
+}
+
 func getSubmodulePaths(root string) ([]string, error) {
 	output, err := runGit(root, "submodule", "status")
 	if err != nil {
 		return nil, err
 	}
-	if output == "" {
-		return nil, nil
-	}
 	var paths []string
-	for _, line := range strings.Split(output, "\n") {
-		line = strings.TrimSpace(line)
-		// Format: [+-U ]<sha1> <path> [(describe)]
-		// Leading char may be +, -, U, or space
-		if len(line) > 0 && (line[0] == '+' || line[0] == '-' || line[0] == 'U' || line[0] == ' ') {
-			line = line[1:]
-		}
-		parts := strings.Fields(line)
-		if len(parts) >= 2 {
-			paths = append(paths, parts[1])
-		}
+	for _, e := range parseSubmoduleStatus(output) {
+		paths = append(paths, e.Path)
 	}
 	return paths, nil
 }
@@ -326,18 +358,16 @@ func getSubmoduleStatus(root, subPath string) GitSubmoduleStatus {
 // getUninitialisedSubmodules returns submodule paths that have a leading '-' in
 // git submodule status output, indicating they haven't been cloned yet.
 func getUninitialisedSubmodules(root string) []string {
-	output, err := runGit(root, "submodule", "status")
-	if err != nil || output == "" {
-		return nil
-	}
+	return uninitialisedIn(submoduleStatus(root))
+}
+
+// uninitialisedIn picks the never-cloned submodules out of an existing status
+// snapshot, so a caller that already has one doesn't re-run git. Pure.
+func uninitialisedIn(entries []submoduleStatusEntry) []string {
 	var paths []string
-	for _, line := range strings.Split(output, "\n") {
-		line = strings.TrimSpace(line)
-		if len(line) > 0 && line[0] == '-' {
-			parts := strings.Fields(line[1:])
-			if len(parts) >= 2 {
-				paths = append(paths, parts[1])
-			}
+	for _, e := range entries {
+		if e.Flag == '-' {
+			paths = append(paths, e.Path)
 		}
 	}
 	return paths
@@ -438,6 +468,17 @@ func getStashCount(dir string) int {
 		return 0
 	}
 	return len(strings.Split(output, "\n"))
+}
+
+// countCommits returns how many commits to reaches that from doesn't (0 on error).
+func countCommits(dir, from, to string) int {
+	out, err := runGit(dir, "rev-list", "--count", from+".."+to)
+	if err != nil {
+		return 0
+	}
+	count := 0
+	fmt.Sscanf(out, "%d", &count)
+	return count
 }
 
 func getRevListCount(dir, base, head string) (int, int) {
