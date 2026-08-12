@@ -1,12 +1,20 @@
 #!/usr/bin/env nu
 # docs.nu — helper for the project-docs skill.
 #
-#   status  [--path <docs>] [--write]   per-tracker state; --write regenerates the README table
-#   new     <name> [--path <docs>]      scaffold a tracker from templates/workstream.md
-#   audit   [--path <docs>]             advisory checks; never edits anything
-#   snags   [--path <docs>]             per-tracker snag list, with age derived from git blame
-#   fixture --write [--path <dir>]      write a sample tree from templates/ (gitignored, for reading)
+#   status   [--path <docs>] [--write]  per-tracker state; --write regenerates the README table
+#   start    <tracker> [<id>]           compose that session's kickoff prompt
+#   sessions <tracker> [--open]         one tracker's rows, each brief measured
+#   new      <name> [--path <docs>]     scaffold a tracker from templates/workstream.md
+#   audit    [--path <docs>]            advisory checks; never edits anything
+#   snags    [--path <docs>]            per-tracker snag list, with age derived from git blame
+#   fixture  --write [--path <dir>]     write a sample tree from templates/ (gitignored, for reading)
 #   selftest                            build a throwaway tree, assert every check against expected.json
+#   help                                this list
+#
+# `--path` defaults to `docs`, found by searching upward, so any directory in the project works.
+# Bare on a terminal this opens an interactive hub; piped or redirected it prints the list above.
+# `claude (docket start <tracker> <id>)` is the one-paste session opener — it composes at paste
+# time, so what you paste can never be stale.
 #
 # Advisory by design: audit reports, it never acts. Findings are things to fix, notes are things to
 # know. Every check is formulated so it cannot fire on a correctly-maintained tree in any state.
@@ -21,6 +29,7 @@ const ACTIVITY_DAYS = 21
 # which is what lets the templates carry worked examples inside the files the script parses.
 const ROW_RE = r#'^- \[(?<state>[ xX])\] \*\*(?<id>[A-Z][A-Z0-9]*-\d+[a-z]?)\*\*\s*—\s*(?<rest>.*)$'#
 const LOOSE_ROW_RE = r#'^- \[[ xX]\]'#
+const BRIEF_LINE_RE = r#'^\s+\S'#
 const SNAG_RE = r#'^- (?<text>.+)$'#
 const CROSS_RE = r#'—\s*→\s*(?<id>[A-Z][A-Z0-9]*-\d+[a-z]?)'#
 const LINK_RE = r#'\]\((?<target>[^)\s]+)'#
@@ -42,13 +51,34 @@ def slugless [f: path]: nothing -> string { $f | path basename | str replace --r
 
 def derive-prefix [base: string]: nothing -> string { $base | str uppercase | str replace --all --regex r#'[^A-Z0-9]'# "" }
 
+# Line index the body starts at — past the closing `---` — or 0 when there is no frontmatter to
+# close. One definition of that boundary, shared by the parser and the header extractor below.
+def frontmatter-end [ls: list<string>]: nothing -> int {
+    if ($ls | is-empty) or (($ls | first | str trim) != "---") { return 0 }
+    let close = ($ls | skip 1 | enumerate | where {|r| ($r.item | str trim) == "---"} | get -o 0.index)
+    if ($close == null) or ($close == 0) { return 0 }
+    $close + 2
+}
+
 # YAML frontmatter, or {} when absent or unparseable. One parser for all four kinds.
 def frontmatter [ls: list<string>]: nothing -> record {
-    if ($ls | is-empty) or (($ls | first | str trim) != "---") { return {} }
-    let close = ($ls | skip 1 | enumerate | where {|r| ($r.item | str trim) == "---"} | get -o 0.index)
-    if ($close == null) or ($close == 0) { return {} }
-    let parsed = (try { $ls | slice 1..$close | str join "\n" | from yaml } catch { null })
+    let end = (frontmatter-end $ls)
+    if $end == 0 { return {} }
+    let parsed = (try { $ls | slice 1..<($end - 1) | str join "\n" | from yaml } catch { null })
     if ($parsed | describe | str starts-with "record") { $parsed } else { {} }
+}
+
+# Everything between the frontmatter and the first `## ` — a tracker's standing context, stated
+# once and true for every session it holds. The kickoff prompt is generated rather than stored
+# (structure.md §Session briefs) and this is its workstream-invariant half; the `# Title` H1 rides
+# along verbatim, because stripping it is a judgement the doctrine doesn't ask for.
+def header-prose [ls: list<string>]: nothing -> string {
+    let rest = ($ls | skip (frontmatter-end $ls))
+    let end = ($rest | enumerate | where {|r| $r.item | str starts-with "## "} | get -o 0.index)
+    $rest | first (if $end == null { $rest | length } else { $end })
+        | skip while {|l| ($l | str trim) | is-empty}
+        | reverse | skip while {|l| ($l | str trim) | is-empty} | reverse
+        | str join "\n"
 }
 
 # Half-open line-index range of the body under `## <head>`, or null when the heading is absent.
@@ -69,6 +99,43 @@ def section [ls: list<string>, head: string]: nothing -> list<string> {
 
 def rows [ls: list<string>]: nothing -> table {
     $ls | parse --regex $ROW_RE | update state {|r| if ($r.state | str lowercase) == "x" {"x"} else {" "}}
+}
+
+# Every `## Sessions` row with the indented prose beneath it — the row's session brief. One walker,
+# because the staleness check and the generated kickoff prompt must agree on where a brief starts
+# and stops. Blank lines don't end a row's scope (a brief may hold paragraphs) and are kept so the
+# paragraph breaks survive; trailing ones are trimmed. Any other column-0 line does end it — a
+# `## Sessions` section may carry a blockquote or a note between rows, and splicing one of those
+# into a brief would put somebody else's prose in a session prompt.
+def session-blocks [ls: list<string>]: nothing -> table {
+    let r = (section-range $ls "Sessions")
+    if $r == null { return [] }
+    let acc = ($ls | slice $r.start..<$r.end | reduce --fold {out: [], cur: null} {|l, acc|
+        let row = ($l | parse --regex $ROW_RE)
+        if ($row | is-not-empty) {
+            let it = ($row | first)
+            let started = {
+                id: $it.id
+                state: (if ($it.state | str lowercase) == "x" {"x"} else {" "})
+                title: ($it.rest | str trim)
+                brief: []
+            }
+            (flush-block $acc) | update cur $started
+        } else if $acc.cur == null {
+            $acc
+        } else if ($l =~ $BRIEF_LINE_RE) or (($l | str trim) | is-empty) {
+            $acc | update cur ($acc.cur | update brief ($acc.cur.brief | append $l))
+        } else {
+            flush-block $acc
+        }
+    })
+    (flush-block $acc).out
+}
+
+def flush-block [acc: record]: nothing -> record {
+    if $acc.cur == null { return {out: $acc.out, cur: null} }
+    let brief = ($acc.cur.brief | reverse | skip while {|l| ($l | str trim) | is-empty} | reverse)
+    {out: ($acc.out | append ($acc.cur | update brief $brief)), cur: null}
 }
 
 # Checkbox lines that don't match the contract — surfaced so a mis-shaped tracker never fails silently.
@@ -114,6 +181,7 @@ def read-doc [f: path, docs: path]: nothing -> record {
         size: (ls -a $f | first | get size)
         prefix: ($fm | get -o prefix | default (derive-prefix $base))
         next_up: ($fm | get -o next_up | default "—")
+        header: (header-prose $ls)
         text: ($ls | str join "\n")
         sessions: (rows $sess)
         log: (rows $log)
@@ -316,39 +384,17 @@ def check-collisions [trackers: table, docs: path, root: any]: nothing -> table 
     $local | append $idClash | append $prefixClash
 }
 
-# Ticked `## Sessions` rows still carrying indented prose. A brief dies when its row ticks, so
-# anything left under one has outlived its session — the one staleness check a brief affords,
-# because the tick is a mechanical clearing event. Unticked briefs are deliberately unchecked (the
-# snags reasoning: thresholds manufacture false positives), and `## Log` rows are exempt — a settled
-# log entry legitimately carries a prose line. Blank lines don't end a row's scope (a brief may
-# hold paragraphs); any other column-0 line does.
+# Ticked rows whose brief outlived them, with the surviving prose lines counted.
 def leftover-briefs [ls: list<string>]: nothing -> table {
-    let r = (section-range $ls "Sessions")
-    if $r == null { return [] }
-    let acc = ($ls | slice $r.start..<$r.end | reduce --fold {out: [], id: null, n: 0} {|l, acc|
-        let row = ($l | parse --regex $ROW_RE)
-        if ($row | is-not-empty) {
-            let it = ($row | first)
-            (flush-brief $acc) | update id (if ($it.state | str lowercase) == "x" { $it.id } else { null })
-        } else if ($l =~ r#'^\s+\S'#) {
-            if $acc.id == null { $acc } else { $acc | update n ($acc.n + 1) }
-        } else if (($l | str trim) | is-empty) {
-            $acc
-        } else {
-            flush-brief $acc
-        }
-    })
-    (flush-brief $acc).out
+    session-blocks $ls | where state == "x"
+        | each {|b| {id: $b.id, lines: ($b.brief | where {|l| $l =~ $BRIEF_LINE_RE} | length)}}
+        | where lines > 0
 }
 
-def flush-brief [acc: record]: nothing -> record {
-    if $acc.id != null and $acc.n > 0 {
-        {out: ($acc.out | append {id: $acc.id, lines: $acc.n}), id: null, n: 0}
-    } else {
-        {out: $acc.out, id: null, n: 0}
-    }
-}
-
+# A brief dies when its row ticks, so anything left under one has outlived its session — the one
+# staleness check a brief affords, because the tick is a mechanical clearing event. Unticked briefs
+# are deliberately unchecked (the snags reasoning: thresholds manufacture false positives), and
+# `## Log` rows are exempt — a settled log entry legitimately carries a prose line.
 def check-brief [trackers: table]: nothing -> table {
     $trackers | each {|t|
         leftover-briefs ($t.text | lines) | each {|b|
@@ -438,9 +484,151 @@ def "main status" [--path: string = "docs", --write] {
     $out
 }
 
+# Trackers are addressed by base name — the same string `status` prints in its `tracker` column.
+def tracker-file [docs: path, name: string]: nothing -> path {
+    let f = ($docs | path join "workstreams" $"($name).md")
+    if not ($f | path exists) {
+        let have = (glob ($docs | path join "workstreams" "*.md") | each {|p| slugless $p} | sort)
+        error make {msg: $"no tracker ($name) — ($docs | path basename)/workstreams has: ($have | str join ', ')"}
+    }
+    $f
+}
+
+# One tracker's session rows, document order preserved. `is_next` is a bool and deliberately not
+# named `next_up`: `status` already uses that name for the ID *string*, and one name must not carry
+# two types. Exists so the hub's picker is plain dispatch, and it reads well on its own.
+def "main sessions" [tracker: string, --path: string = "docs", --open] {
+    let docs = (require-docs $path)
+    let d = (read-doc (tracker-file $docs $tracker) $docs)
+    let out = (session-blocks ($d.text | lines) | each {|b| {
+        id: $b.id
+        state: $b.state
+        title: $b.title
+        brief_lines: ($b.brief | where {|l| $l =~ $BRIEF_LINE_RE} | length)
+        is_next: ($b.id == ($d.next_up | into string))
+    }})
+    if $open { $out | where state == " " } else { $out }
+}
+
+# Which session a bare `start` means. An absent `next_up` is normal rather than a defect, so it
+# passes silently — warning on it would train you to ignore the warning that matters, which is a
+# `next_up` naming a row that has already landed or never existed.
+def pick-session [d: record, blocks: table, session: any]: nothing -> record {
+    if $session != null {
+        let hit = ($blocks | where id == $session)
+        if ($hit | is-empty) {
+            error make {msg: $"($d.rel) has no session ($session) — open: ($blocks | where state == ' ' | get id | str join ', ')"}
+        }
+        return ($hit | first)
+    }
+    let open = ($blocks | where state == " ")
+    if ($open | is-empty) {
+        error make {msg: $"($d.rel): every session ticked — nothing to start; close the tracker"}
+    }
+    let first = ($open | first)
+    let next = ($d.next_up | into string)
+    if ($next == "—") or ($next | is-empty) { return $first }
+    let named = ($blocks | where id == $next)
+    if ($named | is-empty) {
+        print --stderr $"(ansi yellow)note(ansi reset) next_up ($next) matches no session row — starting ($first.id)"
+        return $first
+    }
+    let it = ($named | first)
+    if $it.state == " " { return $it }
+    print --stderr $"(ansi yellow)note(ansi reset) next_up ($next) is already ticked — starting ($first.id)"
+    $first
+}
+
+# Common indent measured over non-blank lines only: briefs hold blank lines between paragraphs, so
+# a prefix taken over every line is always "" and nothing de-indents. The width varies by tracker
+# as well (2 in one, 6 in another), so a fixed strip is equally wrong.
+def dedent [ls: list<string>]: nothing -> string {
+    let body = ($ls | where {|l| ($l | str trim) | is-not-empty})
+    if ($body | is-empty) { return "" }
+    let n = ($body | each {|l| ($l | str length) - ($l | str trim --left | str length)} | math min)
+    $ls | each {|l| if (($l | str trim) | is-empty) { "" } else { $l | str substring $n.. }} | str join "\n"
+}
+
+# The kickoff prompt, generated rather than stored (structure.md §Session briefs): the tracker's
+# header prose plus the row's brief, which is exactly what the brief is written to complement.
+# Returned as a string and never written to a file — `claude (docket start wiring W-1d)` composes
+# it at paste time, so what you paste cannot be stale, and `| pbcopy` gets the clipboard for free.
+def "main start" [tracker: string, session?: string, --path: string = "docs"] {
+    let docs = (require-docs $path)
+    let d = (read-doc (tracker-file $docs $tracker) $docs)
+    let blocks = (session-blocks ($d.text | lines))
+    if ($blocks | is-empty) { error make {msg: $"($d.rel) declares no sessions"} }
+    let pick = (pick-session $d $blocks $session)
+    let brief = (dedent $pick.brief)
+
+    if ($d.header | str trim | is-empty) {
+        print --stderr $"(ansi yellow)note(ansi reset) ($d.rel) carries no header prose — the prompt is the brief alone"
+    } else if ($d.header | str contains "{{") {
+        print --stderr $"(ansi yellow)note(ansi reset) ($d.rel) header still holds {{...}} placeholders from `new`"
+    }
+    if ($brief | str trim | is-empty) {
+        print --stderr $"(ansi yellow)note(ansi reset) ($pick.id) carries no brief — scope it in the tracker first"
+    }
+
+    # A pointer, never a restatement: structure.md and templates/workstream.md already own the
+    # tick/promote/settle rules, and a third copy here is the one nobody would re-true.
+    let footer = ([
+        "---"
+        "Read the Consumes links before writing code — point at design docs, never restate them."
+        "Close this session per the project-docs skill (structure.md §Session briefs)."
+    ] | str join "\n")
+
+    let flag = (if $path == "docs" { "" } else { $" --path ($path)" })
+    print --stderr $"(ansi green)start(ansi reset) claude \(docket start ($tracker) ($pick.id)($flag))"
+
+    [
+        $"Tracker: ($d.path) — session ($pick.id)."
+        $d.header
+        $"## Session: ($pick.id) — ($pick.title)"
+        $brief
+        $footer
+    ] | where {|p| ($p | str trim) | is-not-empty} | str join "\n\n"
+}
+
+# Ancestors of `from`, nearest first, stopping at `ceiling` or the filesystem root.
+def ancestors [from: path, ceiling: path]: nothing -> list<string> {
+    mut cur = ($from | path expand)
+    mut out = []
+    loop {
+        $out = ($out | append $cur)
+        let parent = ($cur | path dirname)
+        if ($cur == $ceiling) or ($parent == $cur) { break }
+        $cur = $parent
+    }
+    $out
+}
+
+# The docs tree to work on, or null. Searching upward is **default-path only**: an explicit --path
+# is honoured exactly, so a typo stays a hard error instead of silently auditing some ancestor's
+# tree. The walk requires a `workstreams/` inside, and stops at the repo root (or $HOME) because
+# past that the next `docs/` found belongs to somebody else's project.
+def resolve-docs [path: string]: nothing -> any {
+    if ($path | str trim | is-empty) { error make {msg: "--path is empty"} }
+    let direct = ($path | path expand)
+    if ($direct | path exists) { return $direct }
+    if $path != "docs" { return null }
+    let from = (pwd)
+    let root = (repo-root $from)
+    ancestors $from (if $root == null { $nu.home-dir } else { $root })
+        | each {|d| $d | path join "docs"}
+        | where {|d| $d | path join "workstreams" | path exists}
+        | get -o 0
+}
+
 def require-docs [path: string]: nothing -> path {
-    let docs = ($path | path expand)
-    if not ($docs | path exists) { error make {msg: $"no such directory: ($docs)"} }
+    let docs = (resolve-docs $path)
+    if $docs == null {
+        error make {msg: (if $path != "docs" {
+            $"no such directory: ($path | path expand)"
+        } else {
+            $"no docs/ with a workstreams/ here or in any parent of (pwd)"
+        })}
+    }
     $docs
 }
 
@@ -463,8 +651,10 @@ def write-readme-table [docs: path, trackers: table] {
     print --stderr $"(ansi green)updated(ansi reset) ($readme)"
 }
 
+# `resolve-docs` rather than `require-docs`: this is the one command that legitimately runs against
+# a tree that isn't there yet, so a miss falls back to the literal path and creates it.
 def "main new" [name: string, --path: string = "docs", --prefix: string = "", --design: string = ""] {
-    let dir = (($path | path expand) | path join "workstreams")
+    let dir = ((resolve-docs $path | default ($path | path expand)) | path join "workstreams")
     let target = ($dir | path join $"($name).md")
     if ($target | path exists) { error make {msg: $"($target) already exists"} }
     let pre = (if ($prefix | is-empty) { derive-prefix $name } else { $prefix })
@@ -657,8 +847,21 @@ def "main selftest" [] {
         $noise | each {|n| print $"       ($n.check): ($n.detail)"} | ignore
     }
 
+    # The brief walker, asserted directly. expected.json stores {severity, path} only and the
+    # comparison above selects those two columns, so the line count and the ticked-only filter —
+    # everything the walker actually decides — live in `detail` and are compared by nothing.
+    let want_brief = [{id: "STALE-2", lines: 3}]
+    let got_brief = (leftover-briefs (read-text ($run | path join "docs" "workstreams" "stale.md") | lines))
+    if $got_brief == $want_brief {
+        print $"(ansi green)ok(ansi reset)   brief walker — ($want_brief | to nuon)"
+    } else {
+        print $"(ansi red)FAIL(ansi reset) brief walker"
+        print $"       want: ($want_brief | to nuon)"
+        print $"       got:  ($got_brief | to nuon)"
+    }
+
     rm -rf $tmp
-    if (($results | all {|r| $r.status != "FAIL"}) and $derived and ($noise | is-empty)) {
+    if (($results | all {|r| $r.status != "FAIL"}) and $derived and ($noise | is-empty) and ($got_brief == $want_brief)) {
         print $"\n(ansi green)selftest passed(ansi reset)"
     } else {
         print $"\n(ansi red)selftest failed(ansi reset)"
@@ -684,7 +887,106 @@ def git-in [dir: path, args: list<string>] {
     if $r.exit_code != 0 { error make {msg: $"git ($args | str join ' ') failed: ($r.stderr | str trim)"} }
 }
 
-def main [] {
+# ---------------------------------------------------------------------- hub
+
+# Dispatch only, and every screen reaches a subcommand that already works from the command line —
+# so new features land as subcommands first and the hub is only how you find them.
+def hub [path: string] {
+    let docs = (require-docs $path)
+    loop {
+        let trackers = (main status --path $docs)
+        # `input list` on an empty list raises a type mismatch rather than a friendly error, so
+        # both data-driven lists are guarded. The menu below always carries the action rows.
+        if ($trackers | is-empty) {
+            print $"(ansi yellow)no trackers in ($docs)(ansi reset)"
+            return
+        }
+        # Sentinels take the status record's own columns, so a column added to `status` later
+        # propagates here instead of rendering the table ragged.
+        let blank = ($trackers | first | columns | reduce --fold {} {|c, acc| $acc | insert $c ""})
+        let menu = (["· audit" "· snags" "· more…" "· quit"] | each {|l| $blank | update tracker $l})
+        let sel = ($trackers | append $menu | input list)
+        if $sel == null { return }
+        match $sel.tracker {
+            "· quit" => { return }
+            "· audit" => { hub-page { main audit --path $docs } }
+            "· snags" => { hub-page { main snags --path $docs } }
+            "· more…" => { hub-more $docs }
+            _ => { if (hub-start $docs $sel.tracker) { return } }
+        }
+    }
+}
+
+# Show a subcommand's output and hold it there — the next `input list` would otherwise redraw
+# straight over the thing you asked to see.
+def hub-page [body: closure] {
+    try { print (do $body) } catch {|e| print $"(ansi red)($e.msg)(ansi reset)" }
+    input "enter to continue " | ignore
+}
+
+# True when a prompt was generated: the hub exits on that, so the terminal is yours to paste into.
+def hub-start [docs: path, tracker: string]: nothing -> bool {
+    let open = (main sessions $tracker --path $docs --open)
+    if ($open | is-empty) {
+        print $"(ansi yellow)($tracker): every session ticked — nothing to start(ansi reset)"
+        return false
+    }
+    let sel = ($open | select id title brief_lines is_next | input list)
+    if $sel == null { return false }
+    let prompt = (main start $tracker $sel.id --path $docs)
+    print $prompt
+    if (["copy to clipboard" "done"] | input list) == "copy to clipboard" { to-clipboard $prompt }
+    true
+}
+
+def hub-more [docs: path] {
+    let sel = (["status --write" "new tracker" "selftest" "back"] | input list)
+    match $sel {
+        "status --write" => { hub-page { main status --path $docs --write } }
+        "new tracker" => {
+            let name = (input "tracker name: " | str trim)
+            if ($name | is-not-empty) { hub-page { main new $name --path $docs } }
+        }
+        "selftest" => { hub-page { main selftest } }
+        _ => {}
+    }
+}
+
+# Loud on a miss: wl-clipboard ships only with the sway/niri desktop modules, so a host can
+# legitimately have neither tool, and a silent no-op there reads exactly like a successful copy.
+def to-clipboard [text: string] {
+    let tool = (if $nu.os-info.name == "macos" { "pbcopy" } else { "wl-copy" })
+    if (which $tool | is-empty) {
+        print $"(ansi yellow)note(ansi reset) ($tool) not on PATH — nothing copied"
+        return
+    }
+    $text | ^$tool
+    print $"(ansi green)copied(ansi reset) ($text | into binary | length) bytes"
+}
+
+# --------------------------------------------------------------------- entry
+
+# The header comment block above is the help text — one home for the command list.
+def help-text []: nothing -> string {
     read-text $env.CURRENT_FILE | lines | skip 1 | take while {|l| $l | str starts-with "#"}
-        | each {|l| $l | str substring 1.. | str trim --right} | str join "\n" | print $in
+        | each {|l| $l | str substring 1.. | str trim --right} | str join "\n"
+}
+
+def "main help" [] { print (help-text) }
+
+# Is a person driving this? Measured, because getting it wrong hands an agent a TUI.
+#
+# `is-terminal --stdout` is useless here: nushell replaces stdout in script mode, so it reports
+# false even when the process owns a real pty — verified under `pty.fork`, where stdin and stderr
+# both report true on the same fd. Stdin is the only half the script can see for itself. The
+# wrapper on PATH is a shell, where `[ -t 1 ]` does work, and it passes its answer down; absent
+# the wrapper (`nu docs.nu` direct) stdin decides alone. Do not fold these back into one check.
+def tty-driven []: nothing -> bool {
+    (is-terminal --stdin) and (($env | get -o DOCKET_STDOUT | default "1") == "1")
+}
+
+# Interactive only. Piped or redirected — which is every agent and every script — this keeps the
+# old behaviour exactly: print the help and exit.
+def main [--path: string = "docs"] {
+    if (tty-driven) { hub $path } else { print (help-text) }
 }

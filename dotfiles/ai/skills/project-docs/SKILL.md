@@ -46,15 +46,23 @@ Reading a tracker and ticking a box needs nothing else on this page. Its `## Ses
 
 ## Commands
 
-`nu ~/nixfiles/dotfiles/ai/skills/project-docs/scripts/docs.nu <cmd>`
+`nu ~/nixfiles/dotfiles/ai/skills/project-docs/scripts/docs.nu <cmd>` — or `docket <cmd>` once the host has rebuilt. Same file either way; the long form always works because `~/.claude/skills` is a live symlink, while `docket` reaches a host only on its next Nix rebuild.
 
 | Command | Does |
 |---|---|
-| `status --path docs` | per tracker: prefix · next up · size · open/total · other-branch activity |
-| `status --path docs --write` | regenerate the README workstream table *(writes)* |
-| `new <name> --path docs` | scaffold a tracker from the template *(writes)* |
-| `audit --path docs` | size · dead links · orphans · closure · ID collisions · open logs · crossovers · leftover briefs |
+| `status` | per tracker: prefix · next up · size · open/total · other-branch activity |
+| `status --write` | regenerate the README workstream table *(writes)* |
+| `start <tracker> [<id>]` | compose the session kickoff prompt: header prose + the row's brief |
+| `sessions <tracker> [--open]` | one tracker's rows — state, title, brief size, whether it's `next_up` |
+| `new <name>` | scaffold a tracker from the template *(writes)* |
+| `audit` | size · dead links · orphans · closure · ID collisions · open logs · crossovers · leftover briefs |
+| `snags` | every tracker's snags with `since` — sessions logged after each one appeared |
+| `fixture --write --path <dir>` | write a sample tree from the templates, for reading *(writes)* |
 | `selftest` | check the script against its fixture |
+
+`--path` defaults to `docs`, searched for upward, so any directory inside the project works. Bare on a terminal it opens an interactive hub over the same subcommands; piped, it prints the command list.
+
+`claude (docket start <tracker> <id>)` is the one-paste session opener — the prompt is composed at paste time, so it cannot be stale.
 
 `audit` never acts: findings are to fix, notes are to know.
 

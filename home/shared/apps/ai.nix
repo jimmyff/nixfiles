@@ -1,12 +1,27 @@
 {
   pkgs,
   pkgs-ai,
+  pkgs-dev-tools,
   lib,
   config,
   ...
 }: let
   claude-cfg = config.claude-code_module;
   antigravity-cfg = config.antigravity-cli_module;
+
+  aiSkills = "${config.home.homeDirectory}/nixfiles/dotfiles/ai/skills";
+
+  # The project-docs helper on PATH. It runs from the live dotfiles path rather than a store copy:
+  # the skill is edited most sessions, and `$env.FILE_PWD` does not resolve symlinks, so the script
+  # must be invoked where its own templates/ sits beside it.
+  #
+  # DOCKET_STDOUT is the half of "is a person driving this" that nushell cannot see for itself —
+  # it replaces stdout in script mode, so `is-terminal --stdout` is false even on a real pty.
+  # A shell can tell, so it answers here; see `tty-driven` in docs.nu.
+  docket = pkgs.writeShellScriptBin "docket" ''
+    if [ -t 1 ]; then export DOCKET_STDOUT=1; else export DOCKET_STDOUT=0; fi
+    exec ${pkgs-dev-tools.nushell}/bin/nu "${aiSkills}/project-docs/scripts/docs.nu" "$@"
+  '';
 in {
   options.claude-code_module.enable = lib.mkEnableOption "Claude Code";
   options.antigravity-cli_module.enable = lib.mkEnableOption "Antigravity CLI";
@@ -17,15 +32,17 @@ in {
         enable = true;
         package = pkgs-ai.claude-code;
       };
-      home.packages = lib.optionals pkgs.stdenv.isLinux [
-        pkgs.bubblewrap
-        pkgs.socat
-      ];
+      home.packages =
+        [docket]
+        ++ lib.optionals pkgs.stdenv.isLinux [
+          pkgs.bubblewrap
+          pkgs.socat
+        ];
       home.file.".claude/settings.json".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/nixfiles/dotfiles/claude/settings.json";
       home.file.".claude/statusline.sh".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/nixfiles/dotfiles/claude/statusline.sh";
       home.file.".claude/keybindings.json".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/nixfiles/dotfiles/claude/keybindings.json";
       home.file.".claude/CLAUDE.md".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/nixfiles/dotfiles/ai/AGENTS.md";
-      home.file.".claude/skills".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/nixfiles/dotfiles/ai/skills";
+      home.file.".claude/skills".source = config.lib.file.mkOutOfStoreSymlink aiSkills;
 
       # Canonical Claude Code MCP config (dotfiles/ai/mcp.json), symlinked into
       # every project checkout. New worktrees are seeded by the glittering
@@ -51,7 +68,7 @@ in {
       home.file.".gemini/settings.json".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/nixfiles/dotfiles/antigravity/settings.json";
       home.file.".gemini/mcp_config.json".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/nixfiles/dotfiles/antigravity/mcp_config.json";
       home.file.".gemini/CLAUDE.md".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/nixfiles/dotfiles/ai/AGENTS.md";
-      home.file.".gemini/skills".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/nixfiles/dotfiles/ai/skills";
+      home.file.".gemini/skills".source = config.lib.file.mkOutOfStoreSymlink aiSkills;
     })
   ];
 }

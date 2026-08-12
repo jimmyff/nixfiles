@@ -96,6 +96,12 @@
       "Bash(glittering stats:*)",
       "Bash(glittering clean:*)",
       "Bash(glittering worktree:*)",
+      "Bash(docket status:*)",
+      "Bash(docket sessions:*)",
+      "Bash(docket start:*)",
+      "Bash(docket audit:*)",
+      "Bash(docket snags:*)",
+      "Bash(docket selftest:*)",
       "Bash(herdr:*)",
       "Bash(aerospace:*)",
       "Bash(zellij list-sessions:*)",
@@ -124,7 +130,7 @@
       "Bash(git clean:*)"
     ]
   },
-  "model": "fable",
+  "model": "opus",
   "enabledMcpjsonServers": [
     "dart",
     "chrome-devtools"
