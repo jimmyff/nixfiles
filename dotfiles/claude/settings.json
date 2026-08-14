@@ -130,7 +130,7 @@
       "Bash(git clean:*)"
     ]
   },
-  "model": "opus",
+  "model": "fable",
   "enabledMcpjsonServers": [
     "dart",
     "chrome-devtools"
@@ -148,7 +148,8 @@
     "filesystem": {
       "allowWrite": [
         "~/.pub-cache",
-        "~/.cache/dart-pub"
+        "~/.cache/dart-pub",
+        "~/.local/share/flutter/bin/cache"
       ]
     },
     "credentials": {
