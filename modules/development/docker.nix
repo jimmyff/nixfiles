@@ -18,6 +18,10 @@ in {
     }
     else {
       virtualisation.docker.enable = true;
+      # nixos-25.11's default docker (28.5.2) is marked insecure — upstream stopped
+      # maintaining the 28 series in Nov 2025. docker_29 ships in the same nixpkgs,
+      # so this stays on stable rather than mixing channels.
+      virtualisation.docker.package = pkgs-stable.docker_29;
       users.users.${username}.extraGroups = ["docker"];
     }
   );

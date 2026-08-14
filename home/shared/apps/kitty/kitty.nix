@@ -60,6 +60,12 @@
         "ctrl+shift+h" = "no_op";
         "ctrl+shift+j" = "no_op";
         "cmd+ctrl+t" = "no_op";
+
+        # Paste at the terminal layer, same chord on both platforms. Without this, ctrl+v
+        # reaches the inner TUI as a raw keypress — Claude Code binds it to chat:imagePaste
+        # (rebound to alt+v in dotfiles/claude/keybindings.json), which can't see the
+        # clipboard over SSH anyway. kitty's own ctrl+shift+v and cmd+v still work.
+        "ctrl+v" = "paste_from_clipboard";
       };
 
       settings = {

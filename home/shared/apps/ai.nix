@@ -38,11 +38,23 @@ in {
           pkgs.bubblewrap
           pkgs.socat
         ];
-      home.file.".claude/settings.json".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/nixfiles/dotfiles/claude/settings.json";
       home.file.".claude/statusline.sh".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/nixfiles/dotfiles/claude/statusline.sh";
-      home.file.".claude/keybindings.json".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/nixfiles/dotfiles/claude/keybindings.json";
       home.file.".claude/CLAUDE.md".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/nixfiles/dotfiles/ai/AGENTS.md";
       home.file.".claude/skills".source = config.lib.file.mkOutOfStoreSymlink aiSkills;
+
+      # settings.json and keybindings.json are the two files Claude Code writes back to
+      # itself (/effort, /keybindings), so they cannot go through home.file: its
+      # mkOutOfStoreSymlink is a two-hop link, and Claude's atomic write resolves only the
+      # first hop before dropping its temp file beside the result — inside /nix/store, so
+      # the write dies with EROFS. A direct symlink puts that temp file in dotfiles/claude/,
+      # which is writable. The claude-settings clean filter (.gitattributes) then keeps the
+      # resulting effortLevel churn out of commits.
+      home.activation.claudeWritableDotfiles = lib.hm.dag.entryAfter ["writeBoundary"] ''
+        run mkdir -p "${config.home.homeDirectory}/.claude"
+        for f in settings.json keybindings.json; do
+          run ln -sfn "${config.home.homeDirectory}/nixfiles/dotfiles/claude/$f" "${config.home.homeDirectory}/.claude/$f"
+        done
+      '';
 
       # Canonical Claude Code MCP config (dotfiles/ai/mcp.json), symlinked into
       # every project checkout. New worktrees are seeded by the glittering
