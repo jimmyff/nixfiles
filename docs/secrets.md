@@ -132,7 +132,28 @@ Register it in `environment.systemPackages`. Key properties:
 - **Child, not exec** — running the command as a child (rather than `exec`ing it) ensures the bash EXIT trap fires afterwards to clean up the tempdir.
 - **EXIT trap** — bash fires this on any exit path (success, error, SIGINT, SIGTERM), so the tempdir is wiped even if the command is interrupted.
 
-For a worked example with multiple modes and two keystores, see `modules/development/sops-wrappers.nix`.
+Wrappers are declared in `modules/development/sops-wrappers-registry.nix` via `mkSopsWrapper` (`sops-wrappers-lib.nix`), which generates the above. Simple ones are pure declaration (`sopsFiles`, `envFiles`, `envVarsAfterDecrypt`); mode dispatch needs a `body` override. Multiple `envFiles` nest one `sops exec-env` per file.
+
+For a worked example with multiple modes and two keystores, see `rocketware-android-sign` in the registry.
+
+## AI provider keys
+
+One yaml per provider, so keys rotate independently and a command only sees the providers it asked for.
+
+| File | Env var |
+| --- | --- |
+| `ai-openrouter.yaml` | `OPENROUTER_API_KEY` |
+| `ai-google.yaml` | `GEMINI_API_KEY` |
+
+```bash
+ai-keys openrouter -- opencode
+ai-keys google -- flutter test
+ai-keys all -- nu          # combine providers; repeats ignored
+```
+
+`GEMINI_API_KEY` not `GOOGLE_API_KEY` — the Gemini CLI requires it, `google-genai` falls back to it, and setting both makes the SDK warn.
+
+Add a provider: create the yaml, then a `want_*` flag and `selected` entry in the `ai-keys` body in the registry.
 
 ## Apple certificate renewal
 

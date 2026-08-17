@@ -54,6 +54,37 @@ let
         exit 1
       fi
     }
+
+    # Runs a command under N sops env files by nesting `sops exec-env` calls,
+    # which each take only a single file.
+    #   exec_env_chain [envfile...] -- <command> [args...]
+    #
+    # `sops exec-env` takes its command as a SINGLE shell string (which it runs
+    # via sh -c), not as argv elements, so every layer is assembled with
+    # printf %q. The command runs as a child, never exec'd, so an EXIT trap the
+    # caller installed still fires afterwards.
+    exec_env_chain() {
+      local files=() cmd i
+      while [ $# -gt 0 ] && [ "$1" != "--" ]; do
+        files+=("$1")
+        shift
+      done
+      [ "''${1:-}" = "--" ] || { echo "ERROR: exec_env_chain: missing '--' separator" >&2; exit 70; }
+      shift
+      [ $# -ge 1 ] || { echo "ERROR: exec_env_chain: no command given" >&2; exit 70; }
+
+      cmd=$(printf '%q ' "$@")
+      if [ ''${#files[@]} -eq 0 ]; then
+        eval "$cmd"
+        return
+      fi
+
+      # Nest inside-out so files[0] ends up the outermost exec-env.
+      for (( i=''${#files[@]}-1; i>0; i-- )); do
+        cmd=$(printf '%q exec-env %q %q' "$SOPS" "''${files[$i]}" "$cmd")
+      done
+      "$SOPS" exec-env "''${files[0]}" "$cmd"
+    }
   '';
 
   # --- Standard template (body == null) ---
@@ -85,17 +116,11 @@ let
     (envVar: logicalName: ''export ${envVar}="$TMPDIR_KS/${logicalName}"'')
     envVarsAfterDecrypt);
 
-  # Build command execution (with optional sops exec-env)
-  execBlock = if envFiles == [] then ''
-    eval $quoted_cmd
-  '' else
-    # Standard template only supports a single envFile
-    assert lib.assertMsg (builtins.length envFiles <= 1)
-      "mkSopsWrapper standard template supports at most 1 envFile; use body override for multiple";
-    let envFile = builtins.head envFiles;
-    in ''
-      "$SOPS" exec-env "$VAULT/${envFile}" "$quoted_cmd"
-    '';
+  # Build command execution — one nested `sops exec-env` layer per env file,
+  # or a plain run when there are none.
+  execBlock = ''
+    exec_env_chain ${lib.concatMapStringsSep " " (f: ''"$VAULT/${f}"'') envFiles} -- "$@"
+  '';
 
   templateBody = ''
     usage() {
@@ -126,7 +151,6 @@ let
   '') + ''
 
     ${preRun}
-    quoted_cmd=$(printf '%q ' "$@")
     ${execBlock}
   '';
 

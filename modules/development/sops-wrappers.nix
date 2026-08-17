@@ -34,6 +34,7 @@ in {
       wrappers.rocketware-minisign
       wrappers.rocketware-apple-notarize
       wrappers.rocketware-apple-sign
+      wrappers.ai-keys
     ];
 
     # Bootstrap sops age identity from the user's SSH key on first rebuild.

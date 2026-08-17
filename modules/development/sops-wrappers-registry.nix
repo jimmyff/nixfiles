@@ -325,16 +325,75 @@ in {
         export APPLE_IOS_PROVISIONING_PROFILE_PATH="$TMPDIR_KS/provisioning_profile.mobileprovision"
       fi
 
-      # `sops exec-env` takes the command as a SINGLE shell-command string
-      # (which it runs via sh -c), not as separate argv elements. Build a
-      # properly-quoted command string from "$@" via printf %q. Run as a
-      # child (not exec) so the EXIT trap fires afterwards.
-      #
       # No mode branching here — all modes load the same shared yaml, which
       # defines every env var that any mode could need. Unused vars for the
       # current mode are simply present but ignored by downstream consumers.
-      quoted_cmd=$(printf '%q ' "$@")
-      "$SOPS" exec-env "$ENV_SOPS" "$quoted_cmd"
+      exec_env_chain "$ENV_SOPS" -- "$@"
+    '';
+  };
+
+  # AI provider API keys. One sops yaml per provider so keys rotate
+  # independently and a command only ever receives the providers it asked for.
+  #
+  # Uses body override: the provider set is chosen at runtime, so the standard
+  # template's static envFiles list doesn't fit.
+  ai-keys = mkSopsWrapper {
+    name = "ai-keys";
+    inherit pkgs nixfilesVault;
+    body = ''
+
+      OPENROUTER_SOPS="$VAULT/sops/ai-openrouter.yaml"
+      GOOGLE_SOPS="$VAULT/sops/ai-google.yaml"
+
+      usage() {
+        cat >&2 <<'USAGE'
+      Usage: ai-keys <provider>... -- <command> [args...]
+
+      Providers:
+        openrouter  Exports OPENROUTER_API_KEY.
+        google      Exports GEMINI_API_KEY (Google AI Studio).
+        all         Every provider above.
+
+      Providers may be combined; repeats are ignored.
+
+      Examples:
+        ai-keys openrouter -- opencode
+        ai-keys google -- flutter test
+        ai-keys openrouter google -- nu
+        ai-keys all -- nu
+      USAGE
+        exit 64
+      }
+
+      # Flags rather than a list, so repeated providers can't nest the same
+      # env file twice.
+      want_openrouter=0
+      want_google=0
+
+      while [ $# -gt 0 ] && [ "$1" != "--" ]; do
+        case "$1" in
+          openrouter) want_openrouter=1 ;;
+          google)     want_google=1 ;;
+          all)        want_openrouter=1; want_google=1 ;;
+          *) echo "ERROR: unknown provider '$1'" >&2; usage ;;
+        esac
+        shift
+      done
+
+      [ "''${1:-}" = "--" ] || usage
+      shift
+      [ $# -ge 1 ] || usage
+
+      selected=()
+      if [ "$want_openrouter" = 1 ]; then selected+=("$OPENROUTER_SOPS"); fi
+      if [ "$want_google" = 1 ]; then selected+=("$GOOGLE_SOPS"); fi
+      [ ''${#selected[@]} -ge 1 ] || usage
+
+      for f in "''${selected[@]}"; do
+        require_file "$f"
+      done
+
+      exec_env_chain "''${selected[@]}" -- "$@"
     '';
   };
 }
