@@ -25,7 +25,7 @@ For secrets consumed by system services at activation time.
 
 1. Declare in `secrets/secrets.nix`:
    ```nix
-   "my-secret.age".publicKeys = allUsers ++ allSystems;
+   "my-secret.age".publicKeys = allUsers ++ allWorkstations;
    ```
 2. Sync rules and create the encrypted file:
    ```bash
@@ -45,6 +45,21 @@ age.secrets.my-secret = {
 ```
 
 Access via `config.age.secrets.my-secret.path` (decrypted at activation).
+
+### Rekeying
+
+Changing recipients only changes the rules — existing files stay encrypted to the old list:
+
+```bash
+cp secrets/secrets.nix secrets/vault/
+cd secrets/vault && agenix -r
+git add -A && git commit -m "rekey" && git push
+cd ~/nixfiles && nix flake update nixfiles-vault
+```
+
+All files show as modified afterwards. **A vault file with no rule is never rekeyed** — check `git status` lists everything you expect.
+
+`agenix` is wrapped (`modules/core/shared/core.nix`) to supply the age identity; without it a rekey can fail partway.
 
 ## sops workflow
 

@@ -1,4 +1,21 @@
 { pkgs-stable, pkgs-dev-tools, inputs, ... }:
+let
+  agenixPkg = inputs.agenix.packages.${pkgs-stable.stdenv.hostPlatform.system}.default;
+
+  # agenix searches SSH identities only, but the universal recipient in
+  # secrets.nix is a native age key (age1…) kept in the sops keys file. Without
+  # it, any secret not granted to this host's SSH key fails to decrypt — and
+  # `agenix -r` fails *partway*, leaving the vault half-rekeyed with nothing to
+  # say which files were missed. Passing it always removes that footgun.
+  agenix = pkgs-stable.writeShellScriptBin "agenix" ''
+    KEY="$HOME/.config/sops/age/keys.txt"
+    if [ -f "$KEY" ]; then
+      exec ${agenixPkg}/bin/agenix -i "$KEY" "$@"
+    else
+      exec ${agenixPkg}/bin/agenix "$@"
+    fi
+  '';
+in
 {
 
   nix.enable = true;
@@ -13,8 +30,8 @@
 
 
   environment.systemPackages = [
-    pkgs-stable.age                                        # Encryption library
-    inputs.agenix.packages.${pkgs-stable.stdenv.hostPlatform.system}.default  # Age nix secrets tool
+    pkgs-stable.age                      # Encryption library
+    agenix                               # Age nix secrets tool (wrapped, see above)
     pkgs-stable.bat                      # Cat clone with syntax highlighting
     pkgs-stable.minisign                  # Release signing tool
     pkgs-stable.vim                      # Vi/Vim text editor

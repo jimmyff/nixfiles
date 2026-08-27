@@ -43,4 +43,5 @@ pkgs-unstable = [
 ]
 
 # AI Tools (bleeding edge)
-pkgs-ai = ["claude-code", "antigravity-cli"]
+# Coding agents: `codex` is OpenAI's CLI, `pi-coding-agent` provides the `pi` binary.
+pkgs-ai = ["claude-code", "antigravity-cli", "codex", "pi-coding-agent"]

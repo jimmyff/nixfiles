@@ -4,13 +4,15 @@
     enable = true;
     enableDefaultConfig = false;
     
+    # Both hosts set mdns.publish, so use .local rather than pinning a DHCP
+    # lease — the hardcoded IPs had already drifted (nasbox moved to .250).
     matchBlocks.nixbox = {
-      hostname = "192.168.86.60";
+      hostname = "nixbox.local";
       user = "jimmyff";
     };
 
     matchBlocks.nasbox = {
-      hostname = "192.168.86.65";
+      hostname = "nasbox.local";
       user = "jimmyff";
     };
 
