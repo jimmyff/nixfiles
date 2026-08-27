@@ -99,6 +99,9 @@ func TestWorktreeLand_NotIntegratedRefused(t *testing.T) {
 	if !hasReason(out.Reasons, "does not contain") || !strings.Contains(out.Hint, "worktree update") {
 		t.Errorf("expected a not-contained refusal pointing at update: %+v / %q", out.Reasons, out.Hint)
 	}
+	if !hasBlocker(out.Blockers, BlockerNotContained) {
+		t.Errorf("every refusal must carry a coded blocker, got %+v", out.Blockers)
+	}
 	if len(out.Pushed) != 0 || out.Landed {
 		t.Errorf("a refusal must publish nothing: %+v", out)
 	}
@@ -203,6 +206,9 @@ func TestWorktreeLand_PinRegressionRefused(t *testing.T) {
 	}
 	if !hasReason(out.Reasons, "is behind") || !hasReason(out.Reasons, "sub") {
 		t.Errorf("expected a pin-rewind refusal naming the submodule, got %+v", out.Reasons)
+	}
+	if !hasBlocker(out.Blockers, BlockerPinRewind) {
+		t.Errorf("every refusal must carry a coded blocker, got %+v", out.Blockers)
 	}
 	if !hasReason(out.Reasons, "--allow-pin-rewind") {
 		t.Errorf("the refusal should name the override for a deliberate revert: %+v", out.Reasons)

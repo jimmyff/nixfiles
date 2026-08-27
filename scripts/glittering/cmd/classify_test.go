@@ -123,4 +123,21 @@ func TestBuildTestSummary_AllStatuses(t *testing.T) {
 	if s.TotalTests != 19 || s.TotalPassed != 17 || s.TotalFailed != 2 {
 		t.Errorf("test totals wrong: %+v", s)
 	}
+	if s.Success {
+		t.Error("a run with failures/errors/timeouts must not read green")
+	}
+}
+
+// Success is true exactly when every package passed.
+func TestBuildTestSummary_Success(t *testing.T) {
+	s := buildTestSummary([]TestPackageResult{
+		{Status: "pass", Total: 3, Passed: 3},
+		{Status: "pass", Total: 1, Passed: 1},
+	})
+	if !s.Success {
+		t.Errorf("all-pass run should be Success, got %+v", s)
+	}
+	if s = buildTestSummary([]TestPackageResult{{Status: "pass"}, {Status: "timeout"}}); s.Success {
+		t.Error("a timed-out package must flip Success false")
+	}
 }

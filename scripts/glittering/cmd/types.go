@@ -72,15 +72,18 @@ type TestDetailFile struct {
 }
 
 type TestSummary struct {
-	TotalPackages   int `json:"total_packages"`
-	PassedPackages  int `json:"passed_packages"`
-	FailedPackages  int `json:"failed_packages"`
-	ErrorPackages   int `json:"error_packages"`
-	TimeoutPackages int `json:"timeout_packages"`
-	TotalTests      int `json:"total_tests"`
-	TotalPassed     int `json:"total_passed"`
-	TotalFailed     int `json:"total_failed"`
-	TotalSkipped    int `json:"total_skipped"`
+	// Success is the single verdict: false when any package failed, errored or
+	// timed out — a partial (timed-out) run must never read green.
+	Success         bool `json:"success"`
+	TotalPackages   int  `json:"total_packages"`
+	PassedPackages  int  `json:"passed_packages"`
+	FailedPackages  int  `json:"failed_packages"`
+	ErrorPackages   int  `json:"error_packages"`
+	TimeoutPackages int  `json:"timeout_packages"`
+	TotalTests      int  `json:"total_tests"`
+	TotalPassed     int  `json:"total_passed"`
+	TotalFailed     int  `json:"total_failed"`
+	TotalSkipped    int  `json:"total_skipped"`
 }
 
 type TestOutput struct {
@@ -472,6 +475,47 @@ type WorktreePruneOutput struct {
 
 // --- Worktree update / land ---
 
+// BlockerCode is the stable, machine-readable classification of a pre-flight
+// refusal. The prose in `reasons` may be reworded at any time; these codes may
+// not — agents branch on them.
+type BlockerCode string
+
+const (
+	// Dirt classification (heal-then-classify pre-flight).
+	BlockerMergeInProgress   BlockerCode = "merge_in_progress"
+	BlockerUserChanges       BlockerCode = "user_changes"
+	BlockerStaleLockfiles    BlockerCode = "stale_lockfiles"
+	BlockerSubmoduleDirty    BlockerCode = "submodule_dirty"
+	BlockerSubmoduleAhead    BlockerCode = "submodule_ahead"
+	BlockerSubmoduleDiverged BlockerCode = "submodule_diverged"
+	// BlockerSubmoduleUnsynced is the heal's own failure: uninitialised
+	// submodule, pin missing from the clone, or an unreattachable detached HEAD.
+	BlockerSubmoduleUnsynced BlockerCode = "submodule_unsynced"
+	// BlockerStatusUnreadable fails closed: dirt we could not classify is still
+	// a refusal, never a silent pass.
+	BlockerStatusUnreadable BlockerCode = "status_unreadable"
+
+	// Non-dirt refusals (land). Invariant: a refusal always carries at least
+	// one blocker — an empty `blockers` on a failed run would read as clear.
+	BlockerNotLandable    BlockerCode = "not_landable"    // no base worktree / base into itself / detached HEAD
+	BlockerNotContained   BlockerCode = "not_contained"   // feature doesn't contain a base ref
+	BlockerPinRewind      BlockerCode = "pin_rewind"      // submodule pin behind/diverged from the base branch's
+	BlockerRemoteDiverged BlockerCode = "remote_diverged" // parent/submodule diverged from its upstream
+	BlockerNoUpstream     BlockerCode = "no_upstream"     // commits on no remote and nothing to push to
+	BlockerBaseNotReady   BlockerCode = "base_not_ready"  // base worktree not on the base branch
+)
+
+// Blocker is one classified reason a worktree is not ready. Mirrors
+// CheckIssue's shape (repo + type + fix); `reasons` is derived from Messages,
+// so the two channels can never disagree.
+type Blocker struct {
+	Repo    string      `json:"repo"` // "." for the target worktree, else the base worktree's name
+	Code    BlockerCode `json:"code"`
+	Message string      `json:"message"`
+	Paths   []string    `json:"paths,omitempty"` // capped at 10 + "+N more"
+	Hint    string      `json:"hint,omitempty"`  // the exact command that clears it
+}
+
 // WorktreeBaseResult is what happened to the base worktree: a fast-forward
 // (to origin in `update`, to the feature branch in `land`) plus the submodule
 // pin reconvergence that a moved gitlink always requires.
@@ -486,7 +530,9 @@ type WorktreeBaseResult struct {
 	NewCommits int                `json:"new_commits,omitempty"`
 	Pushed     bool               `json:"pushed,omitempty"` // land only
 	Submodules []GitSyncSubmodule `json:"submodules"`
-	Error      string             `json:"error,omitempty"`
+	// Blockers explains a "skipped_dirty" action (update only).
+	Blockers []Blocker `json:"blockers,omitempty"`
+	Error    string    `json:"error,omitempty"`
 }
 
 // WorktreeMergeResult is the base-branch → feature-worktree merge. On
@@ -514,23 +560,31 @@ type WorktreeUpdateOutput struct {
 	Success    bool                `json:"success"`
 	Base       WorktreeBaseResult  `json:"base"`
 	Merge      WorktreeMergeResult `json:"merge"`
-	// Submodules is the feature worktree's pin convergence after the merge.
+	// Submodules spans the pre-flight heal and the post-merge pin convergence.
 	Submodules []GitSyncSubmodule `json:"submodules"`
-	Reasons    []string           `json:"reasons"` // refusals (nothing was touched)
-	Warnings   []string           `json:"warnings"`
-	Hint       string             `json:"hint,omitempty"`
+	// Reasons are refusals (no merge attempted; the pre-flight heal may have
+	// converged submodule pins forward — see Submodules). Derived from Blockers.
+	Reasons  []string  `json:"reasons"`
+	Blockers []Blocker `json:"blockers"`
+	Warnings []string  `json:"warnings"`
+	Hint     string    `json:"hint,omitempty"`
 }
 
 type WorktreeLandOutput struct {
-	Project    string             `json:"project"`
-	ProjectDir string             `json:"project_dir"`
-	Worktree   string             `json:"worktree"`
-	Path       string             `json:"path"`
-	Branch     string             `json:"branch"`
-	BaseBranch string             `json:"base_branch"`
-	Landed     bool               `json:"landed"`  // base branch fast-forwarded onto the feature
-	Success    bool               `json:"success"` // landed AND everything pushed
-	Reasons    []string           `json:"reasons"` // pre-flight refusals (nothing touched)
+	Project    string `json:"project"`
+	ProjectDir string `json:"project_dir"`
+	Worktree   string `json:"worktree"`
+	Path       string `json:"path"`
+	Branch     string `json:"branch"`
+	BaseBranch string `json:"base_branch"`
+	Landed     bool   `json:"landed"`  // base branch fast-forwarded onto the feature
+	Success    bool   `json:"success"` // landed AND everything pushed
+	// Reasons are pre-flight refusals (nothing published; the heal may have
+	// converged submodule pins forward — see Submodules). Derived from Blockers.
+	Reasons  []string  `json:"reasons"`
+	Blockers []Blocker `json:"blockers"`
+	// Submodules is the feature worktree's pre-flight pin convergence.
+	Submodules []GitSyncSubmodule `json:"submodules"`
 	Pushed     []PushRepoResult   `json:"pushed"`
 	Skipped    []PushRepoResult   `json:"skipped"`
 	Failed     []PushRepoResult   `json:"failed"`

@@ -3,7 +3,6 @@ package cmd
 import (
 	"fmt"
 	flag "github.com/spf13/pflag"
-	"strings"
 )
 
 // worktreeLand publishes a feature worktree and fast-forwards the base branch
@@ -29,23 +28,29 @@ func worktreeLand(args []string) int {
 		Worktree: target.Name, Path: target.Path, Branch: target.Branch,
 		BaseBranch: proj.BaseBranch,
 		Base:       WorktreeBaseResult{Action: "missing", Submodules: []GitSyncSubmodule{}},
-		Reasons:    []string{}, Warnings: []string{},
-		Pushed: []PushRepoResult{}, Skipped: []PushRepoResult{}, Failed: []PushRepoResult{},
+		Reasons:    []string{}, Blockers: []Blocker{}, Submodules: []GitSyncSubmodule{},
+		Warnings: []string{},
+		Pushed:   []PushRepoResult{}, Skipped: []PushRepoResult{}, Failed: []PushRepoResult{},
 	}
 
 	// Shape refusals: nothing to land, or nowhere to land it.
 	base, hasBase := baseWorktree(metas, proj.BaseBranch)
+	var shape []Blocker
 	switch {
 	case !hasBase:
-		out.Reasons = append(out.Reasons, fmt.Sprintf(
-			"no worktree on the base branch %q — land fast-forwards it, so it must be checked out", proj.BaseBranch))
+		shape = append(shape, Blocker{Repo: ".", Code: BlockerNotLandable, Message: fmt.Sprintf(
+			"no worktree on the base branch %q — land fast-forwards it, so it must be checked out", proj.BaseBranch)})
 	case base.Path == target.Path:
-		out.Reasons = append(out.Reasons, "refusing to land the base worktree into itself")
+		shape = append(shape, Blocker{Repo: ".", Code: BlockerNotLandable,
+			Message: "refusing to land the base worktree into itself"})
 	}
 	if target.Branch == "" {
-		out.Reasons = append(out.Reasons, "worktree is in detached HEAD state — nothing to land")
+		shape = append(shape, Blocker{Repo: ".", Code: BlockerNotLandable,
+			Message: "worktree is in detached HEAD state — nothing to land"})
 	}
-	if len(out.Reasons) > 0 {
+	if len(shape) > 0 {
+		out.Blockers = shape
+		out.Reasons = append(out.Reasons, blockerReasons(shape)...)
 		return finishLand(out)
 	}
 	out.Base = WorktreeBaseResult{
@@ -53,20 +58,60 @@ func worktreeLand(args []string) int {
 		Action: "missing", Submodules: []GitSyncSubmodule{},
 	}
 
-	// Fetch + full status for the feature worktree (parent refs are shared, so
-	// this also refreshes the base branch's remote-tracking ref).
-	data, err := collectGitData(target.Path, true)
+	// Phase 1 — fetch, once and in parallel. Parent refs live in the shared
+	// common dir, so one fetch refreshes the remote-tracking refs the
+	// containment checks read; submodule clones are per-worktree.
+	progressf("  fetching origin...\n")
+	if _, err := runGitNet(target.Path, "fetch", "origin"); err != nil {
+		out.Warnings = append(out.Warnings, fmt.Sprintf("fetch failed: %v", err))
+	}
+	subs, _ := getSubmodulePaths(target.Path)
+	fetchSubmodules(target.Path, subs)
+	if base.Branch == proj.BaseBranch {
+		baseSubs, _ := getSubmodulePaths(base.Path)
+		fetchSubmodules(base.Path, baseSubs)
+	}
+
+	// Phase 2 — heal both worktrees before anything is measured: a heal moves
+	// a submodule worktree, which changes its ahead/behind counts — measuring
+	// first could let land publish a parent commit that references an unpushed
+	// submodule commit. The base heal is gated on its branch: never converge
+	// submodules onto a wrong branch's pins.
+	pre := preflightWorktree(preflightRequest{
+		Path: target.Path, Repo: ".", Label: "worktree", Fetch: false,
+		ReRun: fmt.Sprintf("glittering worktree land --path %s", target.Path),
+	})
+	out.Submodules = pre.Submodules
+	if pre.Changed {
+		deleteCache(target.Path, "git.json")
+	}
+	var basePre preflightResult
+	if base.Branch == proj.BaseBranch {
+		basePre = preflightWorktree(preflightRequest{
+			Path: base.Path, Repo: base.Name,
+			Label: fmt.Sprintf("base worktree %s", base.Name), Fetch: false,
+			ReRun: fmt.Sprintf("glittering worktree land --path %s", target.Path),
+		})
+		out.Base.Submodules = basePre.Submodules
+		if basePre.Changed {
+			deleteCache(base.Path, "git.json")
+		}
+	}
+
+	// Phase 3 — full status, post-heal (phase 1 covered the fetch).
+	data, err := collectGitData(target.Path, false)
 	if err != nil {
 		logf("error: %v\n", err)
 		return ExitFailure
 	}
 
-	// Pre-flight: collect every blocker, report once, touch nothing.
-	reasons, warnings, hint := landPreflight(proj, target, base, data, *allowPinRewind)
-	out.Warnings = append(out.Warnings, warnings...)
-	if len(reasons) > 0 {
-		out.Reasons = append(out.Reasons, reasons...)
-		out.Hint = hint
+	// Pre-flight: collect every blocker, report once, publish nothing.
+	pf := landPreflight(proj, target, base, data, *allowPinRewind, pre, basePre)
+	out.Warnings = append(out.Warnings, pf.Warnings...)
+	if len(pf.Blockers) > 0 {
+		out.Blockers = pf.Blockers
+		out.Reasons = append(out.Reasons, pf.Reasons...)
+		out.Hint = pf.Hint
 		return finishLand(out)
 	}
 	baseHeadBefore, err := runGit(base.Path, "rev-parse", "HEAD")
@@ -123,6 +168,12 @@ func finishLand(out WorktreeLandOutput) int {
 			*list = []PushRepoResult{}
 		}
 	}
+	if out.Blockers == nil {
+		out.Blockers = []Blocker{}
+	}
+	if out.Submodules == nil {
+		out.Submodules = []GitSyncSubmodule{}
+	}
 	if err := outputJSON(out); err != nil {
 		logf("error: %v\n", err)
 		return ExitFailure
@@ -134,70 +185,6 @@ func finishLand(out WorktreeLandOutput) int {
 		return ExitFailure
 	}
 	return ExitOK
-}
-
-// landPreflight collects every reason a land must be refused, so one run
-// reports the full list instead of surfacing blockers one at a time. Pin
-// regressions are demoted to warnings when allowPinRewind is set. hint is the
-// concrete remedy for the first blocker that has one.
-func landPreflight(proj projectInfo, target, base worktreeMeta, data GitOutput, allowPinRewind bool) (reasons, warnings []string, hint string) {
-	reasons = pushPreflightReasons(data, true)
-
-	// Containment: the base branch only ever moves to a commit that provably
-	// contains it — local and remote alike.
-	for _, ref := range baseRefs(proj.BaseBranch) {
-		if _, err := runGit(target.Path, "rev-parse", "--verify", "--quiet", ref); err != nil {
-			continue // no such ref yet — nothing to contain
-		}
-		if _, err := runGit(target.Path, "merge-base", "--is-ancestor", ref, "HEAD"); err != nil {
-			reasons = append(reasons, fmt.Sprintf(
-				"%s does not contain %s — run `glittering worktree update` first", target.Branch, strings.TrimPrefix(ref, "refs/")))
-			if hint == "" {
-				hint = fmt.Sprintf("glittering worktree update --path %s", target.Path)
-			}
-		}
-	}
-
-	// Containment covers the parent's history, not its gitlinks: a tree that
-	// rewound a pin still fast-forwards, so check the pins themselves.
-	for _, reg := range detectPinRegressions(target.Path, submodulePathsOf(data.Submodules), baseRefs(proj.BaseBranch)) {
-		if allowPinRewind {
-			warnings = append(warnings, "--allow-pin-rewind: "+reg.reason())
-			continue
-		}
-		reasons = append(reasons, reg.reason()+" — pass --allow-pin-rewind if the revert is deliberate")
-		if hint == "" {
-			hint = reg.fix(target.Path)
-		}
-	}
-
-	// Pushes that would be rejected, caught before anything is published.
-	if data.Repo.AheadRemote > 0 && data.Repo.BehindRemote > 0 {
-		reasons = append(reasons, fmt.Sprintf(
-			"%s has diverged from %s (%d ahead / %d behind) — integrate it before landing",
-			target.Branch, data.Repo.Upstream, data.Repo.AheadRemote, data.Repo.BehindRemote))
-	}
-	for _, sub := range data.Submodules {
-		switch {
-		case sub.AheadRemote > 0 && sub.BehindRemote > 0:
-			reasons = append(reasons, fmt.Sprintf(
-				"%s has diverged from %s (%d ahead / %d behind) — another worktree pushed the same submodule branch; merge %s in %s, bump the pin with `glittering git commit --parent-only --path %s`, then re-run",
-				sub.Path, sub.Upstream, sub.AheadRemote, sub.BehindRemote, sub.Upstream, sub.Path, target.Path))
-		case !sub.HeadOnRemote && (sub.Upstream == "" || sub.Branch == ""):
-			reasons = append(reasons, fmt.Sprintf(
-				"%s has commits that are on no remote and no upstream to push to — push it manually first", sub.Path))
-		}
-	}
-
-	// The base worktree's branch is about to be fast-forwarded under it.
-	if base.Branch != proj.BaseBranch {
-		reasons = append(reasons, fmt.Sprintf("base worktree %s is not on %s", base.Name, proj.BaseBranch))
-	}
-	if entries, err := statusEntries(base.Path); err == nil && len(entries) > 0 {
-		reasons = append(reasons, fmt.Sprintf(
-			"base worktree %s has uncommitted changes (%s)", base.Name, strings.Join(entryPaths(entries, 10), ", ")))
-	}
-	return reasons, warnings, hint
 }
 
 // pushWorktreeBranch pushes the feature branch itself. `git push`'s parent step
@@ -245,8 +232,9 @@ func landBaseWorktree(res WorktreeBaseResult, featureBranch, expectedHead string
 
 	// Converge pins before anything reads the base tree: an unconverged gitlink
 	// leaves the base worktree dirty, which blocks the next update or land.
+	// Folded with the pre-flight heal so neither pass erases the other.
 	if sync, syncErr := syncSubmodules(res.Path, true, nil); syncErr == nil {
-		res.Submodules = sync.Results
+		res.Submodules = mergeSyncResults(res.Submodules, sync.Results)
 	}
 	deleteCache(res.Path, "git.json")
 

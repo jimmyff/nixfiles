@@ -42,6 +42,18 @@ func statusEntries(dir string) ([]porcelainEntry, error) {
 	return parsePorcelainZ(out), nil
 }
 
+// statusEntriesAll is statusEntries with untracked directories expanded
+// (-uall): classification needs files, not collapsed "dir/" entries — a
+// collapsed directory hiding only generated lockfiles would otherwise read as
+// opaque user dirt.
+func statusEntriesAll(dir string) ([]porcelainEntry, error) {
+	out, err := runGitRaw(dir, "status", "--porcelain", "-z", "-uall")
+	if err != nil {
+		return nil, err
+	}
+	return parsePorcelainZ(out), nil
+}
+
 // untrackedPaths returns the paths of untracked entries.
 func untrackedPaths(entries []porcelainEntry) []string {
 	var paths []string

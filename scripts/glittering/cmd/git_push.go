@@ -109,9 +109,8 @@ func GitPush(args []string) int {
 
 // pushPreflightReasons lists every reason a push should be refused: uncommitted
 // changes or a detached HEAD anywhere in the tree. includeParent covers the
-// parent repo (false when only submodules will be pushed). Callers decide
-// whether to report the first reason (`git push`) or all of them
-// (`worktree land`).
+// parent repo (false when only submodules will be pushed). `worktree land`
+// uses the heal-then-classify pre-flight instead (worktree_preflight.go).
 func pushPreflightReasons(data GitOutput, includeParent bool) []string {
 	var reasons []string
 	if includeParent && data.Repo.Dirty {

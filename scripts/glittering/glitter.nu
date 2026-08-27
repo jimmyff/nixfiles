@@ -30,10 +30,11 @@ def "main test" [--path: string = "." --filter: string = "" --timeout: int = 120
     | print
   let s = $result.summary
   let timeouts = ($s.timeout_packages? | default 0)
-  let verdict = if $s.failed_packages > 0 or $s.error_packages > 0 or $timeouts > 0 {
-    $"(ansi red)\u{2717}(ansi reset)"
-  } else {
+  let ok = ($s.success? | default ($s.failed_packages == 0 and $s.error_packages == 0 and $timeouts == 0))
+  let verdict = if $ok {
     $"(ansi green)\u{2713}(ansi reset)"
+  } else {
+    $"(ansi red)\u{2717}(ansi reset)"
   }
   mut parts = [$"($s.total_passed) passed"]
   if $s.total_failed > 0 { $parts = ($parts | append $"($s.total_failed) failed") }

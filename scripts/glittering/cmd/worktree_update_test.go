@@ -183,11 +183,17 @@ func TestWorktreeUpdate_DirtyFeatureRefused(t *testing.T) {
 	if !hasReason(out.Reasons, "uncommitted changes") || !hasReason(out.Reasons, "wip.txt") {
 		t.Errorf("expected a reason naming wip.txt, got %v", out.Reasons)
 	}
+	if b := blockerFor(out.Blockers, BlockerUserChanges); b == nil || !hasReason(b.Paths, "wip.txt") {
+		t.Errorf("expected a user_changes blocker naming wip.txt, got %+v", out.Blockers)
+	}
 	if out.Merge.Status != "skipped" {
 		t.Errorf("no merge should have been attempted, got %+v", out.Merge)
 	}
 	if headOf(t, feat) != before || mergeInProgress(t, feat) {
 		t.Error("refused update must leave the worktree untouched")
+	}
+	if headOf(t, filepath.Join(feat, "sub")) != pinAtRef(feat, "HEAD", "sub") {
+		t.Error("the heal ran but had nothing to move — the submodule must be untouched")
 	}
 }
 

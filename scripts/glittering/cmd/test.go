@@ -357,6 +357,8 @@ func buildTestSummary(results []TestPackageResult) TestSummary {
 		summary.TotalFailed += r.Failed
 		summary.TotalSkipped += r.Skipped
 	}
+	// The single verdict wrappers read — a timed-out (partial) run is not green.
+	summary.Success = summary.FailedPackages+summary.ErrorPackages+summary.TimeoutPackages == 0
 	return summary
 }
 

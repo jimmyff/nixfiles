@@ -30,7 +30,7 @@ func worktreeUpdate(args []string) int {
 		Base:       WorktreeBaseResult{Action: "missing", Submodules: []GitSyncSubmodule{}},
 		Merge:      WorktreeMergeResult{Status: "skipped"},
 		Submodules: []GitSyncSubmodule{},
-		Reasons:    []string{}, Warnings: []string{},
+		Reasons:    []string{}, Blockers: []Blocker{}, Warnings: []string{},
 	}
 	base, hasBase := baseWorktree(metas, proj.BaseBranch)
 	onBase := hasBase && base.Path == target.Path
@@ -56,7 +56,8 @@ func worktreeUpdate(args []string) int {
 		switch out.Base.Action {
 		case "skipped_dirty":
 			out.Warnings = append(out.Warnings, fmt.Sprintf(
-				"base worktree %s has uncommitted changes (not fast-forwarded); integrating its current tip", base.Name))
+				"base worktree %s not fast-forwarded; integrating its current tip", base.Name))
+			out.Warnings = append(out.Warnings, blockerReasons(out.Base.Blockers)...)
 		case "failed":
 			out.Success = false
 			out.Warnings = append(out.Warnings, fmt.Sprintf(
@@ -75,11 +76,23 @@ func worktreeUpdate(args []string) int {
 		return finishUpdate(out)
 	}
 
-	// Step 3 — feature pre-flight: never merge over uncommitted work.
-	if reasons := updateBlockers(target.Path); len(reasons) > 0 {
-		out.Reasons = append(out.Reasons, reasons...)
+	// Step 3 — feature pre-flight: heal what a machine can (a merge that moved
+	// a gitlink leaves the submodule behind its pin — not the user's problem),
+	// then refuse only on what a human must resolve. Healing before the merge
+	// is what unblocks the documented "resolve, commit, re-run" loop.
+	pre := preflightWorktree(preflightRequest{
+		Path: target.Path, Repo: ".", Label: "worktree", Fetch: false, // step 1 fetched already
+		ReRun: fmt.Sprintf("glittering worktree update --path %s", target.Path),
+	})
+	out.Submodules = pre.Submodules
+	if pre.Changed {
+		deleteCache(target.Path, "git.json")
+	}
+	if len(pre.Blockers) > 0 {
+		out.Blockers = pre.Blockers
+		out.Reasons = append(out.Reasons, blockerReasons(pre.Blockers)...)
 		out.Success = false
-		out.Hint = fmt.Sprintf("commit or stash the changes, then re-run: glittering worktree update --path %s", target.Path)
+		out.Hint = firstHint(pre.Blockers)
 		return finishUpdate(out)
 	}
 
@@ -105,13 +118,13 @@ func worktreeUpdate(args []string) int {
 
 	// Step 5 — pin convergence: the merge may have moved gitlinks. Submodules
 	// were fetched in step 1, so this stays local.
-	moved := out.Merge.Status == "merged"
+	moved := out.Merge.Status == "merged" || pre.Changed
 	sync, err := syncSubmodules(target.Path, false, nil)
 	if err != nil {
 		out.Success = false
 		out.Warnings = append(out.Warnings, fmt.Sprintf("submodule sync failed: %v", err))
 	} else {
-		out.Submodules = sync.Results
+		out.Submodules = mergeSyncResults(out.Submodules, sync.Results)
 		out.Warnings = append(out.Warnings, sync.Warnings...)
 		out.Success = out.Success && sync.OK
 		moved = moved || sync.Changed
@@ -128,7 +141,21 @@ func worktreeUpdate(args []string) int {
 		}
 	}
 
-	// Step 7 — anything moved ⇒ cached status is stale.
+	// Step 7 — a merge that bumped a dependency version leaves every dependent
+	// pubspec.lock stale; the first pub get/analyze/test regenerates them and
+	// the tree is suddenly dirty at land time, far from its cause. Say so now,
+	// while it is cheap. Update does not run pub get: it is a git operation.
+	if out.Merge.Status == "merged" {
+		if changed := changedPubspecs(target.Path, out.Merge.FromRef, out.Merge.ToRef); len(changed) > 0 {
+			out.Warnings = append(out.Warnings, fmt.Sprintf(
+				"the merge changed %d pubspec.yaml file(s) (%s) — dependency versions moved",
+				len(changed), strings.Join(capPaths(changed, 5), ", ")))
+			out.Hint = appendHint(out.Hint, fmt.Sprintf(
+				"dependency versions changed — run `glittering get --path %s` and commit the regenerated pubspec.lock files now, before they surface as dirt at land time", target.Path))
+		}
+	}
+
+	// Step 8 — anything moved ⇒ cached status is stale.
 	if moved {
 		deleteCache(target.Path, "git.json")
 	}
@@ -137,6 +164,13 @@ func worktreeUpdate(args []string) int {
 
 // finishUpdate emits the output and maps it to an exit code.
 func finishUpdate(out WorktreeUpdateOutput) int {
+	// Empty lists, never null — callers index into these.
+	if out.Blockers == nil {
+		out.Blockers = []Blocker{}
+	}
+	if out.Submodules == nil {
+		out.Submodules = []GitSyncSubmodule{}
+	}
 	if err := outputJSON(out); err != nil {
 		logf("error: %v\n", err)
 		return ExitFailure
@@ -167,18 +201,21 @@ func updateBaseWorktree(proj projectInfo, base worktreeMeta) WorktreeBaseResult 
 	}
 	res.FromRef = head
 
-	// File changes block a merge and are the user's to resolve; stale submodule
-	// pins don't — the sync below heals those.
-	subPaths, _ := getSubmodulePaths(base.Path)
-	if entries, statusErr := statusEntries(base.Path); statusErr == nil && len(entries) > 0 {
-		files := classifyParentFiles(entries, subPaths)
-		if len(files.Staged)+len(files.Unstaged) > 0 {
-			res.Action = "skipped_dirty"
-			return res
-		}
-		if sync, syncErr := syncSubmodules(base.Path, false, nil); syncErr == nil {
-			res.Submodules = sync.Results
-		}
+	// Heal-then-classify: stale submodule pins are converged (forward-only),
+	// and only surviving dirt skips the fast-forward — the user's to resolve.
+	pre := preflightWorktree(preflightRequest{
+		Path: base.Path, Repo: base.Name,
+		Label: fmt.Sprintf("base worktree %s", base.Name),
+		Fetch: false, // the caller's step 1 already fetched this worktree's submodules
+		ReRun: fmt.Sprintf("glittering worktree update --path %s", base.Path),
+	})
+	res.Submodules = pre.Submodules
+	if pre.Changed {
+		deleteCache(base.Path, "git.json")
+	}
+	if len(pre.Blockers) > 0 {
+		res.Action, res.Blockers = "skipped_dirty", pre.Blockers
+		return res
 	}
 
 	upstream := "origin/" + proj.BaseBranch
@@ -203,99 +240,8 @@ func updateBaseWorktree(proj projectInfo, base worktreeMeta) WorktreeBaseResult 
 	// The fast-forward may have moved gitlinks — converge before anything else
 	// reads the base tree.
 	if sync, syncErr := syncSubmodules(base.Path, false, nil); syncErr == nil {
-		res.Submodules = sync.Results
+		res.Submodules = mergeSyncResults(res.Submodules, sync.Results)
 	}
 	deleteCache(base.Path, "git.json")
 	return res
-}
-
-// updateBlockers lists reasons a worktree must not be merged into.
-func updateBlockers(wtPath string) []string {
-	if _, err := runGit(wtPath, "rev-parse", "--verify", "--quiet", "MERGE_HEAD"); err == nil {
-		return []string{"a merge is already in progress — resolve the conflicts and commit it first"}
-	}
-	entries, err := statusEntries(wtPath)
-	if err != nil {
-		return []string{fmt.Sprintf("could not read worktree status: %v", err)}
-	}
-	if len(entries) == 0 {
-		return nil
-	}
-	return []string{fmt.Sprintf("worktree has uncommitted changes (%s)", strings.Join(entryPaths(entries, 10), ", "))}
-}
-
-// mergeBaseIntoWorktree merges ref into the worktree at wtPath. On conflict the
-// merge is deliberately left in progress and the unmerged paths are reported —
-// a submodule path among them means two worktrees moved the same pin.
-func mergeBaseIntoWorktree(wtPath, ref string) WorktreeMergeResult {
-	res := WorktreeMergeResult{Ref: ref}
-	head, err := runGit(wtPath, "rev-parse", "HEAD")
-	if err != nil {
-		res.Status, res.Error = "failed", fmt.Sprintf("cannot resolve HEAD: %v", err)
-		return res
-	}
-	res.FromRef = head
-	if _, err := runGit(wtPath, "rev-parse", "--verify", "--quiet", ref+"^{commit}"); err != nil {
-		res.Status, res.Error = "failed", fmt.Sprintf("base ref %q not found", ref)
-		return res
-	}
-	if _, err := runGit(wtPath, "merge-base", "--is-ancestor", ref, "HEAD"); err == nil {
-		res.Status, res.ToRef = "up_to_date", head
-		return res
-	}
-	res.CommitsIntegrated = countCommits(wtPath, "HEAD", ref)
-	progressf("  merging %s (%d commits)...\n", ref, res.CommitsIntegrated)
-	if _, err := runGit(wtPath, "merge", "--no-edit", ref); err != nil {
-		if conflicts := unmergedPaths(wtPath); len(conflicts) > 0 {
-			res.Status, res.Conflicts = "conflicts", conflicts
-			res.Error = fmt.Sprintf("merge left in progress with %d conflicted path(s)", len(conflicts))
-			return res
-		}
-		res.Status, res.Error = "failed", fmt.Sprintf("merge failed: %v", err)
-		return res
-	}
-	newHead, _ := runGit(wtPath, "rev-parse", "HEAD")
-	res.Status, res.ToRef = "merged", newHead
-	return res
-}
-
-// unmergedPaths lists the paths a failed merge left conflicted (submodule
-// gitlinks included).
-func unmergedPaths(dir string) []string {
-	out, err := runGit(dir, "diff", "--name-only", "--diff-filter=U")
-	if err != nil || out == "" {
-		return nil
-	}
-	var paths []string
-	for _, line := range strings.Split(out, "\n") {
-		if p := strings.TrimSpace(line); p != "" {
-			paths = append(paths, p)
-		}
-	}
-	return paths
-}
-
-// entryPaths lists status entry paths, capped so a large dirty tree can't
-// produce an unreadable reason.
-func entryPaths(entries []porcelainEntry, max int) []string {
-	var paths []string
-	for i, e := range entries {
-		if i == max {
-			paths = append(paths, fmt.Sprintf("+%d more", len(entries)-max))
-			break
-		}
-		paths = append(paths, e.Path)
-	}
-	return paths
-}
-
-// syncResultsOK reports whether every submodule sync result is a good outcome
-// (divergence and errors are not).
-func syncResultsOK(results []GitSyncSubmodule) bool {
-	for _, r := range results {
-		if r.Action == "diverged" || r.Action == "error" {
-			return false
-		}
-	}
-	return true
 }

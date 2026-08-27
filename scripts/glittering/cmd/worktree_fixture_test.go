@@ -161,3 +161,20 @@ func hasReason(reasons []string, substr string) bool {
 	}
 	return false
 }
+
+// hasBlocker reports whether any blocker carries the exact code — unlike
+// hasReason this is an exact match, because codes are a contract.
+func hasBlocker(blockers []Blocker, code BlockerCode) bool {
+	return blockerFor(blockers, code) != nil
+}
+
+// blockerFor returns the first blocker with the given code (nil when absent),
+// for asserting on paths and hints.
+func blockerFor(blockers []Blocker, code BlockerCode) *Blocker {
+	for i := range blockers {
+		if blockers[i].Code == code {
+			return &blockers[i]
+		}
+	}
+	return nil
+}
