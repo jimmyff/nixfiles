@@ -25,6 +25,9 @@ in {
   "rclone-koofr-pass.age".publicKeys = allUsers ++ allSystems;
   "rclone-crypt-pass.age".publicKeys = allUsers ++ allSystems;
   "rclone-crypt-salt.age".publicKeys = allUsers ++ allSystems;
+
+  "restic-password.age".publicKeys = allUsers ++ [systems.nixelbook systems.jimmyff-mbp14];
+
   # Minisign
   "minisign-rocketware-signing-key.age".publicKeys = allUsers ++ allSystems;
 }

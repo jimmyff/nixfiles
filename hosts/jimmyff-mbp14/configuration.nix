@@ -34,6 +34,7 @@
   nextdns.enable = true;
   nextdns.vaultFile = "nextdns_mbp14.age";
   rclone.enable = true;
+  restic.enable = true; # hourly vault snapshots → Koofr (see docs/restore.md)
   minisign.enable = true;
   picard.enable = true;
 
