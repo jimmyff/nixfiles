@@ -8,8 +8,11 @@
 }: let
   claude-cfg = config.claude-code_module;
   antigravity-cfg = config.antigravity-cli_module;
+  codex-cfg = config.codex_module;
+  pi-cfg = config.pi_module;
 
   aiSkills = "${config.home.homeDirectory}/nixfiles/dotfiles/ai/skills";
+  aiAgentsMd = "${config.home.homeDirectory}/nixfiles/dotfiles/ai/AGENTS.md";
 
   # The project-docs helper on PATH. It runs from the live dotfiles path rather than a store copy:
   # the skill is edited most sessions, and `$env.FILE_PWD` does not resolve symlinks, so the script
@@ -25,21 +28,34 @@
 in {
   options.claude-code_module.enable = lib.mkEnableOption "Claude Code";
   options.antigravity-cli_module.enable = lib.mkEnableOption "Antigravity CLI";
+  options.codex_module.enable = lib.mkEnableOption "OpenAI Codex CLI";
+  options.pi_module.enable = lib.mkEnableOption "Pi coding agent";
 
   config = lib.mkMerge [
+    # docket backs the project-docs skill. Every harness below links the shared
+    # skills directory, so docket is gated on any of them rather than on one.
+    (lib.mkIf (claude-cfg.enable || antigravity-cfg.enable || codex-cfg.enable || pi-cfg.enable) {
+      home.packages = [docket];
+    })
+
+    # ~/.agents/skills is the Agent Skills standard root. Codex and Pi both
+    # discover it and both follow symlinks through to the real directory, so one
+    # link serves both. Claude reads ~/.claude/skills instead (below).
+    (lib.mkIf (codex-cfg.enable || pi-cfg.enable) {
+      home.file.".agents/skills".source = config.lib.file.mkOutOfStoreSymlink aiSkills;
+    })
+
     (lib.mkIf claude-cfg.enable {
       programs.claude-code = {
         enable = true;
         package = pkgs-ai.claude-code;
       };
-      home.packages =
-        [docket]
-        ++ lib.optionals pkgs.stdenv.isLinux [
-          pkgs.bubblewrap
-          pkgs.socat
-        ];
+      home.packages = lib.optionals pkgs.stdenv.isLinux [
+        pkgs.bubblewrap
+        pkgs.socat
+      ];
       home.file.".claude/statusline.sh".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/nixfiles/dotfiles/claude/statusline.sh";
-      home.file.".claude/CLAUDE.md".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/nixfiles/dotfiles/ai/AGENTS.md";
+      home.file.".claude/CLAUDE.md".source = config.lib.file.mkOutOfStoreSymlink aiAgentsMd;
       home.file.".claude/skills".source = config.lib.file.mkOutOfStoreSymlink aiSkills;
 
       # settings.json and keybindings.json are the two files Claude Code writes back to
@@ -79,8 +95,33 @@ in {
       home.packages = [pkgs-ai.antigravity-cli];
       home.file.".gemini/settings.json".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/nixfiles/dotfiles/antigravity/settings.json";
       home.file.".gemini/mcp_config.json".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/nixfiles/dotfiles/antigravity/mcp_config.json";
-      home.file.".gemini/CLAUDE.md".source = config.lib.file.mkOutOfStoreSymlink "${config.home.homeDirectory}/nixfiles/dotfiles/ai/AGENTS.md";
+      home.file.".gemini/CLAUDE.md".source = config.lib.file.mkOutOfStoreSymlink aiAgentsMd;
       home.file.".gemini/skills".source = config.lib.file.mkOutOfStoreSymlink aiSkills;
+    })
+    (lib.mkIf codex-cfg.enable {
+      home.packages = [pkgs-ai.codex];
+      home.file.".codex/AGENTS.md".source = config.lib.file.mkOutOfStoreSymlink aiAgentsMd;
+
+      # Codex writes back to config.toml (model selection, [projects] trust levels,
+      # notice-dismissal flags), so it hits exactly the EROFS trap described above
+      # for Claude's settings.json — its atomic write resolves the symlink and drops
+      # a temp file beside the target. A direct symlink lands that temp file in
+      # dotfiles/codex/, which is writable.
+      home.activation.codexWritableConfig = lib.hm.dag.entryAfter ["writeBoundary"] ''
+        run mkdir -p "${config.home.homeDirectory}/.codex"
+        run ln -sfn "${config.home.homeDirectory}/nixfiles/dotfiles/codex/config.toml" "${config.home.homeDirectory}/.codex/config.toml"
+      '';
+    })
+    (lib.mkIf pi-cfg.enable {
+      home.packages = [pkgs-ai.pi-coding-agent];
+      home.file.".pi/agent/AGENTS.md".source = config.lib.file.mkOutOfStoreSymlink aiAgentsMd;
+
+      # Pi rewrites settings.json from its /settings command — same reasoning as
+      # the Codex and Claude config files above.
+      home.activation.piWritableSettings = lib.hm.dag.entryAfter ["writeBoundary"] ''
+        run mkdir -p "${config.home.homeDirectory}/.pi/agent"
+        run ln -sfn "${config.home.homeDirectory}/nixfiles/dotfiles/pi/settings.json" "${config.home.homeDirectory}/.pi/agent/settings.json"
+      '';
     })
   ];
 }

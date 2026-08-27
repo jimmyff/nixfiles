@@ -1,3 +1,14 @@
-# Pins effortLevel so Claude's in-app toggle doesn't dirty the repo (needs jq).
-# Filter defined in home/shared/services/git.nix.
+# Clean filters that keep agent-authored churn out of commits. Each agent rewrites
+# its own config file in place, so these normalise what gets staged without touching
+# the working tree. Filters are defined in home/shared/services/git.nix; the JSON
+# ones need jq on PATH.
+
+# Pins effortLevel so Claude's in-app toggle doesn't dirty the repo.
 dotfiles/claude/settings.json filter=claude-settings
+
+# Drops Pi's regenerated lastChangelogVersion and its analytics trackingId.
+dotfiles/pi/settings.json filter=pi-settings
+
+# Drops Codex's [notice] dismissals and [projects] trust levels, pins reasoning
+# effort. Line-based, so the file's comments survive.
+dotfiles/codex/config.toml filter=codex-config

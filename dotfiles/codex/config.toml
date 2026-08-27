@@ -1,0 +1,46 @@
+# Codex CLI configuration.
+#
+# Codex rewrites this file itself (model selection, project trust levels, notice
+# dismissals), so home-manager cannot own it — it is a direct symlink into this
+# repo, created by home/shared/apps/ai.nix. Expect Codex-authored churn here.
+
+model_reasoning_effort = "high"
+approval_policy = "on-request"
+sandbox_mode = "workspace-write"
+
+# Global instructions come from ~/.codex/AGENTS.md (symlinked to dotfiles/ai/AGENTS.md).
+# Per directory, fall back to CLAUDE.md wherever there is no AGENTS.md. Order is
+# AGENTS.override.md -> AGENTS.md -> these, walking git root down to cwd.
+project_doc_fallback_filenames = ["CLAUDE.md"]
+project_doc_max_bytes = 65536
+
+[sandbox_workspace_write]
+# UNVERIFIED, and it fails open. `true` is what makes the domain allowlist below
+# capable of filtering, but if the proxy does not engage this leaves the network
+# fully open rather than closed — and codex-rs/sandboxing/src/landlock.rs suggests
+# proxy-only networking is gated on enterprise-managed requirements, not on this
+# file. Confirm an unlisted domain is actually refused before trusting it; if it
+# is not, set this to false and rely on approval escalation instead.
+network_access = true
+
+# Absolute paths only — AbsolutePathBuf does not expand `~`. Both platforms are
+# listed because this file is shared across hosts. Not yet confirmed whether a
+# non-existent root is silently dropped on Linux (seatbelt treats them as inert
+# path predicates, so macOS is fine); smoke-test on nixelbook before relying on it.
+writable_roots = [
+  "/Users/jimmyff/.pub-cache",
+  "/Users/jimmyff/.cache/dart-pub",
+  "/Users/jimmyff/.local/share/flutter/bin/cache",
+  "/home/jimmyff/.pub-cache",
+  "/home/jimmyff/.cache/dart-pub",
+  "/home/jimmyff/.local/share/flutter/bin/cache",
+]
+
+[features.network_proxy]
+enabled = true
+mode = "limited"
+
+[features.network_proxy.domains]
+"pub.dev" = "allow"
+"storage.googleapis.com" = "allow"
+"cache.nixos.org" = "allow"

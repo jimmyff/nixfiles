@@ -154,6 +154,8 @@
               imports = [ ./home/linux ];
               desktop.enable = true;
               claude-code_module.enable = true;
+              codex_module.enable = true;
+              pi_module.enable = true;
             };
           }
         ];
@@ -178,6 +180,8 @@
             home-manager.users.${username} = { ... }: {
               imports = [ ./home/linux ];
               claude-code_module.enable = true;
+              codex_module.enable = true;
+              pi_module.enable = true;
             };
           }
         ];
@@ -202,6 +206,8 @@
             home-manager.users.${username} = { ... }: {
               imports = [ ./home/linux ];
               claude-code_module.enable = true;
+              codex_module.enable = true;
+              pi_module.enable = true;
             };
           }
         ];
@@ -250,6 +256,8 @@
           home-manager.users.${username} = { ... }: {
             imports = [ ./home/darwin ];
             claude-code_module.enable = true;
+            codex_module.enable = true;
+            pi_module.enable = true;
           };
         }
       ];
