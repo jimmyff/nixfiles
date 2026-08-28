@@ -14,6 +14,11 @@
   qemu-guest.enable = true;
   mdns.publish = true; # reachable as nasbox.local regardless of DHCP IP
 
+  # Cloud sync. The archive tier will push to Drive from here; this host is
+  # deliberately not granted the Koofr credentials, which are workstation-only.
+  rclone.enable = true;
+  rclone.koofr.enable = false;
+
   # Data disk mounts (Proxmox virtual disks)
   fileSystems."/data/media" = {
     device = "/dev/disk/by-label/data_media";

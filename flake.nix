@@ -140,6 +140,7 @@
           ./hosts/nixelbook/configuration.nix
 
           ./modules/core/linux
+          ./modules/services
           ./modules/workstation
           ./modules/workstation/desktop/linux
 
@@ -169,6 +170,7 @@
           ./hosts/nixbox/configuration.nix
 
           ./modules/core/linux
+          ./modules/services
 
           agenix.nixosModules.default
           inputs.home-manager.nixosModules.home-manager
@@ -195,6 +197,7 @@
           ./hosts/nasbox/configuration.nix
 
           ./modules/core/linux
+          ./modules/services
 
           agenix.nixosModules.default
           inputs.home-manager.nixosModules.home-manager
@@ -221,6 +224,7 @@
           ./hosts/gcp-beacon/configuration.nix
 
           ./modules/core/linux
+          ./modules/services
 
           agenix.nixosModules.default
           inputs.home-manager.nixosModules.home-manager
@@ -244,6 +248,7 @@
       modules = [
         ./hosts/jimmyff-mbp14/configuration.nix
         ./modules/core/darwin
+        ./modules/services
         ./modules/workstation
 
         agenix.darwinModules.default

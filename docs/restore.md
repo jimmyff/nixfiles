@@ -1,6 +1,6 @@
 # restore — vault backups
 
-`~/data/vault` is snapshotted hourly to an encrypted restic repository on Koofr. Config: `modules/workstation/apps/restic.nix`.
+`~/data/vault` is snapshotted hourly to an encrypted restic repository on Koofr. Config: `modules/services/restic.nix`.
 
 restic encrypts client-side, so the repository targets the plain `koofr-raw:` remote rather than the `koofr:` crypt layer — one password in the restore path, not two. That password is kept offline, deliberately out of version control.
 
