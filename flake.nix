@@ -211,6 +211,7 @@
               claude-code_module.enable = true;
               codex_module.enable = true;
               pi_module.enable = true;
+              herdr_module.enable = false; # headless; avoids a Rust build on the NAS
             };
           }
         ];
@@ -235,6 +236,7 @@
             home-manager.extraSpecialArgs = linuxArgs;
             home-manager.users.${username} = { ... }: {
               imports = [ ./home/linux ]; # desktop.enable + claude-code default off
+              herdr_module.enable = false; # 1 GB RAM — a Rust build here would OOM
             };
           }
         ];
