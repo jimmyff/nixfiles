@@ -25,6 +25,13 @@ in
   nix.settings.experimental-features = ["nix-command" "flakes"];
   nix.settings.allowed-users = [ "@wheel" ];
 
+  # crates.io 403s any User-Agent starting with "curl/", which is exactly what
+  # nixpkgs' fetchurl sends (`--user-agent "curl/$ver Nixpkgs/$ver"`), breaking
+  # every Rust crate fetch that isn't already cached. NIX_CURL_FLAGS is appended
+  # after that flag, and curl honours the last occurrence. Remove once fixed
+  # upstream.
+  nix.envVars.NIX_CURL_FLAGS = "--user-agent Nixpkgs";
+
   # Timezone
   time.timeZone = "Europe/London";
 
