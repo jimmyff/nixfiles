@@ -1,7 +1,7 @@
 { lib, config, pkgs }: {
   # Helper function to create Darwin Application Support symlinks to XDG config
   mkDarwinAppSupportSymlink = { appName, dagEntry ? "writeBoundary" }:
-    lib.mkIf pkgs.stdenv.isDarwin {
+    lib.mkIf pkgs.stdenv.hostPlatform.isDarwin {
       "setup${lib.strings.toUpper (lib.substring 0 1 appName)}${lib.substring 1 (-1) appName}Symlink" =
         lib.hm.dag.entryAfter [dagEntry] ''
           # Path to the default macOS ${appName} config location

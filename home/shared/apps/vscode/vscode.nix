@@ -16,7 +16,7 @@
 
         # Darwin-specific: Create symlink from default VSCode location to dotfiles config
         # This ensures VSCode uses our managed configuration
-        home.activation = lib.mkIf pkgs-dev-tools.stdenv.isDarwin {
+        home.activation = lib.mkIf pkgs-dev-tools.stdenv.hostPlatform.isDarwin {
             setupVSCodeSymlink = lib.hm.dag.entryAfter ["writeBoundary"] ''
                 # Path to the default macOS VSCode config location
                 VSCODE_DEFAULT_PATH="$HOME/Library/Application Support/Code/User"

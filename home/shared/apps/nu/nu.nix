@@ -85,7 +85,7 @@ in {
           }
           rm -fp $tmp
         }
-${lib.optionalString pkgs-apps.stdenv.isDarwin ''
+${lib.optionalString pkgs-apps.stdenv.hostPlatform.isDarwin ''
         # Homebrew upgrades are decoupled from darwin-rebuild (see homebrew.nix).
         # Run this deliberately to refresh the index and upgrade casks.
         def brew-up [] {

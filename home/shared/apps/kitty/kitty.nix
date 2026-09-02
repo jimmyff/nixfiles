@@ -74,7 +74,7 @@
         # macOS honours "titlebar-only"; on Wayland (COSMIC) it's ignored and the
         # server-side titlebar stays — "yes" removes all decorations there.
         hide_window_decorations =
-          if pkgs-apps.stdenv.isDarwin then "titlebar-only" else "yes";
+          if pkgs-apps.stdenv.hostPlatform.isDarwin then "titlebar-only" else "yes";
         cursor_trail = 3;
         cursor_trail_decay = "0.1 0.4";
         adjust_line_height = "125%";

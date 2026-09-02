@@ -13,12 +13,12 @@
   ...
 }: let
   homeDir =
-    if pkgs-stable.stdenv.isDarwin
+    if pkgs-stable.stdenv.hostPlatform.isDarwin
     then "/Users/${username}"
     else "/home/${username}";
 
   userGroup =
-    if pkgs-stable.stdenv.isDarwin
+    if pkgs-stable.stdenv.hostPlatform.isDarwin
     then "staff"
     else "users";
 

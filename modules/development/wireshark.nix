@@ -12,7 +12,7 @@ in {
   };
 
   config = lib.mkIf cfg.enable (
-    if pkgs-stable.stdenv.isDarwin
+    if pkgs-stable.stdenv.hostPlatform.isDarwin
     then {
       environment.systemPackages = [pkgs-stable.wireshark];
 

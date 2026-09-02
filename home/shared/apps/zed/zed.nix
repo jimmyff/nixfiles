@@ -12,7 +12,7 @@
     programs.zed-editor = {
       enable = true;
       package =
-        if pkgs-dev-tools.stdenv.isDarwin
+        if pkgs-dev-tools.stdenv.hostPlatform.isDarwin
         then pkgs-dev-tools.zed-editor
         else pkgs-dev-tools.zed-editor-fhs;
     };

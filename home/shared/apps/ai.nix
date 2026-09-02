@@ -50,7 +50,7 @@ in {
         enable = true;
         package = pkgs-ai.claude-code;
       };
-      home.packages = lib.optionals pkgs.stdenv.isLinux [
+      home.packages = lib.optionals pkgs.stdenv.hostPlatform.isLinux [
         pkgs.bubblewrap
         pkgs.socat
       ];

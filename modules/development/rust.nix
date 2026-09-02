@@ -10,19 +10,19 @@
 
   # Cross-platform home directory
   homeDir =
-    if pkgs-dev-rust.stdenv.isDarwin
+    if pkgs-dev-rust.stdenv.hostPlatform.isDarwin
     then "/Users/${username}"
     else "/home/${username}";
 
   # XDG paths
   xdgDataHome =
-    if pkgs-dev-rust.stdenv.isDarwin
+    if pkgs-dev-rust.stdenv.hostPlatform.isDarwin
     then "${homeDir}/.local/share"
     else "${homeDir}/.local/share";
 
   # Cross-platform user group
   userGroup =
-    if pkgs-dev-rust.stdenv.isDarwin
+    if pkgs-dev-rust.stdenv.hostPlatform.isDarwin
     then "staff"
     else "users";
 in {
@@ -54,7 +54,7 @@ in {
 
         echo "🦀 Activated Rust development environment"
       '';
-    } // lib.optionalAttrs (!pkgs-dev-rust.stdenv.isDarwin) {
+    } // lib.optionalAttrs (!pkgs-dev-rust.stdenv.hostPlatform.isDarwin) {
       deps = ["users" "groups"];
     };
   };

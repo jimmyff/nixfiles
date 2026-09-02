@@ -11,7 +11,7 @@ in {
   };
 
   config = lib.mkIf cfg.enable (
-    if pkgs-apps.stdenv.isDarwin
+    if pkgs-apps.stdenv.hostPlatform.isDarwin
     then {
       homebrew.casks = ["musicbrainz-picard"];
     }

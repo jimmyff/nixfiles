@@ -11,7 +11,7 @@
       in
         # Space auto-sort calls herdr's socket `workspace.move` via `nc`. macOS has a working
         # /usr/bin/nc; Linux may not (`-U`), so wrap with netcat-openbsd (broken on darwin) there.
-        if pkgs-apps.stdenv.isLinux then
+        if pkgs-apps.stdenv.hostPlatform.isLinux then
           pkgs-apps.symlinkJoin {
             name = "mux";
             paths = [ mux ];

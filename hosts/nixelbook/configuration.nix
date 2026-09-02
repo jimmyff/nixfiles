@@ -56,6 +56,7 @@
   rclone.enable = true;
   restic.enable = true; # hourly vault snapshots → Koofr (see docs/restore.md)
   restic.prune = false; # mbp14 owns retention; concurrent prunes contend for the repo lock
+  nasbox-mounts.enable = true; # /mnt/nasbox/{media,important}, automounted on access
   minisign.enable = true;
   insertcoin = {
     enable = true;

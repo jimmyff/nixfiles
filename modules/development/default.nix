@@ -11,13 +11,13 @@
 
   # Cross-platform home directory
   homeDir =
-    if pkgs-stable.stdenv.isDarwin
+    if pkgs-stable.stdenv.hostPlatform.isDarwin
     then "/Users/${username}"
     else "/home/${username}";
 
   # Cross-platform user group
   userGroup =
-    if pkgs-stable.stdenv.isDarwin
+    if pkgs-stable.stdenv.hostPlatform.isDarwin
     then "staff"
     else "users";
 
@@ -34,7 +34,7 @@
       ERRORS=""
 
       # Setup writable Flutter SDK for Android Studio (Darwin only)
-      ${lib.optionalString pkgs-stable.stdenv.isDarwin ''
+      ${lib.optionalString pkgs-stable.stdenv.hostPlatform.isDarwin ''
         WRITABLE_FLUTTER="${homeDir}/.local/share/flutter"
         if [ ! -d "$WRITABLE_FLUTTER" ]; then
           echo "📥 Cloning writable Flutter SDK for Android Studio compatibility..."

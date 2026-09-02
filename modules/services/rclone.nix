@@ -12,12 +12,12 @@
   cfg = config.rclone;
 
   homeDir =
-    if pkgs-apps.stdenv.isDarwin
+    if pkgs-apps.stdenv.hostPlatform.isDarwin
     then "/Users/${username}"
     else "/home/${username}";
 
   userGroup =
-    if pkgs-apps.stdenv.isDarwin
+    if pkgs-apps.stdenv.hostPlatform.isDarwin
     then "staff"
     else "users";
 
@@ -44,7 +44,7 @@ in {
 
   config = lib.mkIf cfg.enable {
     # Configure agenix identity paths for Darwin
-    age.identityPaths = lib.mkIf pkgs-apps.stdenv.isDarwin [
+    age.identityPaths = lib.mkIf pkgs-apps.stdenv.hostPlatform.isDarwin [
       "${homeDir}/.ssh/id_ed25519"
       "${homeDir}/.ssh/id_rsa"
     ];
@@ -97,7 +97,7 @@ in {
         mkdir -p "${homeDir}/Cloud"
         chown ${username}:${userGroup} "${homeDir}/Cloud"
       '';
-    } // lib.optionalAttrs (!pkgs-apps.stdenv.isDarwin) {
+    } // lib.optionalAttrs (!pkgs-apps.stdenv.hostPlatform.isDarwin) {
       deps = ["users" "groups"];
     });
 

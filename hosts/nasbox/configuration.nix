@@ -72,9 +72,13 @@
   # NFS file shares (Linux access)
   services.nfs.server = {
     enable = true;
+    # LAN is 192.168.86.0/24 — the previous 192.168.0.0/24 matched no client,
+    # so these exports were silently unreachable. root_squash (the default) is
+    # deliberate: this holds the archive tier's primary copy, and anything that
+    # corrupts it here propagates to Drive on the next push.
     exports = ''
-      /data/media     192.168.0.0/24(rw,sync,no_subtree_check,no_root_squash)
-      /data/important 192.168.0.0/24(rw,sync,no_subtree_check,no_root_squash)
+      /data/media     192.168.86.0/24(rw,sync,no_subtree_check)
+      /data/important 192.168.86.0/24(rw,sync,no_subtree_check)
     '';
   };
   networking.firewall.allowedTCPPorts = [2049];

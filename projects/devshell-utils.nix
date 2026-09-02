@@ -46,7 +46,7 @@ rec {
   darwinPathHook = pkgs: let
     wrappers = darwinWrappers pkgs;
   in
-    pkgs.lib.optionalString pkgs.stdenv.isDarwin ''
+    pkgs.lib.optionalString pkgs.stdenv.hostPlatform.isDarwin ''
       export PATH="${wrappers.base64}/bin:${wrappers.xcrun}/bin:$PATH"
       unset DEVELOPER_DIR SDKROOT
     '';

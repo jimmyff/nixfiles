@@ -11,19 +11,19 @@
 
   # Cross-platform home directory
   homeDir =
-    if pkgs-dev-android.stdenv.isDarwin
+    if pkgs-dev-android.stdenv.hostPlatform.isDarwin
     then "/Users/${username}"
     else "/home/${username}";
 
   # XDG paths
   xdgDataHome =
-    if pkgs-dev-android.stdenv.isDarwin
+    if pkgs-dev-android.stdenv.hostPlatform.isDarwin
     then "${homeDir}/.local/share"
     else "${homeDir}/.local/share";
 
   # Cross-platform user group
   userGroup =
-    if pkgs-dev-android.stdenv.isDarwin
+    if pkgs-dev-android.stdenv.hostPlatform.isDarwin
     then "staff"
     else "users";
 
@@ -145,7 +145,7 @@ in {
   config = lib.mkIf cfg.enable ({
     # Configure agenix identity paths for Darwin only
     # NixOS will use default system host keys via OpenSSH service
-    age.identityPaths = lib.mkIf pkgs-dev-android.stdenv.isDarwin [
+    age.identityPaths = lib.mkIf pkgs-dev-android.stdenv.hostPlatform.isDarwin [
       "${homeDir}/.ssh/id_ed25519"
       "${homeDir}/.ssh/id_rsa"
     ];
@@ -155,10 +155,10 @@ in {
       [
         androidSdk
       ]
-      ++ lib.optionals pkgs-dev-android.stdenv.isLinux [
+      ++ lib.optionals pkgs-dev-android.stdenv.hostPlatform.isLinux [
         android-studio
       ]
-      ++ lib.optionals pkgs-dev-android.stdenv.isDarwin [
+      ++ lib.optionals pkgs-dev-android.stdenv.hostPlatform.isDarwin [
         androidStudioLauncher
       ];
 
@@ -214,10 +214,10 @@ in {
 
         echo "🤖 Activated Android development environment"
       '';
-    } // lib.optionalAttrs (!pkgs-dev-android.stdenv.isDarwin) {
+    } // lib.optionalAttrs (!pkgs-dev-android.stdenv.hostPlatform.isDarwin) {
       deps = ["users" "groups"];
     };
-  } // lib.optionalAttrs pkgs-dev-android.stdenv.isDarwin {
+  } // lib.optionalAttrs pkgs-dev-android.stdenv.hostPlatform.isDarwin {
     # scrcpy via Homebrew on Darwin (no maintained Nix package for macOS aarch64)
     homebrew.brews = ["scrcpy"];
   });

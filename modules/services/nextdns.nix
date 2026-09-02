@@ -1,7 +1,7 @@
 { lib, config, pkgs-stable, username, nixfiles-vault, ... }:
 let
   cfg = config.nextdns;
-  isDarwin = pkgs-stable.stdenv.isDarwin;
+  isDarwin = pkgs-stable.stdenv.hostPlatform.isDarwin;
   homeDir =
     if isDarwin
     then "/Users/${username}"

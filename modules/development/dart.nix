@@ -31,7 +31,7 @@
 
   # Import platform-specific configuration
   platformConfig =
-    if pkgs-dev-flutter.stdenv.isDarwin
+    if pkgs-dev-flutter.stdenv.hostPlatform.isDarwin
     then import ./dart-darwin.nix {inherit pkgs-dev-flutter lib username;}
     else import ./dart-linux.nix {inherit pkgs-dev-flutter lib username;};
 in {

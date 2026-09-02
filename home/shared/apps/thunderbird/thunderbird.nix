@@ -14,7 +14,7 @@
       package = pkgs-apps.thunderbird-bin;
       # Set to null for darwin compatibility
       profileVersion =
-        if pkgs-apps.stdenv.isDarwin
+        if pkgs-apps.stdenv.hostPlatform.isDarwin
         then null
         else 2;
 
