@@ -11,7 +11,7 @@
   config = lib.mkIf config.atuin_module.enable {
     programs.atuin = {
       enable = true;
-      # TODO: re-enable once nushell supports `job spawn -t` (atuin 18.15.2 generates -t, nushell 0.112.2 only has -d)
+      # TODO: re-enable once nushell supports `job spawn -t` (atuin 18.10.0 generates -t, nushell 0.115.1 only has -d)
       enableNushellIntegration = false;
       settings = {
         # Disable network call that pings api.atuin.sh to check for new releases
@@ -21,8 +21,11 @@
       };
     };
 
-    # Custom nushell integration (patched for nushell 0.112.2 compatibility)
-    # Replaces HM's enableNushellIntegration which generates incompatible `job spawn -t`
+    # Custom nushell integration — vendored copy of `atuin init nu`, patched for nushell.
+    # Replaces HM's enableNushellIntegration. Two deviations from upstream:
+    #   1. `job spawn -t` -> `-d` (nushell has no -t/--tag flag)
+    #   2. second keybinding renamed atuin -> atuin_up (upstream names both `atuin`,
+    #      which nushell >=0.115 warns about: nu::shell::shared_keybindings_name)
     programs.nushell.extraConfig = lib.mkIf config.programs.nushell.enable ''
       # Atuin shell history integration
       # minimum supported version = 0.93.0
@@ -121,7 +124,7 @@
           $env.config | upsert keybindings (
               $env.config.keybindings
               | append {
-                  name: atuin
+                  name: atuin_up
                   modifier: none
                   keycode: up
                   mode: [emacs, vi_normal, vi_insert]
