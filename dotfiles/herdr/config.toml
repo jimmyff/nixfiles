@@ -18,8 +18,8 @@ name = "catppuccin"        # Catppuccin Mocha base
 accent = "#ffe27a"         # gold active-pane border + highlights
 
 [update]
-version_check  = false     # nix owns the version — don't phone home
-manifest_check = false
+version_check  = false     # nix owns the binary version — don't phone home
+manifest_check = true      # agent-detection rules, not the version — must track agent releases
 
 # herdr natively creates/opens git worktrees at <directory>/<repo>/<branch-slug> — that IS the
 # ~/projects layout (herdr's own default is ~/.herdr/worktrees, so ~ expansion is supported).

@@ -105,7 +105,16 @@ in {
     # created here rather than in rcloneSetup above because nix-darwin only
     # interpolates a fixed list of activation script names and silently drops
     # custom ones — so on darwin rcloneSetup never runs at all.
+    #
+    # The subshell is load-bearing: nix-darwin concatenates every activation
+    # snippet into one bash script, so a bare `umask 077` would leak into the
+    # steps that follow — including nix-darwin's own `ln -sfn` for
+    # /run/current-system, which would then be created mode 0700. macOS
+    # enforces permissions on readlink(), so that breaks realpath() for any
+    # non-root process resolving a /run/current-system path (e.g. ruby, and
+    # hence cocoapods).
     system.activationScripts.postActivation.text = lib.mkAfter ''
+      (
       umask 077
       mkdir -p "${rcloneConfigDir}"
 
@@ -146,6 +155,7 @@ in {
           echo "rclone: koofr disabled on this host; no remotes configured yet"
         ''
       }
+      )
     '';
   };
 }

@@ -59,10 +59,6 @@
       inputs.nixpkgs.follows = "pkgs-stable";
     };
 
-    # herdr — agent-aware terminal multiplexer (mux's default backend).
-    # Standalone Rust binary with a vendored zig VT lib; it pins its own toolchain, so no `follows`.
-    herdr.url = "github:ogulcancelik/herdr";
-
   };
 
   outputs = inputs @ {
@@ -89,6 +85,10 @@
         inherit system;
         config.allowUnfree = true;
       };
+      ai = import pkgs-ai {
+        inherit system;
+        config.allowUnfree = true;
+      };
     in {
       inherit inputs username nixfiles-vault self;
       pkgs-stable = import pkgs-stable {
@@ -101,17 +101,15 @@
       pkgs-dev-flutter = unstable;
       pkgs-dev-rust = unstable;
       pkgs-dev-android = unstable;
-      pkgs-ai = import pkgs-ai {
-        inherit system;
-        config.allowUnfree = true;
-      };
+      pkgs-ai = ai;
       # Pinned solely for kanata (darwin); see the nixpkgs-kanata input above.
       pkgs-kanata = import nixpkgs-kanata {
         inherit system;
         config.allowUnfree = true;
       };
-      # herdr multiplexer — prebuilt from its own flake (its own pinned toolchain).
-      pkgs-herdr = inputs.herdr.packages.${system}.default;
+      # herdr — agent-aware terminal multiplexer (mux's default backend). Cached in nixpkgs;
+      # its own flake builds Rust from source. Detection rules update at runtime, not here.
+      pkgs-herdr = ai.herdr;
     };
 
     # Define once per system
@@ -211,7 +209,7 @@
               claude-code_module.enable = true;
               codex_module.enable = true;
               pi_module.enable = true;
-              herdr_module.enable = false; # headless; avoids a Rust build on the NAS
+              herdr_module.enable = false; # headless — no interactive multiplexer needed
             };
           }
         ];
@@ -236,7 +234,7 @@
             home-manager.extraSpecialArgs = linuxArgs;
             home-manager.users.${username} = { ... }: {
               imports = [ ./home/linux ]; # desktop.enable + claude-code default off
-              herdr_module.enable = false; # 1 GB RAM — a Rust build here would OOM
+              herdr_module.enable = false; # headless push host — no interactive multiplexer needed
             };
           }
         ];
