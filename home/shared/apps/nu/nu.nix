@@ -33,7 +33,8 @@ in {
         // {
           # Force nushell to use home-manager managed config directory
           NU_CONFIG_PATH = "${config.xdg.configHome}/nushell";
-          # FLUTTER_ROOT, ANDROID_HOME, JAVA_HOME, PUB_CACHE should be inherited from dart.nix and android.nix modules
+          # FLUTTER_ROOT, ANDROID_HOME, JAVA_HOME, PUB_CACHE come from the dart/android
+          # system modules via PAM (environment.sessionVariables).
         };
 
       # The config.nu can be anywhere you want if you like to edit your Nushell with Nu

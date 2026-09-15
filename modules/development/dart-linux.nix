@@ -16,8 +16,8 @@ in {
     zulu17 # JDK 17 for Android development
   ];
 
-  # Linux-specific environment variables
-  environment.variables = {
+  # sessionVariables: set via PAM so nushell logins get them too.
+  environment.sessionVariables = {
     # Use Nix-provided Flutter root (read-only, works fine on Linux)
     FLUTTER_ROOT = "${pkgs-dev-flutter.flutter}";
 

@@ -43,6 +43,25 @@
       cmake-3-22-1
     ]);
 
+  isDarwin = pkgs-dev-android.stdenv.hostPlatform.isDarwin;
+  androidSdkRoot = "${androidSdk}/share/android-sdk";
+
+  androidEnv = {
+    ANDROID_HOME = androidSdkRoot;
+    ANDROID_SDK_ROOT = androidSdkRoot;
+    # Pin Android tools to ~/.android so they find the agenix-managed
+    # debug keystore. Without this, XDG_CONFIG_HOME sends modern AGP/Gradle
+    # to ~/.config/.android and they auto-generate a stock keystore there,
+    # ignoring the Rocketware one and producing a non-registered SHA1.
+    ANDROID_USER_HOME = "${homeDir}/.android";
+  };
+
+  androidToolDirs = [
+    "${androidSdkRoot}/platform-tools"
+    "${androidSdkRoot}/cmdline-tools/latest/bin"
+    "${androidSdkRoot}/build-tools/35.0.0"
+  ];
+
   # Android Studio launcher for Darwin (macOS)
   # Uses writable Flutter SDK to enable Gradle sync in Android Studio
   androidStudioLauncher = pkgs-dev-android.writeShellScriptBin "androidstudio" ''
@@ -168,23 +187,11 @@ in {
         androidStudioLauncher
       ];
 
-    # Android environment variables
-    environment.variables = {
-      ANDROID_HOME = "${androidSdk}/share/android-sdk";
-      ANDROID_SDK_ROOT = "${androidSdk}/share/android-sdk";
-      # Pin Android tools to ~/.android so they find the agenix-managed
-      # debug keystore. Without this, XDG_CONFIG_HOME sends modern AGP/Gradle
-      # to ~/.config/.android and they auto-generate a stock keystore there,
-      # ignoring the Rocketware one and producing a non-registered SHA1.
-      ANDROID_USER_HOME = "${homeDir}/.android";
-      # FLUTTER_ROOT and PUB_CACHE now handled by dart.nix module
-    };
-
-    # Add Android SDK tools to system PATH
-    environment.extraInit = ''
-      export PATH="${androidSdk}/share/android-sdk/platform-tools:$PATH"
-      export PATH="${androidSdk}/share/android-sdk/cmdline-tools/latest/bin:$PATH"
-      export PATH="${androidSdk}/share/android-sdk/build-tools/35.0.0:$PATH"
+    # Darwin: POSIX-shell env. Linux uses sessionVariables (below) so PAM sets
+    # them for every login shell, including nushell.
+    environment.variables = lib.mkIf isDarwin androidEnv;
+    environment.extraInit = lib.mkIf isDarwin ''
+      ${lib.concatMapStringsSep "\n" (dir: ''export PATH="${dir}:$PATH"'') androidToolDirs}
     '';
 
     # Debug keystore stays on agenix: it's needed by every `flutter run` and
@@ -219,10 +226,13 @@ in {
 
         echo "🤖 Activated Android development environment"
       '';
-    } // lib.optionalAttrs (!pkgs-dev-android.stdenv.hostPlatform.isDarwin) {
+    } // lib.optionalAttrs (!isDarwin) {
       deps = ["users" "groups"];
     };
-  } // lib.optionalAttrs pkgs-dev-android.stdenv.hostPlatform.isDarwin {
+  } // lib.optionalAttrs (!isDarwin) {
+    # PATH list is merged into the PAM PATH by NixOS.
+    environment.sessionVariables = androidEnv // { PATH = androidToolDirs; };
+  } // lib.optionalAttrs isDarwin {
     # scrcpy via Homebrew on Darwin (no maintained Nix package for macOS aarch64)
     homebrew.brews = ["scrcpy"];
   });
