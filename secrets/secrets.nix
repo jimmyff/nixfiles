@@ -5,7 +5,7 @@ let
   workstations = {
     nixelbook = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIB2ECjQ848rCrkkBZ5bKI8lg34fEB9WOwktTDzwhTxnI root@nixos";
     jimmyff-mbp14 = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAaZzF+34ChHrzl1Zr3crf60Snog3AQaHCrPNegyDitC jimmyff";
-    nixbox = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAMpe7t054td28L7exaDbKsy071XtIvhiQU1k044rdZf root@nasbox"; # remote dev VM;
+    nixbox = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIP1ilSU4wEgmRsNvhT7HIBW8PomnyiwkWP/NohschHea root@nixos"; # remote dev VM
   };
 
   # Infrastructure — headless, deliberately narrow grants.
@@ -41,7 +41,7 @@ in {
 
   # Android signing — kept explicit; widen to allWorkstations if nixbox should build releases
   "android-release-key.jks.age".publicKeys = allUsers ++ [workstations.nixelbook workstations.jimmyff-mbp14];
-  "android-debug-keystore.age".publicKeys = allUsers ++ [workstations.nixelbook workstations.jimmyff-mbp14];
+  "android-debug-keystore.age".publicKeys = allUsers ++ [workstations.nixelbook workstations.jimmyff-mbp14 workstations.nixbox];
   "android-googleplay-upload-key.jks.age".publicKeys = allUsers ++ [workstations.nixelbook workstations.jimmyff-mbp14];
 
   # rclone — Koofr remote. nasbox targets Drive, not Koofr, so it is excluded.

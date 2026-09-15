@@ -173,11 +173,11 @@
     "nixfiles-vault": {
       "flake": false,
       "locked": {
-        "lastModified": 1787836050,
-        "narHash": "sha256-aUp27rBiGFVV8E7F3K93mx9IGqGTBQub1GylzmwTGMY=",
+        "lastModified": 1789491432,
+        "narHash": "sha256-U+Ys2pK9yN/cC0nY9UvtYUBaJYO47rb+d2TREnjwraY=",
         "ref": "refs/heads/main",
-        "rev": "d434b00fafd3ab5f81a83d6eabbf1a6a87e6815d",
-        "revCount": 23,
+        "rev": "f2237fa60a51e9b95fe7318691ebe01e1ef924ba",
+        "revCount": 24,
         "type": "git",
         "url": "ssh://git@github.com/jimmyff/nixfiles_vault.git"
       },
