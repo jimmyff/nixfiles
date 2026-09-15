@@ -6,22 +6,23 @@
     
     # Both hosts set mdns.publish, so use .local rather than pinning a DHCP
     # lease — the hardcoded IPs had already drifted (nasbox moved to .250).
-    matchBlocks.nixbox = {
-      hostname = "nixbox.local";
-      user = "jimmyff";
+    # Keys are OpenSSH directive names (see ssh_config(5)).
+    settings.nixbox = {
+      HostName = "nixbox.local";
+      User = "jimmyff";
     };
 
-    matchBlocks.nasbox = {
-      hostname = "nasbox.local";
-      user = "jimmyff";
+    settings.nasbox = {
+      HostName = "nasbox.local";
+      User = "jimmyff";
     };
 
-    matchBlocks."*" = {
-      addKeysToAgent = "yes";
+    settings."*" = {
+      AddKeysToAgent = "yes";
       # Only restrict to named keys on systems that have local keys.
-      # Servers use agent forwarding, so identitiesOnly would block that.
-      identitiesOnly = pkgs.stdenv.hostPlatform.isDarwin;
-      identityFile = [
+      # Servers use agent forwarding, so IdentitiesOnly would block that.
+      IdentitiesOnly = pkgs.stdenv.hostPlatform.isDarwin;
+      IdentityFile = [
         "~/.ssh/id_ed25519"
         "~/.ssh/id_rsa"
       ];

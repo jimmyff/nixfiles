@@ -257,7 +257,7 @@ in {
       services.resolved = {
         enable = true;
         # Strict DoT: DNS fails if TLS fails (change to "opportunistic" for fallback)
-        dnsovertls = "true";
+        settings.Resolve.DNSOverTLS = true;
       };
 
       # Stop NetworkManager pushing DHCP-supplied DNS to resolved as per-link

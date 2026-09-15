@@ -43,7 +43,7 @@
 
 | Input | Branch | Purpose |
 |-------|--------|---------|
-| `pkgs-stable` | nixos-25.11 | Core system utilities |
+| `pkgs-stable` | nixos-26.05 | Core system utilities |
 | `pkgs-desktop` | nixos-unstable | Desktop environments |
 | `pkgs-apps` | nixos-unstable | User applications |
 | `pkgs-dev-tools` | nixos-unstable | Editors, LSPs, formatters |

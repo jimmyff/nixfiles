@@ -120,11 +120,10 @@ in
   # s2idle is forced via the `mem_sleep_default=s2idle` kernel param (see
   # boot.kernelParams above). systemd removed `SuspendMode=` from sleep.conf,
   # so only the kernel param has effect now.
-  systemd.sleep.extraConfig = ''
-    [Sleep]
-    HibernateMode=platform shutdown
-    SuspendState=freeze
-  '';
+  systemd.sleep.settings.Sleep = {
+    HibernateMode = "platform shutdown";
+    SuspendState = "freeze";
+  };
 
   # Disable problematic ACPI wakeup sources that can cause spurious wakeups/crashes
   # USB controller (XHCI) wakeup is particularly problematic on Chromebooks

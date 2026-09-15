@@ -159,12 +159,7 @@ in
           resumeCommand = "${niri} msg action power-on-monitors";
         }
       ];
-      events = [
-        {
-          event = "before-sleep";
-          command = "${pkgs.swaylock}/bin/swaylock -f";
-        }
-      ];
+      events.before-sleep = "${pkgs.swaylock}/bin/swaylock -f";
     };
 
     # Launcher (colors ported from the tofi theme)
@@ -232,6 +227,8 @@ in
       };
       gtk3.extraConfig.gtk-application-prefer-dark-theme = true;
       gtk4.extraConfig.gtk-application-prefer-dark-theme = true;
+      # Adwaita-dark ships no gtk-4.0 theme; GTK4 follows color-scheme instead.
+      gtk4.theme = null;
     };
     dconf.settings."org/gnome/desktop/interface" = {
       color-scheme = "prefer-dark";

@@ -25,21 +25,13 @@
     enable = true;
 
     onActivation = {
+      cleanup = "zap"; # remove anything not declared (module passes --zap --force-cleanup)
       # Decoupled from rebuilds: a switch only reconciles the declared cask set
       # (install missing, zap undeclared). Index refresh + version upgrades are a
       # deliberate, separate step — run `brew-up` (see nu.nix). Keeps rebuilds
       # fast and deterministic.
       autoUpdate = false; # no `brew update` during rebuild
       upgrade = false; # no `brew upgrade` during rebuild
-      # TEMP (nix-darwin-25.11): Homebrew 7 disabled `--cleanup`, which the 25.11
-      # module emits for cleanup = "zap". Pass the replacement flags ourselves
-      # (zap undeclared, no prompt). On nix-darwin 26.05+ revert to
-      # `cleanup = "zap";` and drop extraFlags — the module emits these itself.
-      cleanup = "none";
-      extraFlags = [
-        "--zap"
-        "--force-cleanup"
-      ];
     };
 
     casks = [

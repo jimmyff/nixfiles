@@ -3,7 +3,7 @@
 
   inputs = {
     # Specialized nixpkgs inputs for different update cadences
-    pkgs-stable.url = "github:nixos/nixpkgs/nixos-25.11";           # Core system, stable packages
+    pkgs-stable.url = "github:nixos/nixpkgs/nixos-26.05";           # Core system, stable packages
     pkgs-unstable.url = "github:nixos/nixpkgs/nixos-unstable";      # Desktop, apps, dev tools
     pkgs-ai.url = "github:nixos/nixpkgs/nixpkgs-unstable";          # AI tools, bleeding edge
 
@@ -13,8 +13,8 @@
     # To bump kanata: change this rev, then re-grant Input Monitoring once (see docs).
     nixpkgs-kanata.url = "github:nixos/nixpkgs/567a49d1913ce81ac6e9582e3553dd90a955875f";
 
-    # macOS (nix-darwin-25.11 matches pkgs-stable/home-manager)
-    nix-darwin.url = "github:nix-darwin/nix-darwin/nix-darwin-25.11";
+    # macOS (nix-darwin-26.05 matches pkgs-stable/home-manager)
+    nix-darwin.url = "github:nix-darwin/nix-darwin/nix-darwin-26.05";
     nix-darwin.inputs.nixpkgs.follows = "pkgs-stable";
 
 
@@ -26,9 +26,9 @@
     #   inputs.nixpkgs.follows = "pkgs-stable";
     # };
 
-    # home-manager (release-25.11 matches nixos-25.11)
+    # home-manager (release-26.05 matches nixos-26.05)
     home-manager = {
-      url = "github:nix-community/home-manager/release-25.11";
+      url = "github:nix-community/home-manager/release-26.05";
       inputs.nixpkgs.follows = "pkgs-stable";
     };
 
