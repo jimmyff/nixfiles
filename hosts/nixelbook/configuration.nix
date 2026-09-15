@@ -32,7 +32,7 @@
   # Thin client (small disk): app projects and Flutter live on nixbox, reached over the tailnet.
   development = {
     enable = true;
-    projects = ["jimmyff-website"];
+    projects = ["jimmyff-website" "shed" "warcrest"];
   };
 
   # Platform-specific development tools
@@ -73,6 +73,11 @@
   # resume reliable on this hardware. If black-screen-on-resume returns,
   # switch to "lock" — system stays running so opening the lid is trivial.
   services.logind.settings.Login.HandleLidSwitch = "suspend";
+
+  # Small disk
+  nix.gc.options = lib.mkForce "--delete-older-than 7d";
+  services.journald.extraConfig = "SystemMaxUse=200M";
+  services.speechd.enable = false;
 
   # Pixelbook keyboard issue:
   # `sudo libinput debug-events` failed to show chromos key press

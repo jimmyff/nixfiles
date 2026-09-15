@@ -130,7 +130,7 @@
       "Bash(git clean:*)"
     ]
   },
-  "model": "fable",
+  "model": "opus",
   "enabledMcpjsonServers": [
     "dart",
     "chrome-devtools"
@@ -234,7 +234,7 @@
       "effortLevel": "high"
     },
     "claude-opus-5": {
-      "effortLevel": "xhigh"
+      "effortLevel": "high"
     }
   },
   "tui": "fullscreen",
