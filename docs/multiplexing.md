@@ -69,6 +69,7 @@ with **`herdr server reload-config`** — the persistent server does not auto-re
 | `mux worktree add <name>` | `glitter worktree add <name>`, then open it (**inside** herdr) |
 | `mux worktree all` | open every worktree of the current project (**inside** herdr) |
 | `mux sort` | reorder spaces alphabetically (current session inside herdr; the hub outside) |
+| `mux --remote <host> [project]` | attach `<host>`'s hub over the tailnet; with a project, pin it there first |
 
 - **Hub-scoped:** `pin`/`unpin`/`mux <project>` target the hub's socket directly, so they behave
   identically from inside the hub, another session, or outside herdr. The hub must be running —
@@ -115,5 +116,6 @@ worktrees, same `<project>/<worktree>` labels), resettable with `mux --project [
 - **aerospace / niri** — live-reload on save / `aerospace reload-config`.
 - **kanata home-row mods** — edit `dotfiles/kanata/kanata-layers.kbd`, then `darwin-rebuild switch`
   (macOS) / `nixos-rebuild switch` (Linux); the daemon restarts automatically.
-- **Headless** — herdr is desktop-only (gated on S7 verification); headless boxes have no
-  multiplexer (SSH tunnels only).
+- **Remote** — `mux --remote nixbox` uses herdr's remote mode: TUI and chords stay local, only
+  the server is remote, and the transport reconnects itself. Curate that hub on the host
+  (`ssh nixbox mux pin <project>`). See `docs/remote-dev.md`.

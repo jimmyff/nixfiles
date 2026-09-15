@@ -16,6 +16,7 @@
   networking.hostName = "nixbox";
   qemu-guest.enable = true;
   mdns.publish = true; # reachable as nixbox.local regardless of DHCP IP
+  tailscale.enable = true; # docs/remote-dev.md
 
   # Local DNS cache: parallel Nix builds burst thousands of lookups, which the
   # router's forwarder drops under load. Upstream stays DHCP-provided.
@@ -28,7 +29,8 @@
   };
 
   # Platform-specific development tools
-  android.enable = false;
+  android.enable = true;
+  android.studio = false; # headless: SDK + adb only
   dart.enable = true;
   rust.enable = false;
   mitmproxy.enable = false;

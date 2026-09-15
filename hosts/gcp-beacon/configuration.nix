@@ -13,6 +13,8 @@
 
   zramSwap.enable = true; # 1 GB RAM, no GCE swap — absorbs deploy-time memory spikes
 
+  tailscale.enable = true; # docs/remote-dev.md
+
   services.ntfy-sh = {
     enable = true;
     settings = {

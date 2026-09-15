@@ -15,6 +15,7 @@
 #   mux worktree open <name>   open (or focus) a worktree as a workspace (run inside herdr)
 #   mux worktree add <name>    delegate to `glitter worktree add`, then open it (inside herdr)
 #   mux worktree all           open every worktree of the current project (inside herdr)
+#   mux --remote <host> [project]  attach <host>'s hub (herdr remote mode); pins <project> there first
 #
 # pin/unpin and `mux <project>` are HUB-SCOPED: they target the hub's socket directly (via
 # herdr-ctl), so they behave identically from inside the hub, another session, or outside herdr —
@@ -419,9 +420,18 @@ def open-worktree-ws [path: string, label: string, --focus] {
 
 # --- entry points -----------------------------------------------------------
 
-def main [name?: string, --project, --reset] {
+def main [name?: string, --project, --reset, --remote: string] {
     if (which herdr | is-empty) {
         error make { msg: "mux: herdr not found on PATH — mux requires herdr." }
+    }
+    if ($remote != null) {
+        # TUI stays local, server is remote. Curation runs on the host, against its own hub socket.
+        if $project or $reset {
+            error make { msg: "mux --remote: hub attach only. Run `mux --project`/`--reset` on the host itself." }
+        }
+        if ($name != null) { ^ssh $remote mux pin $name }
+        ^herdr --remote $remote --session $HUB
+        return
     }
     if $project {
         # dedicated per-project session, all worktrees (cwd if no name)

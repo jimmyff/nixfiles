@@ -12,7 +12,9 @@
     ./mdns.nix
   ];
 
- 
+  # TERM=xterm-kitty over ssh; headless hosts need the terminfo for TUIs to render.
+  environment.systemPackages = [ pkgs.kitty.terminfo ];
+
   # Optimise store
   nix.optimise.automatic = true;
 

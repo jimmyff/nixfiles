@@ -4,17 +4,25 @@
     enable = true;
     enableDefaultConfig = false;
     
-    # Both hosts set mdns.publish, so use .local rather than pinning a DHCP
-    # lease — the hardcoded IPs had already drifted (nasbox moved to .250).
+    # Hosts are reached over the tailnet: `tailscale nc` resolves the MagicDNS name
+    # itself, so this works on any network regardless of the local resolver.
     # Keys are OpenSSH directive names (see ssh_config(5)).
     settings.nixbox = {
-      HostName = "nixbox.local";
+      HostName = "nixbox";
       User = "jimmyff";
+      ProxyCommand = "tailscale nc %h %p";
     };
 
     settings.nasbox = {
-      HostName = "nasbox.local";
+      HostName = "nasbox";
       User = "jimmyff";
+      ProxyCommand = "tailscale nc %h %p";
+    };
+
+    settings.gcp-beacon = {
+      HostName = "gcp-beacon";
+      User = "jimmyff";
+      ProxyCommand = "tailscale nc %h %p";
     };
 
     settings."*" = {

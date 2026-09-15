@@ -7,5 +7,6 @@
     ./nextdns.nix
     ./rclone.nix
     ./restic.nix
+    ./tailscale.nix
   ];
 }

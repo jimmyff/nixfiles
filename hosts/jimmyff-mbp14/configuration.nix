@@ -33,6 +33,7 @@
   playwright.enable = true;
   nextdns.enable = true;
   nextdns.vaultFile = "nextdns_mbp14.age";
+  tailscale.enable = true; # docs/remote-dev.md
   rclone.enable = true;
   restic.enable = true; # hourly vault snapshots → Koofr (see docs/restore.md)
   minisign.enable = true;

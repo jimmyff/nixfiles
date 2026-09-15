@@ -13,6 +13,7 @@
   networking.hostName = "nasbox";
   qemu-guest.enable = true;
   mdns.publish = true; # reachable as nasbox.local regardless of DHCP IP
+  tailscale.enable = true; # docs/remote-dev.md
 
   # Cloud sync. The archive tier will push to Drive from here; this host is
   # deliberately not granted the Koofr credentials, which are workstation-only.

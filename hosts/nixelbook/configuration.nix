@@ -27,16 +27,17 @@
 
   networking.hostName = "nixelbook";
   mdns.resolve = true; # reach nasbox.local; don't advertise self while roaming
+  tailscale.enable = true; # docs/remote-dev.md
 
-  # Development environment configuration
+  # Thin client (small disk): app projects and Flutter live on nixbox, reached over the tailnet.
   development = {
     enable = true;
-    projects = ["jimmyff-website" "osdn" "cache" "kosmos" "warcrest" "shed"];
+    projects = ["jimmyff-website"];
   };
 
   # Platform-specific development tools
   android.enable = false;
-  dart.enable = true;
+  dart.enable = false;
   rust.enable = false;
   mitmproxy.enable = false;
   wireshark.enable = false;
@@ -56,7 +57,7 @@
   rclone.enable = true;
   restic.enable = true; # hourly vault snapshots → Koofr (see docs/restore.md)
   restic.prune = false; # mbp14 owns retention; concurrent prunes contend for the repo lock
-  nasbox-mounts.enable = true; # /mnt/nasbox/{media,important}, automounted on access
+  nasbox-mounts.enable = false; # LAN-only automount stalls callers while roaming
   minisign.enable = true;
   insertcoin = {
     enable = true;

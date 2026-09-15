@@ -140,6 +140,12 @@ EOF
 in {
   options.android = {
     enable = lib.mkEnableOption "Android development environment";
+
+    studio = lib.mkOption {
+      type = lib.types.bool;
+      default = true;
+      description = "Install Android Studio (or its macOS launcher). Off for headless build hosts.";
+    };
   };
 
   config = lib.mkIf cfg.enable ({
@@ -155,10 +161,10 @@ in {
       [
         androidSdk
       ]
-      ++ lib.optionals pkgs-dev-android.stdenv.hostPlatform.isLinux [
+      ++ lib.optionals (cfg.studio && pkgs-dev-android.stdenv.hostPlatform.isLinux) [
         android-studio
       ]
-      ++ lib.optionals pkgs-dev-android.stdenv.hostPlatform.isDarwin [
+      ++ lib.optionals (cfg.studio && pkgs-dev-android.stdenv.hostPlatform.isDarwin) [
         androidStudioLauncher
       ];
 
@@ -178,8 +184,7 @@ in {
     environment.extraInit = ''
       export PATH="${androidSdk}/share/android-sdk/platform-tools:$PATH"
       export PATH="${androidSdk}/share/android-sdk/cmdline-tools/latest/bin:$PATH"
-      export PATH="${androidSdk}/share/android-sdk/build-tools/34.0.0:$PATH"
-      export PATH="${androidSdk}/share/android-sdk/build-tools/33.0.2:$PATH"
+      export PATH="${androidSdk}/share/android-sdk/build-tools/35.0.0:$PATH"
     '';
 
     # Debug keystore stays on agenix: it's needed by every `flutter run` and
