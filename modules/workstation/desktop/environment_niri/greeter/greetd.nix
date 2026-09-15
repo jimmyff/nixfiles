@@ -11,6 +11,8 @@
         --time \
         --asterisks \
         --user-menu \
+        --user-menu-min-uid 1000 \
+        --user-menu-max-uid 29999 \
         --cmd "uwsm start -F -- /run/current-system/sw/bin/niri" \
         --theme "text=white;border=darkgray;action=gray;time=lightcyan;greet=lightcyan;prompt=lightyellow;input=lightmagenta"
     '';
