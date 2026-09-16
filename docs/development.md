@@ -16,9 +16,9 @@ to activate the devshell.
 
 **Platform-specific approach** to handle iOS writability requirements:
 
-- **macOS**: Writable Flutter at `~/.local/share/flutter` (iOS/Xcode compatible)
+- **macOS**: Writable Flutter at `~/.local/share/flutter` (iOS/Xcode compatible). `dev-setup` clones it and pins it to the nixpkgs release; the `flutter`/`dart` wrappers warn on every call if it drifts.
 - **Linux**: Read-only Flutter from Nix store (works for Android/Linux)
-- **Version sync**: Both platforms use same version from `pkgs-dev-flutter` flake input
+- **Version sync**: Both platforms use the same version from `pkgs-dev-flutter`. Re-run `dev-setup` on macOS after a nixpkgs bump.
 - **Project flakes**: Platform-agnostic (system config handles platform differences)
 
 **Configuration**: `modules/development/dart.nix` imports `dart-darwin.nix` or `dart-linux.nix` based on platform.
