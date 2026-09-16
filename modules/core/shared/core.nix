@@ -40,6 +40,7 @@ in
     pkgs-stable.age                      # Encryption library
     agenix                               # Age nix secrets tool (wrapped, see above)
     pkgs-stable.bat                      # Cat clone with syntax highlighting
+    pkgs-stable.jq                       # JSON processor; the git clean filters need it
     pkgs-stable.minisign                  # Release signing tool
     pkgs-stable.vim                      # Vi/Vim text editor
 
