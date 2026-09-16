@@ -14,7 +14,7 @@ A host enables with `syncthing.enable = true` and receives every folder in the r
 Device IDs exist only after the first start, so a new host takes two rebuilds:
 
 1. `syncthing.enable = true`, rebuild. The build warns that the host has no ID; that's expected.
-2. On the host: `syncthing cli show system | jq -r .myID`. Add `<hostname> = "<id>";` to the vault file and push it; `nix flake update nixfiles-vault`.
+2. On the host, read `myID` from `syncthing cli show system` (nushell: `| from json | get myID`). Add `<hostname> = "<id>";` to the vault file and push it; `nix flake update nixfiles-vault`.
 3. Rebuild every host that shares a folder with it. Peers find each other by LAN broadcast; global discovery and relays are off.
 
 The web UI binds to localhost. Headless hosts: `ssh -L 8384:127.0.0.1:8384 <host>`, then `http://127.0.0.1:8384`.

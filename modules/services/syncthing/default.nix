@@ -79,10 +79,12 @@ in {
           "syncthing: ${host} has no device ID yet — add it to the vault after the first start (docs/sync.md)"
         ++ map (h: "syncthing: peer ${h} has no device ID and is skipped") missing;
 
-      environment.variables.SYNC_ROOT = cfg.syncRoot;
     }
 
     (lib.optionalAttrs (!isDarwin) {
+      # PAM-set so nushell logins see it too (same pattern as modules/development).
+      environment.sessionVariables.SYNC_ROOT = cfg.syncRoot;
+
       services.syncthing = {
         enable = true;
         package = pkgs-stable.syncthing;
@@ -100,6 +102,8 @@ in {
     })
 
     (lib.optionalAttrs isDarwin {
+      environment.variables.SYNC_ROOT = cfg.syncRoot;
+
       home-manager.users.${username}.services.syncthing = {
         enable = true;
         package = pkgs-stable.syncthing;

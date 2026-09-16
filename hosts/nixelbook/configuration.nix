@@ -28,6 +28,7 @@
   networking.hostName = "nixelbook";
   mdns.resolve = true; # reach nasbox.local; don't advertise self while roaming
   tailscale.enable = true; # docs/remote-dev.md
+  syncthing.enable = true; # docs/sync.md — no folders yet; enrolled for later backup folders
 
   # Thin client (small disk): app projects and Flutter live on nixbox, reached over the tailnet.
   development = {
