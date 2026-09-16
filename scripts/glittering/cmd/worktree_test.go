@@ -660,3 +660,50 @@ func containsEntry(entries []WorktreePruneEntry, name string) bool {
 	}
 	return false
 }
+
+// Regression: a fresh clone's local main sits at origin's tip; add must land at the pin.
+func TestWorktreeAddSubmoduleLandsAtPin(t *testing.T) {
+	proj := setupWorktreeProject(t)
+	tip := pushScratchSubCommit(t, proj, "sub", "later.txt", "later") // origin/main moves past the pin
+
+	code, out := runWorktree(t, "add", "feat", "--no-get", "--path", proj)
+	if code != ExitOK {
+		t.Fatalf("add exit %d: %s", code, out)
+	}
+	feat := filepath.Join(proj, "feat")
+	sub := filepath.Join(feat, "sub")
+	pin := refOf(t, feat, "HEAD:sub")
+	if pin == tip {
+		t.Fatal("fixture: pin should be behind origin/main")
+	}
+	if got := headOf(t, sub); got != pin {
+		t.Errorf("submodule HEAD: expected pin %s, got %s", pin, got)
+	}
+	if b := strings.TrimSpace(gitOut(t, sub, "branch", "--show-current")); b != "main" {
+		t.Errorf("submodule should be on main, got %q", b)
+	}
+	if up := strings.TrimSpace(gitOut(t, sub, "rev-parse", "--abbrev-ref", "main@{upstream}")); up != "origin/main" {
+		t.Errorf("submodule main should track origin/main, got %q", up)
+	}
+	if !isClean(t, feat) {
+		t.Errorf("new worktree must have no modified gitlink:\n%s", gitOut(t, feat, "status", "--porcelain"))
+	}
+}
+
+// A bare-clone worktree branch has no tracking; the fallback must read as unconfigured.
+func TestCollectGitData_UpstreamConfigured(t *testing.T) {
+	proj := setupWorktreeProject(t)
+	main := filepath.Join(proj, "main")
+	data, err := collectGitData(main, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if data.Repo.Upstream != "origin/main" || data.Repo.UpstreamConfigured {
+		t.Errorf("expected fallback origin/main, unconfigured; got %+v", data.Repo)
+	}
+	gitRun(t, main, "branch", "--set-upstream-to=origin/main", "main")
+	data, _ = collectGitData(main, false)
+	if !data.Repo.UpstreamConfigured {
+		t.Errorf("expected configured upstream after set-upstream-to; got %+v", data.Repo)
+	}
+}

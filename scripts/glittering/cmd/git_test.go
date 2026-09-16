@@ -1,6 +1,9 @@
 package cmd
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 func TestParseLeftRight_Valid(t *testing.T) {
 	left, right := parseLeftRight("3\t5")
@@ -60,5 +63,20 @@ func TestCountUntracked(t *testing.T) {
 				t.Errorf("countUntracked(%q) = %d, want %d", tc.input, got, tc.expected)
 			}
 		})
+	}
+}
+
+func TestNestedDrift(t *testing.T) {
+	entries := parseSubmoduleStatus(strings.Join([]string{
+		" aaa pkg/one (heads/main)",
+		"+bbb pkg/two (heads/main)", // top-level drift is reported elsewhere
+		"+ccc pkg/one/vendor/lib (v1)",
+		"-ddd pkg/one/vendor/lib/inner",
+		" eee pkg/two/vendor/ok (v2)",
+	}, "\n"))
+	got := nestedDrift(entries, []string{"pkg/one", "pkg/two"})
+	if len(got) != 1 || len(got["pkg/one"]) != 2 ||
+		got["pkg/one"][0] != "pkg/one/vendor/lib" || got["pkg/one"][1] != "pkg/one/vendor/lib/inner" {
+		t.Errorf("nestedDrift = %+v", got)
 	}
 }

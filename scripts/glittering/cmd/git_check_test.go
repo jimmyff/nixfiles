@@ -9,20 +9,22 @@ func TestAnalyzeGitIssues_CleanRepo(t *testing.T) {
 	data := GitOutput{
 		Path: "/workspace",
 		Repo: GitRepoStatus{
-			Path:         ".",
-			Branch:       "main",
-			Ref:          "abc123",
-			Upstream:     "origin/main",
-			HeadOnRemote: true,
+			Path:               ".",
+			Branch:             "main",
+			Ref:                "abc123",
+			Upstream:           "origin/main",
+			UpstreamConfigured: true,
+			HeadOnRemote:       true,
 		},
 		Submodules: []GitSubmoduleStatus{
 			{
-				Path:         "pkg/foo",
-				Branch:       "main",
-				Ref:          "def456",
-				ParentRef:    "def456",
-				Upstream:     "origin/main",
-				HeadOnRemote: true,
+				Path:               "pkg/foo",
+				Branch:             "main",
+				Ref:                "def456",
+				ParentRef:          "def456",
+				Upstream:           "origin/main",
+				UpstreamConfigured: true,
+				HeadOnRemote:       true,
 			},
 		},
 	}
@@ -36,11 +38,12 @@ func TestAnalyzeGitIssues_DirtyParent(t *testing.T) {
 	data := GitOutput{
 		Path: "/workspace",
 		Repo: GitRepoStatus{
-			Path:         ".",
-			Branch:       "main",
-			Dirty:        true,
-			Upstream:     "origin/main",
-			HeadOnRemote: true,
+			Path:               ".",
+			Branch:             "main",
+			Dirty:              true,
+			Upstream:           "origin/main",
+			UpstreamConfigured: true,
+			HeadOnRemote:       true,
 		},
 		Submodules: []GitSubmoduleStatus{},
 	}
@@ -63,20 +66,22 @@ func TestAnalyzeGitIssues_UnpushedSubmodule(t *testing.T) {
 	data := GitOutput{
 		Path: "/workspace",
 		Repo: GitRepoStatus{
-			Path:         ".",
-			Branch:       "main",
-			Upstream:     "origin/main",
-			HeadOnRemote: true,
+			Path:               ".",
+			Branch:             "main",
+			Upstream:           "origin/main",
+			UpstreamConfigured: true,
+			HeadOnRemote:       true,
 		},
 		Submodules: []GitSubmoduleStatus{
 			{
-				Path:         "pkg/bar",
-				Branch:       "main",
-				Ref:          "abc123",
-				ParentRef:    "abc123",
-				AheadRemote:  3,
-				HeadOnRemote: false,
-				Upstream:     "origin/main",
+				Path:               "pkg/bar",
+				Branch:             "main",
+				Ref:                "abc123",
+				ParentRef:          "abc123",
+				AheadRemote:        3,
+				HeadOnRemote:       false,
+				Upstream:           "origin/main",
+				UpstreamConfigured: true,
 			},
 		},
 	}
@@ -102,20 +107,22 @@ func TestAnalyzeGitIssues_SubmoduleAheadOfParent(t *testing.T) {
 	data := GitOutput{
 		Path: "/workspace",
 		Repo: GitRepoStatus{
-			Path:         ".",
-			Branch:       "main",
-			Upstream:     "origin/main",
-			HeadOnRemote: true,
+			Path:               ".",
+			Branch:             "main",
+			Upstream:           "origin/main",
+			UpstreamConfigured: true,
+			HeadOnRemote:       true,
 		},
 		Submodules: []GitSubmoduleStatus{
 			{
-				Path:         "pkg/baz",
-				Branch:       "main",
-				Ref:          "new123",
-				ParentRef:    "old456",
-				AheadParent:  2,
-				Upstream:     "origin/main",
-				HeadOnRemote: true,
+				Path:               "pkg/baz",
+				Branch:             "main",
+				Ref:                "new123",
+				ParentRef:          "old456",
+				AheadParent:        2,
+				Upstream:           "origin/main",
+				UpstreamConfigured: true,
+				HeadOnRemote:       true,
 			},
 		},
 	}
@@ -138,13 +145,14 @@ func TestAnalyzeGitIssues_MultipleIssues(t *testing.T) {
 	data := GitOutput{
 		Path: "/workspace",
 		Repo: GitRepoStatus{
-			Path:         ".",
-			Branch:       "main",
-			Dirty:        true,
-			AheadRemote:  1,
-			HeadOnRemote: false,
-			Upstream:     "origin/main",
-			StashCount:   2,
+			Path:               ".",
+			Branch:             "main",
+			Dirty:              true,
+			AheadRemote:        1,
+			HeadOnRemote:       false,
+			Upstream:           "origin/main",
+			UpstreamConfigured: true,
+			StashCount:         2,
 		},
 		Submodules: []GitSubmoduleStatus{
 			{
@@ -152,14 +160,15 @@ func TestAnalyzeGitIssues_MultipleIssues(t *testing.T) {
 				Detached: true,
 			},
 			{
-				Path:         "pkg/b",
-				Branch:       "main",
-				Ref:          "abc",
-				ParentRef:    "def",
-				AheadParent:  1,
-				BehindParent: 1,
-				Upstream:     "origin/main",
-				HeadOnRemote: true,
+				Path:               "pkg/b",
+				Branch:             "main",
+				Ref:                "abc",
+				ParentRef:          "def",
+				AheadParent:        1,
+				BehindParent:       1,
+				Upstream:           "origin/main",
+				UpstreamConfigured: true,
+				HeadOnRemote:       true,
 			},
 		},
 	}
@@ -196,20 +205,22 @@ func TestAnalyzeGitIssues_SubmoduleBehindParent(t *testing.T) {
 	data := GitOutput{
 		Path: "/workspace",
 		Repo: GitRepoStatus{
-			Path:         ".",
-			Branch:       "main",
-			Upstream:     "origin/main",
-			HeadOnRemote: true,
+			Path:               ".",
+			Branch:             "main",
+			Upstream:           "origin/main",
+			UpstreamConfigured: true,
+			HeadOnRemote:       true,
 		},
 		Submodules: []GitSubmoduleStatus{
 			{
-				Path:         "pkg/stale",
-				Branch:       "main",
-				Ref:          "old456",
-				ParentRef:    "new123",
-				BehindParent: 2,
-				Upstream:     "origin/main",
-				HeadOnRemote: true,
+				Path:               "pkg/stale",
+				Branch:             "main",
+				Ref:                "old456",
+				ParentRef:          "new123",
+				BehindParent:       2,
+				Upstream:           "origin/main",
+				UpstreamConfigured: true,
+				HeadOnRemote:       true,
 			},
 		},
 	}
@@ -291,5 +302,53 @@ func TestBuildCheckOutput_InfosOnly(t *testing.T) {
 	out := buildCheckOutput("/workspace", nil, issues)
 	if !out.Clean {
 		t.Error("expected clean=true with only info issues")
+	}
+}
+
+func TestAnalyzeGitIssues_NoUpstreamFallback(t *testing.T) {
+	data := GitOutput{
+		Path: "/workspace",
+		Repo: GitRepoStatus{Path: ".", Branch: "main", Upstream: "origin/main", HeadOnRemote: true},
+		Submodules: []GitSubmoduleStatus{
+			{Path: "pkg/foo", Branch: "main", Ref: "d", ParentRef: "d", Upstream: "origin/main", HeadOnRemote: true},
+			{Path: "pkg/bar", Branch: "main", Ref: "e", ParentRef: "e", HeadOnRemote: true},
+		},
+	}
+	issues := analyzeGitIssues(data)
+	if len(issues) != 3 {
+		t.Fatalf("expected 3 no_upstream issues, got %d: %+v", len(issues), issues)
+	}
+	want := map[string]string{
+		".":       "git -C /workspace branch --set-upstream-to=origin/main main",
+		"pkg/foo": "git -C /workspace/pkg/foo branch --set-upstream-to=origin/main main",
+		"pkg/bar": "",
+	}
+	for _, issue := range issues {
+		if issue.Type != "no_upstream" || issue.Severity != "warn" {
+			t.Errorf("unexpected issue %+v", issue)
+		}
+		if issue.Fix != want[issue.Repo] {
+			t.Errorf("%s fix = %q, want %q", issue.Repo, issue.Fix, want[issue.Repo])
+		}
+	}
+}
+
+func TestAnalyzeGitIssues_NestedDrift(t *testing.T) {
+	data := GitOutput{
+		Path: "/workspace",
+		Repo: GitRepoStatus{Path: ".", Branch: "main", Upstream: "origin/main", UpstreamConfigured: true, HeadOnRemote: true},
+		Submodules: []GitSubmoduleStatus{{
+			Path: "pkg/foo", Branch: "main", Ref: "d", ParentRef: "d",
+			Upstream: "origin/main", UpstreamConfigured: true, HeadOnRemote: true,
+			NestedDrift: []string{"pkg/foo/third_party/lib"},
+		}},
+	}
+	issues := analyzeGitIssues(data)
+	if len(issues) != 1 || issues[0].Type != "nested_drift" || issues[0].Severity != "warn" {
+		t.Fatalf("expected one nested_drift warn, got %+v", issues)
+	}
+	if !strings.Contains(issues[0].Message, "pkg/foo/third_party/lib") ||
+		issues[0].Fix != "git -C /workspace/pkg/foo submodule update --init --recursive" {
+		t.Errorf("issue = %+v", issues[0])
 	}
 }

@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	flag "github.com/spf13/pflag"
 	"os"
@@ -181,37 +182,53 @@ func syncSubmodule(root, subPath string, fetch bool) GitSyncSubmodule {
 	return res
 }
 
-// reattachToPin attaches a detached submodule to the branch its pin lives on,
-// landing exactly on the pin. Refuses when that branch is ahead of the pin —
-// attaching would move the worktree past the pinned state.
-func reattachToPin(root, subDir string, res GitSyncSubmodule, pin string) GitSyncSubmodule {
+var errPinNotOnBranch = errors.New("pin is not on any origin branch")
+
+// unpushedError: moving the branch to the pin would orphan local commits.
+type unpushedError struct {
+	Branch   string
+	Unpushed int
+}
+
+func (e *unpushedError) Error() string {
+	return fmt.Sprintf("branch %s has %d unpushed commit(s)", e.Branch, e.Unpushed)
+}
+
+// attachAtPin checks out the pin's branch (preferring main) at the pin, tracking
+// origin. A fresh clone's branch sits at origin's tip, so a plain checkout would overshoot.
+func attachAtPin(subDir, pin string) (string, error) {
 	branch := branchForCommit(subDir, pin)
 	if branch == "" {
-		res.Error = fmt.Sprintf("pinned ref %s is not on any origin branch — cannot reattach without detaching later; push the submodule branch first", shortRef(pin))
-		return res
+		return "", errPinNotOnBranch
 	}
-
-	// Local branch tip if it exists, else the remote tip checkout would create it from.
-	tip, err := runGit(subDir, "rev-parse", "--verify", "refs/heads/"+branch)
-	if err != nil {
-		tip, err = runGit(subDir, "rev-parse", "--verify", "refs/remotes/origin/"+branch)
-		if err != nil {
-			res.Error = fmt.Sprintf("cannot resolve tip of %s: %v", branch, err)
-			return res
+	if local, err := runGit(subDir, "rev-parse", "--verify", "refs/heads/"+branch); err == nil {
+		if _, localOnly := getRevListCount(subDir, "refs/remotes/origin/"+branch, local); localOnly > 0 {
+			return "", &unpushedError{Branch: branch, Unpushed: localOnly}
 		}
 	}
-	if _, tipOnly := getRevListCount(subDir, pin, tip); tipOnly > 0 {
-		res.Error = fmt.Sprintf("branch %s is %d commit(s) ahead of pinned ref %s — reattaching would move past the pin; run: glittering git pull --path %s (sync to tip), then bump the pin with: glittering git commit --parent-only", branch, tipOnly, shortRef(pin), root)
-		return res
-	}
-
-	// tip is at or behind the pin, so setting the branch to the pin is a
-	// fast-forward (or a no-op) — no commits are lost.
 	if _, err := runGit(subDir, "checkout", "-B", branch, pin); err != nil {
-		res.Error = fmt.Sprintf("checkout -B %s %s failed: %v", branch, shortRef(pin), err)
-		return res
+		return "", fmt.Errorf("checkout -B %s %s failed: %v", branch, shortRef(pin), err)
 	}
 	ensureUpstream(subDir, branch)
+	return branch, nil
+}
+
+// reattachToPin attaches a detached submodule to its branch at the pin, refusing
+// if that would orphan unpushed commits.
+func reattachToPin(root, subDir string, res GitSyncSubmodule, pin string) GitSyncSubmodule {
+	branch, err := attachAtPin(subDir, pin)
+	var unpushed *unpushedError
+	switch {
+	case errors.Is(err, errPinNotOnBranch):
+		res.Error = fmt.Sprintf("pinned ref %s is not on any origin branch — cannot reattach without detaching later; push the submodule branch first", shortRef(pin))
+		return res
+	case errors.As(err, &unpushed):
+		res.Error = fmt.Sprintf("branch %s has %d unpushed commit(s) ahead of pinned ref %s — reattaching would orphan them; check out %s in the submodule, then push it or bump the pin with: glittering git commit --parent-only --path %s %s", unpushed.Branch, unpushed.Unpushed, shortRef(pin), unpushed.Branch, root, res.Path)
+		return res
+	case err != nil:
+		res.Error = err.Error()
+		return res
+	}
 
 	res.Action = "reattached"
 	res.Branch = branch

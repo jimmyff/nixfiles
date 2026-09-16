@@ -7,7 +7,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
 	"sort"
 	"strings"
 	"sync"
@@ -182,26 +181,8 @@ func runTestPackage(root, session, pkgPath, runner string, timeout int) (TestPac
 	tmpFile.Close()
 	defer os.Remove(jsonPath)
 
-	// Build command
-	var cmdName string
-	var cmdArgs []string
-
-	// Check for test.sh on Linux (NixOS SQLite workaround)
-	testSh := filepath.Join(pkgDir, "test.sh")
-	useTestSh := false
-	if runtime.GOOS == "linux" {
-		if _, err := os.Stat(testSh); err == nil {
-			useTestSh = true
-		}
-	}
-
-	if useTestSh {
-		cmdName = "bash"
-		cmdArgs = []string{testSh, "--file-reporter", "json:" + jsonPath}
-	} else {
-		cmdName = runner
-		cmdArgs = []string{"test", "--file-reporter", "json:" + jsonPath}
-	}
+	cmdName := runner
+	cmdArgs := []string{"test", "--file-reporter", "json:" + jsonPath}
 
 	start := time.Now()
 

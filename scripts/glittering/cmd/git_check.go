@@ -4,7 +4,25 @@ import (
 	"encoding/json"
 	"fmt"
 	flag "github.com/spf13/pflag"
+	"path/filepath"
+	"strings"
 )
+
+// noUpstreamIssue: a fix is only offered when a fallback ref exists.
+func noUpstreamIssue(repo, root, branch, fallback string) CheckIssue {
+	issue := CheckIssue{Repo: repo, Severity: "warn", Type: "no_upstream"}
+	name, dir := "parent repo", root
+	if repo != "." {
+		name, dir = repo, filepath.Join(root, repo)
+	}
+	if fallback == "" {
+		issue.Message = fmt.Sprintf("%s has no upstream tracking branch", name)
+		return issue
+	}
+	issue.Message = fmt.Sprintf("%s has no upstream configured (using %s)", name, fallback)
+	issue.Fix = fmt.Sprintf("git -C %s branch --set-upstream-to=%s %s", dir, fallback, branch)
+	return issue
+}
 
 // analyzeGitIssues examines collected git data and returns a list of issues.
 // Pure function — no I/O.
@@ -48,13 +66,8 @@ func analyzeGitIssues(data GitOutput) []CheckIssue {
 			Message:  fmt.Sprintf("parent repo has %d stash entry(ies)", data.Repo.StashCount),
 		})
 	}
-	if data.Repo.Upstream == "" && !data.Repo.Detached && data.Repo.Branch != "" {
-		issues = append(issues, CheckIssue{
-			Repo:     ".",
-			Severity: "warn",
-			Type:     "no_upstream",
-			Message:  "parent repo has no upstream tracking branch",
-		})
+	if !data.Repo.UpstreamConfigured && !data.Repo.Detached && data.Repo.Branch != "" {
+		issues = append(issues, noUpstreamIssue(".", root, data.Repo.Branch, data.Repo.Upstream))
 	}
 
 	// Submodule checks
@@ -96,12 +109,16 @@ func analyzeGitIssues(data GitOutput) []CheckIssue {
 				Message:  fmt.Sprintf("%s has %d stash entry(ies)", sub.Path, sub.StashCount),
 			})
 		}
-		if sub.Upstream == "" && !sub.Detached && sub.Branch != "" {
+		if !sub.UpstreamConfigured && !sub.Detached && sub.Branch != "" {
+			issues = append(issues, noUpstreamIssue(sub.Path, root, sub.Branch, sub.Upstream))
+		}
+		if len(sub.NestedDrift) > 0 {
 			issues = append(issues, CheckIssue{
 				Repo:     sub.Path,
 				Severity: "warn",
-				Type:     "no_upstream",
-				Message:  fmt.Sprintf("%s has no upstream tracking branch", sub.Path),
+				Type:     "nested_drift",
+				Message:  fmt.Sprintf("%s has nested submodule(s) off their pin: %s", sub.Path, strings.Join(sub.NestedDrift, ", ")),
+				Fix:      fmt.Sprintf("git -C %s submodule update --init --recursive", filepath.Join(root, sub.Path)),
 			})
 		}
 		if sub.AheadParent > 0 {

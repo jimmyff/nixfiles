@@ -176,8 +176,7 @@ func runWorktreeAdd(proj projectInfo, target, name, from string) (branch string,
 // runs concurrently — distinct module dirs + working trees make it lock-safe
 // (verified). Without parallelism, a large superproject (e.g. 18 submodules)
 // takes minutes; the network ref-negotiation per submodule is the bottleneck.
-// After each update the submodule is reattached to the branch containing its
-// pinned commit (preferring main), so the worktree isn't left on detached HEAD.
+// Each submodule is then attached to its branch at the pin; nested ones stay detached.
 func seedSubmodules(proj projectInfo, metas []worktreeMeta, target string, noShare bool) (expected, inited int, warnings []string) {
 	subs, err := getSubmodulePaths(target)
 	if err != nil || len(subs) == 0 {
@@ -220,39 +219,33 @@ func seedSubmodules(proj projectInfo, metas []worktreeMeta, target string, noSha
 			if _, e := runGitNet(target, cmd...); e != nil {
 				ch <- res{warn: fmt.Sprintf("submodule %s: %v", sub, e)}
 			} else {
-				reattachSubmoduleBranch(filepath.Join(target, sub))
-				ch <- res{ok: true}
+				ch <- res{ok: true, warn: reattachSubmoduleBranch(filepath.Join(target, sub), sub)}
 			}
 		}(sub)
 	}
 	for range subs {
-		if r := <-ch; r.ok {
+		r := <-ch
+		if r.ok {
 			inited++
-		} else {
+		}
+		if r.warn != "" {
 			warnings = append(warnings, r.warn)
 		}
 	}
 	return expected, inited, warnings
 }
 
-// reattachSubmoduleBranch moves a freshly-updated submodule off detached HEAD
-// onto the branch that contains its pinned commit (preferring main), staying AT
-// the pin. Mirrors the dev-setup reattach: never origin/HEAD (a stale 'master'
-// can have drifted from the pin). Best-effort — leaves detached on any failure.
-func reattachSubmoduleBranch(subDir string) {
+// reattachSubmoduleBranch attaches a fresh submodule to its branch at the pin;
+// returns a warning if it had to stay detached.
+func reattachSubmoduleBranch(subDir, sub string) string {
 	pin, err := runGit(subDir, "rev-parse", "HEAD")
 	if err != nil || pin == "" {
-		return
+		return fmt.Sprintf("submodule %s: left detached: cannot read HEAD", sub)
 	}
-	branch := branchForCommit(subDir, pin)
-	if branch == "" {
-		return // no branch contains the pin; leave detached
+	if _, err := attachAtPin(subDir, pin); err != nil {
+		return fmt.Sprintf("submodule %s: left detached: %v", sub, err)
 	}
-	if _, e := runGit(subDir, "show-ref", "--verify", "--quiet", "refs/heads/"+branch); e == nil {
-		runGit(subDir, "checkout", "-q", branch)
-	} else if _, e := runGit(subDir, "checkout", "-q", "-b", branch, pin); e == nil {
-		runGit(subDir, "branch", "-q", "--set-upstream-to=origin/"+branch, branch)
-	}
+	return ""
 }
 
 // runWorktreePubGet runs pub get across the new worktree's packages, capturing

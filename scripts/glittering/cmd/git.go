@@ -119,6 +119,13 @@ func collectGitData(root string, fetch bool) (GitOutput, error) {
 		submodules[ir.index] = ir.result
 	}
 
+	if nested, err := runGit(root, "submodule", "status", "--recursive"); err == nil {
+		drift := nestedDrift(parseSubmoduleStatus(nested), submodulePaths)
+		for i := range submodules {
+			submodules[i].NestedDrift = drift[submodules[i].Path]
+		}
+	}
+
 	out := GitOutput{
 		Path:       root,
 		Timestamp:  nowTimestamp(),
@@ -219,6 +226,7 @@ func getRepoStatus(root string) (GitRepoStatus, error) {
 
 	us := getUpstreamStatus(root, status.Branch)
 	status.Upstream = us.Upstream
+	status.UpstreamConfigured = us.Configured
 	status.AheadRemote = us.Ahead
 	status.BehindRemote = us.Behind
 	status.HeadOnRemote = isHeadOnRemote(root)
@@ -334,6 +342,7 @@ func getSubmoduleStatus(root, subPath string) GitSubmoduleStatus {
 	// Ahead/behind remote (uses real upstream, not hardcoded origin/<branch>)
 	us := getUpstreamStatus(subDir, sub.Branch)
 	sub.Upstream = us.Upstream
+	sub.UpstreamConfigured = us.Configured
 	sub.AheadRemote = us.Ahead
 	sub.BehindRemote = us.Behind
 
@@ -423,36 +432,56 @@ func getSubmoduleBranch(root, subPath string) string {
 }
 
 type upstreamInfo struct {
-	Upstream string
-	Ahead    int
-	Behind   int
+	Upstream   string
+	Configured bool // false when Upstream is the origin/<branch> fallback
+	Ahead      int
+	Behind     int
 }
 
-// getUpstreamStatus resolves the actual upstream tracking branch and computes ahead/behind.
-// Falls back to origin/<branch> if no upstream is configured. Returns empty Upstream
-// when no remote ref can be found (signals "no tracking").
+// getUpstreamStatus reports the configured upstream, or the origin/<branch>
+// fallback with Configured=false; empty Upstream means no remote ref at all.
 func getUpstreamStatus(dir, branch string) upstreamInfo {
 	if branch == "" {
 		return upstreamInfo{}
 	}
 
-	// Try real upstream: git rev-parse --abbrev-ref <branch>@{upstream}
+	info := upstreamInfo{Configured: true}
 	upstream, err := runGit(dir, "rev-parse", "--abbrev-ref", branch+"@{upstream}")
 	if err != nil {
-		// Fall back to origin/<branch> if it exists
-		fallback := fmt.Sprintf("origin/%s", branch)
-		if _, verifyErr := runGit(dir, "rev-parse", "--verify", fallback); verifyErr != nil {
+		info.Configured = false
+		upstream = fmt.Sprintf("origin/%s", branch)
+		if _, verifyErr := runGit(dir, "rev-parse", "--verify", upstream); verifyErr != nil {
 			return upstreamInfo{} // no tracking ref at all
 		}
-		upstream = fallback
 	}
+	info.Upstream = upstream
 
 	output, err := runGit(dir, "rev-list", "--left-right", "--count", fmt.Sprintf("HEAD...%s", upstream))
 	if err != nil {
-		return upstreamInfo{Upstream: upstream}
+		return info
 	}
-	ahead, behind := parseLeftRight(output)
-	return upstreamInfo{Upstream: upstream, Ahead: ahead, Behind: behind}
+	info.Ahead, info.Behind = parseLeftRight(output)
+	return info
+}
+
+// nestedDrift maps top-level submodules to nested ones off their pin, missing, or conflicted.
+func nestedDrift(entries []submoduleStatusEntry, topLevel []string) map[string][]string {
+	drift := map[string][]string{}
+	for _, e := range entries {
+		if e.Flag == ' ' {
+			continue
+		}
+		parent := ""
+		for _, top := range topLevel {
+			if strings.HasPrefix(e.Path, top+"/") && len(top) > len(parent) {
+				parent = top
+			}
+		}
+		if parent != "" {
+			drift[parent] = append(drift[parent], e.Path)
+		}
+	}
+	return drift
 }
 
 // isHeadOnRemote returns true if HEAD exists on any remote branch.

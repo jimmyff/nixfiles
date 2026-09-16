@@ -138,6 +138,23 @@
     fi
     nu -c 'print $"(ansi dark_gray_dimmed)────────────────────────────────────────(ansi reset)"'
 
+    # Attach a fresh submodule clone (cwd) to its branch at the pin, not origin's tip.
+    attach_at_pin() {
+      local pin cands branch
+      pin=$(git rev-parse HEAD)
+      cands=$(git for-each-ref --contains "$pin" --format='%(refname:strip=3)' 'refs/remotes/origin/*' | grep -vx HEAD)
+      branch=$(echo "$cands" | grep -xm1 main || echo "$cands" | head -1)
+      if [ -z "$branch" ]; then
+        echo "  ⚠️  $1: no origin branch contains the pinned commit; left detached"
+      elif git show-ref --verify --quiet "refs/heads/$branch" && [ "$(git rev-list --count "origin/$branch..$branch")" -gt 0 ]; then
+        echo "  ⚠️  $1: local $branch has unpushed commits; left detached at the pin"
+      else
+        git checkout -q -B "$branch" "$pin" || { echo "  ❌ $1: checkout $branch at pin failed"; return 1; }
+        git rev-parse --abbrev-ref "$branch@{upstream}" >/dev/null 2>&1 \
+          || git branch -q --set-upstream-to="origin/$branch" "$branch"
+      fi
+    }
+
     cd ${homeDir}/projects || { echo "Error: ~/projects directory not found"; exit 1; }
 
     # Per project: bare-clone the repo and check out a flat default-branch worktree.
@@ -191,32 +208,18 @@
                 && echo "  🔗 $DEFAULT now tracks origin/$DEFAULT"
             fi
 
-            # Submodules: init (checks out the superproject's pinned refs), then
-            # reattach each to the branch that CONTAINS its pinned commit, preferring
-            # main — NOT origin/HEAD (the remote default), which can be a stale
-            # 'master' that has drifted from the pin and won't build. Land on the
-            # branch AT the pinned commit so the checkout always matches what the
-            # superproject records (reproducible/buildable); glitter then shows the
-            # branch as behind when origin has moved past the pin.
+            # Init missing submodules only; nested ones stay detached at their pin.
             if [ -f .gitmodules ]; then
-              echo "🔄 Initializing submodules..."
-              if git submodule update --init --recursive; then
-                git submodule foreach --recursive '
-                  pin=$(git rev-parse HEAD)
-                  cands=$(git for-each-ref --contains "$pin" --format="%(refname)" "refs/remotes/origin/*" 2>/dev/null | grep -v "/origin/HEAD$" | sed "s@^refs/remotes/origin/@@")
-                  branch=$(echo "$cands" | grep -xm1 main || echo "$cands" | head -1)
-                  if [ -z "$branch" ]; then
-                    echo "  ⚠️  $sm_path: no branch contains the pinned commit; left detached"
-                  elif git show-ref --verify --quiet "refs/heads/$branch"; then
-                    git checkout -q "$branch"
-                    [ "$(git rev-parse HEAD)" = "$pin" ] || echo "  ℹ️  $sm_path: local $branch differs from pinned ref (left as-is)"
-                  else
-                    git checkout -q -b "$branch" "$pin"
-                    git branch -q --set-upstream-to="origin/$branch" "$branch" 2>/dev/null || true
-                  fi
-                '
-              else
-                echo "❌ Failed to initialize submodules"
+              missing=$(git submodule status | sed -n 's/^-[0-9a-f]* \([^ ]*\).*/\1/p')
+              if [ -n "$missing" ]; then
+                echo "🔄 Initializing submodules..."
+                if echo "$missing" | xargs git submodule update --init --recursive --; then
+                  echo "$missing" | while read -r sm; do
+                    (cd "$sm" && attach_at_pin "$sm")
+                  done
+                else
+                  echo "❌ Failed to initialize submodules"
+                fi
               fi
             fi
 

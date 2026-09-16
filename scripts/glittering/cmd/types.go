@@ -198,37 +198,41 @@ type PubOutput struct {
 // --- Git command ---
 
 type GitRepoStatus struct {
-	Path           string   `json:"path"`
-	Branch         string   `json:"branch"`
-	Ref            string   `json:"ref"`
-	Dirty          bool     `json:"dirty"`
-	Detached       bool     `json:"detached"`
-	AheadRemote    int      `json:"ahead_remote"`
-	BehindRemote   int      `json:"behind_remote"`
-	Upstream       string   `json:"upstream"`
-	HeadOnRemote   bool     `json:"head_on_remote"`
-	StashCount     int      `json:"stash_count"`
-	UntrackedCount int      `json:"untracked_count"`
-	UntrackedFiles []string `json:"untracked_files,omitempty"`
-	LatestCommit   string   `json:"latest_commit"`
+	Path               string   `json:"path"`
+	Branch             string   `json:"branch"`
+	Ref                string   `json:"ref"`
+	Dirty              bool     `json:"dirty"`
+	Detached           bool     `json:"detached"`
+	AheadRemote        int      `json:"ahead_remote"`
+	BehindRemote       int      `json:"behind_remote"`
+	Upstream           string   `json:"upstream"`
+	UpstreamConfigured bool     `json:"upstream_configured"`
+	HeadOnRemote       bool     `json:"head_on_remote"`
+	StashCount         int      `json:"stash_count"`
+	UntrackedCount     int      `json:"untracked_count"`
+	UntrackedFiles     []string `json:"untracked_files,omitempty"`
+	LatestCommit       string   `json:"latest_commit"`
 }
 
 type GitSubmoduleStatus struct {
-	Path           string `json:"path"`
-	Branch         string `json:"branch"`
-	Ref            string `json:"ref"`
-	ParentRef      string `json:"parent_ref"`
-	Dirty          bool   `json:"dirty"`
-	Detached       bool   `json:"detached"`
-	AheadRemote    int    `json:"ahead_remote"`
-	BehindRemote   int    `json:"behind_remote"`
-	AheadParent    int    `json:"ahead_parent"`
-	BehindParent   int    `json:"behind_parent"`
-	Upstream       string `json:"upstream"`
-	HeadOnRemote   bool   `json:"head_on_remote"`
-	StashCount     int    `json:"stash_count"`
-	UntrackedCount int    `json:"untracked_count"`
-	LatestCommit   string `json:"latest_commit"`
+	Path               string `json:"path"`
+	Branch             string `json:"branch"`
+	Ref                string `json:"ref"`
+	ParentRef          string `json:"parent_ref"`
+	Dirty              bool   `json:"dirty"`
+	Detached           bool   `json:"detached"`
+	AheadRemote        int    `json:"ahead_remote"`
+	BehindRemote       int    `json:"behind_remote"`
+	AheadParent        int    `json:"ahead_parent"`
+	BehindParent       int    `json:"behind_parent"`
+	Upstream           string `json:"upstream"`
+	UpstreamConfigured bool   `json:"upstream_configured"`
+	HeadOnRemote       bool   `json:"head_on_remote"`
+	StashCount         int    `json:"stash_count"`
+	UntrackedCount     int    `json:"untracked_count"`
+	LatestCommit       string `json:"latest_commit"`
+	// Nested submodules off their pin, missing, or conflicted (paths from root).
+	NestedDrift []string `json:"nested_drift,omitempty"`
 }
 
 type GitOutput struct {

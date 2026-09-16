@@ -188,8 +188,7 @@ func TestGitSync_DetachedBehindPin_Reattaches(t *testing.T) {
 	}
 }
 
-// Reattaching must never overshoot: when the local branch is ahead of the pin,
-// checking it out would move the worktree past the pinned state — refuse.
+// Unpushed commits on the local branch: refuse rather than orphan them.
 func TestGitSync_DetachedBranchAheadOfPin_Refuses(t *testing.T) {
 	parent := setupWorkspaceWithRemote(t)
 	sub := filepath.Join(parent, "sub")
@@ -218,5 +217,33 @@ func TestGitSync_ParentFilterRejected(t *testing.T) {
 	got := GitSync([]string{"--filter", ".", "--path", t.TempDir()})
 	if got != ExitUsage {
 		t.Errorf("--filter .: expected ExitUsage (%d), got %d", ExitUsage, got)
+	}
+}
+
+// Local branch at origin's tip with nothing unpushed: land on the pin, not the tip.
+func TestGitSync_DetachedPublishedAhead_ReattachesAtPin(t *testing.T) {
+	parent := setupWorkspaceWithRemote(t)
+	sub := filepath.Join(parent, "sub")
+	pin := subHead(t, parent)
+	if err := os.WriteFile(filepath.Join(sub, "b.txt"), []byte("b\n"), 0644); err != nil {
+		t.Fatalf("write: %v", err)
+	}
+	gitRun(t, sub, "add", "b.txt")
+	gitRun(t, sub, "commit", "--quiet", "-m", "B")
+	gitRun(t, sub, "push", "--quiet", "origin", "main") // main == origin/main, ahead of pin
+	gitRun(t, sub, "checkout", "--quiet", "--detach", pin)
+
+	code, out := runSync(t, "--path", parent, "--skip-fetch")
+	if code != ExitOK {
+		t.Fatalf("expected ExitOK, got %d: %+v", code, out)
+	}
+	if res := out.Submodules[0]; res.Action != "reattached" || res.Branch != "main" {
+		t.Errorf("expected reattached to main, got %+v", res)
+	}
+	if got := subHead(t, parent); got != pin {
+		t.Errorf("worktree HEAD: expected pin %s, got %s", pin, got)
+	}
+	if got := subBranch(t, parent); got != "main" {
+		t.Errorf("expected on main, got %q", got)
 	}
 }
