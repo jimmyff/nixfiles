@@ -17,6 +17,7 @@
   qemu-guest.enable = true;
   mdns.publish = true; # reachable as nixbox.local regardless of DHCP IP
   tailscale.enable = true; # docs/remote-dev.md
+  syncthing.enable = true; # docs/sync.md
 
   # Local DNS cache: parallel Nix builds burst thousands of lookups, which the
   # router's forwarder drops under load. Upstream stays DHCP-provided.

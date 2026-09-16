@@ -15,6 +15,10 @@
   mdns.publish = true; # reachable as nasbox.local regardless of DHCP IP
   tailscale.enable = true; # docs/remote-dev.md
 
+  # Always-on sync peer; folders sit on the archive tier so the Drive push covers them.
+  syncthing.enable = true;
+  syncthing.syncRoot = "/data/important/sync";
+
   # Cloud sync. The archive tier will push to Drive from here; this host is
   # deliberately not granted the Koofr credentials, which are workstation-only.
   rclone.enable = true;

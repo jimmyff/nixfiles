@@ -33,7 +33,8 @@
 - **Granular updates:** Specialized nixpkgs inputs for independent update control per layer
 - **Project environments:** Declarative dev setup with direnv
 - **Encrypted secrets:** agenix (boot-time) + sops (on-demand) sharing one age identity, both backed by a private vault flake input
-- **Remote dev:** Tailscale tailnet + herdr remote mode — thin laptop, hub and builds on nixbox ([docs/remote-dev.md](docs/remote-dev.md))
+- **Remote dev:** Tailscale + herdr remote lets thin clients attach to dev servers ([docs/remote-dev.md](docs/remote-dev.md))
+- **Folder sync:** Syncthing peers declared from one registry, `$SYNC_ROOT/<folder>` on every host ([docs/sync.md](docs/sync.md))
 - **Workspace management:** [`✨glittering`](scripts/glittering/) - Multi-package orchestrator: git, test, analyze across Dart/Flutter workspaces
 - **Project docs:** [`docket`](dotfiles/ai/skills/project-docs/) - Workstream trackers: status, audits, and generated session kickoff prompts
 - **Package freshness:** [`flake-freshness.nu`](scripts/flake-freshness/) - monitor nix package versions across inputs
