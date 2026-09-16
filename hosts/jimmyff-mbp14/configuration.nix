@@ -31,9 +31,12 @@
   kanata.enable = true; # home-row mods on the internal keyboard (see docs/darwin-install.md)
   kanata.platformKeys = import ./hardware/kanata-fn.nix; # MacBook function-row + caps layout
   playwright.enable = true;
-  nextdns.enable = true;
-  nextdns.vaultFile = "nextdns_mbp14.age";
+  # NextDNS via the tailnet's nameserver; a local profile would hide MagicDNS.
+  nextdns.enable = false;
+  # nextdns.vaultFile = "nextdns_mbp14.age";
   tailscale.enable = true; # docs/remote-dev.md
+  tailscale.overrideLocalDns = true;
+  networking.knownNetworkServices = [ "Wi-Fi" "USB 10/100/1000 LAN" "Thunderbolt Bridge" ];
   syncthing.enable = true; # docs/sync.md
   rclone.enable = true;
   restic.enable = true; # hourly vault snapshots → Koofr (see docs/restore.md)

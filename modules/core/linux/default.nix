@@ -6,7 +6,6 @@
     ../users.nix
     ../shared/ssh.nix
     ./ssh.nix
-    ../shared/fonts.nix
     ../shared/stow.nix
     ./qemu-guest.nix
     ./mdns.nix

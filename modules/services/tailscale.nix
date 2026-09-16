@@ -20,6 +20,15 @@ in {
       default = true;
       description = "Register MagicDNS with systemd-resolved (Linux only). Split DNS, so it coexists with NextDNS.";
     };
+
+    overrideLocalDns = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = ''
+        macOS only: make 100.100.100.100 the system resolver, so MagicDNS works and the
+        tailnet's nameservers answer everything else. Needs networking.knownNetworkServices.
+      '';
+    };
   };
 
   config = lib.mkIf cfg.enable (lib.mkMerge [
@@ -57,6 +66,7 @@ in {
       services.tailscale = {
         enable = true;
         package = pkgs-stable.tailscale;
+        overrideLocalDns = cfg.overrideLocalDns;
       };
     })
   ]);

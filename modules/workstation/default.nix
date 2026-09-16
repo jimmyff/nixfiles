@@ -1,6 +1,7 @@
 { ... }:
 {
   imports = [
+    ../core/shared/fonts.nix
     ./apps/cinny.nix
     ./apps/google-chrome.nix
     ./apps/workstation-security.nix

@@ -26,7 +26,6 @@ in {
     ../users_darwin.nix
     ../shared/ssh.nix
     ./ssh.nix
-    ../shared/fonts.nix
     ../shared/stow.nix
     ./homebrew.nix
     ./system-defaults.nix
