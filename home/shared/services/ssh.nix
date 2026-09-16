@@ -27,6 +27,9 @@
 
     settings."*" = {
       AddKeysToAgent = "yes";
+      # Fail a dead connection in ~2 min instead of hanging (deploys, roaming wifi).
+      ServerAliveInterval = 30;
+      ServerAliveCountMax = 4;
       # Only restrict to named keys on systems that have local keys.
       # Servers use agent forwarding, so IdentitiesOnly would block that.
       IdentitiesOnly = pkgs.stdenv.hostPlatform.isDarwin;

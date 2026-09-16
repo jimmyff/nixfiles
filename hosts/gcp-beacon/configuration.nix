@@ -13,6 +13,10 @@
 
   zramSwap.enable = true; # 1 GB RAM, no GCE swap — absorbs deploy-time memory spikes
 
+  # Keep the nixpkgs source (~470 MB, 50k files) out of the closure; deploys copy it over ssh.
+  nixpkgs.flake.setFlakeRegistry = false;
+  nixpkgs.flake.setNixPath = false;
+
   tailscale.enable = true; # docs/remote-dev.md
 
   services.ntfy-sh = {
