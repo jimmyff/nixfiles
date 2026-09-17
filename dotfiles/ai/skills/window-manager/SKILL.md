@@ -5,7 +5,7 @@ description: Control the desktop tiling window manager — AeroSpace on macOS, n
 
 # window-manager — tiling WM CLI
 
-Pick by platform: `aerospace` (macOS), `niri msg` (Linux). Flags drift between versions — trust `--help` over this file.
+Pick by platform: `aerospace` (macOS), `niri msg` (Linux). Whether floating is available on this host: `~/.agents/HOST.md`. Flags drift between versions — trust `--help` over this file.
 
 ## AeroSpace (macOS)
 

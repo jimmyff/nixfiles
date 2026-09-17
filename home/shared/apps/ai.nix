@@ -4,6 +4,7 @@
   pkgs-dev-tools,
   lib,
   config,
+  osConfig,
   ...
 }: let
   claude-cfg = config.claude-code_module;
@@ -13,6 +14,10 @@
 
   aiSkills = "${config.home.homeDirectory}/nixfiles/dotfiles/ai/skills";
   aiAgentsMd = "${config.home.homeDirectory}/nixfiles/dotfiles/ai/AGENTS.md";
+
+  # Per-host agent notes, imported by AGENTS.md: system facts only, never project details.
+  hostName = osConfig.networking.hostName;
+  hostNotes = "${config.home.homeDirectory}/nixfiles/hosts/${hostName}/HOST.md";
 
   # The project-docs helper on PATH. It runs from the live dotfiles path rather than a store copy:
   # the skill is edited most sessions, and `$env.FILE_PWD` does not resolve symlinks, so the script
@@ -36,6 +41,13 @@ in {
     # skills directory, so docket is gated on any of them rather than on one.
     (lib.mkIf (claude-cfg.enable || antigravity-cfg.enable || codex-cfg.enable || pi-cfg.enable) {
       home.packages = [docket];
+      assertions = [
+        {
+          assertion = builtins.pathExists (../../../hosts + "/${hostName}/HOST.md");
+          message = "hosts/${hostName}/HOST.md is missing — every host carries agent notes";
+        }
+      ];
+      home.file.".agents/HOST.md".source = config.lib.file.mkOutOfStoreSymlink hostNotes;
     })
 
     # ~/.agents/skills is the Agent Skills standard root. Codex and Pi both

@@ -31,7 +31,7 @@ Server-list changes go in the canonical file, not per-project. Both servers are 
 
 ## The live-app dev loop
 
-Runtime tools need an active DTD (Dart Tooling Daemon) connection. Two ways to get one:
+Runtime tools need an active DTD (Dart Tooling Daemon) connection. Two ways to get one (a headless host has only the second — see `~/.agents/HOST.md`):
 
 1. Agent-launched: `list_devices` → `launch_app` (wires up DTD automatically).
 2. User-launched: user runs `flutter run --print-dtd` and shares the URI; pass it to the `dtd` tool.

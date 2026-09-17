@@ -7,6 +7,7 @@
 - Solo developer & architect
 - Primary stack: Dart/Flutter, Nix, Rust, Nushell, SQLite, PostgreSQL, GCP, Firebase
 - Desktop: tiling window managers — AeroSpace (macOS), niri (Linux)
+- Host notes: @~/.agents/HOST.md
 - Point out learning opportunities when relevant
 
 ## Tone

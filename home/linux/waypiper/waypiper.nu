@@ -57,3 +57,14 @@ def open-links []: nothing -> list<string> {
     | where {|name| ($name | str starts-with $PREFIX) and ($env.XDG_RUNTIME_DIR | path join $name | path exists) }
     | uniq
 }
+
+# On the host: the linked workstation and its agent notes (hosts/<workstation>/HOST.md)
+def "main status" [] {
+    let links = open-links | each {|link| $link | str replace $PREFIX "" }
+    if ($links | is-empty) { print "no link"; return }
+    for workstation in $links {
+        print $"linked: ($workstation)"
+        let notes = ($env.HOME | path join nixfiles hosts $workstation HOST.md)
+        if ($notes | path exists) { print (open --raw $notes) }
+    }
+}
