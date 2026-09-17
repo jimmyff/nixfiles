@@ -952,16 +952,24 @@ def hub-more [docs: path] {
     }
 }
 
-# Loud on a miss: wl-clipboard ships only with the sway/niri desktop modules, so a host can
-# legitimately have neither tool, and a silent no-op there reads exactly like a successful copy.
+# Local sessions use pbcopy / wl-copy. Over ssh, or on a host without a Wayland session (a herdr
+# pane on nixbox), OSC 52 asks the attached terminal instead — unconfirmable, so it reports "sent".
 def to-clipboard [text: string] {
-    let tool = (if $nu.os-info.name == "macos" { "pbcopy" } else { "wl-copy" })
-    if (which $tool | is-empty) {
-        print $"(ansi yellow)note(ansi reset) ($tool) not on PATH — nothing copied"
+    let size = $"($text | into binary | length) bytes"
+    let tool = (if ($env.SSH_CONNECTION? | is-not-empty) {
+        null
+    } else if $nu.os-info.name == "macos" {
+        "pbcopy"
+    } else if ($env.WAYLAND_DISPLAY? | is-not-empty) {
+        "wl-copy"
+    })
+    if $tool != null and (which $tool | is-not-empty) {
+        $text | ^$tool
+        print $"(ansi green)copied(ansi reset) ($size)"
         return
     }
-    $text | ^$tool
-    print $"(ansi green)copied(ansi reset) ($text | into binary | length) bytes"
+    print --no-newline $"\e]52;c;($text | encode base64)\a"
+    print $"(ansi green)sent(ansi reset) ($size) to the terminal clipboard \(OSC 52\)"
 }
 
 # --------------------------------------------------------------------- entry
