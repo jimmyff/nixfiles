@@ -40,6 +40,9 @@
     org.gradle.daemon.idletimeout=1800000
   '';
 
+  # Software OpenGL for GUI apps shown via waypiper (no GPU).
+  hardware.graphics.enable = true;
+
   # Grow root to fill the disk on boot (Proxmox resizes).
   boot.growPartition = true;
   fileSystems."/".autoResize = true;

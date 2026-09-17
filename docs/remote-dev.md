@@ -28,6 +28,7 @@ herdr keeps the TUI local (chords, sidebar, kanata layers unchanged) and reconne
 - **Web:** on nixbox `flutter run -d web-server --web-hostname 0.0.0.0 --web-port 8080`, then open `http://nixbox:8080` from the laptop. `r` hot-reloads. The Chrome device target needs a local browser.
 - **Android:** phone on the tailnet with *Wireless debugging* on. From nixbox: `adb pair <phone>:<pair-port>` once, then `adb connect <phone>:<port>` and `flutter run -d <id>`. Hot reload works because adb and the VM-service forward both live on nixbox. Android re-randomises the port whenever wireless debugging toggles.
 - **Fallback:** build the APK on nixbox, copy it over, `adb install` with the `android-tools` package.
+- **Linux desktop:** on the laptop keep `waypiper nixbox` running, then on nixbox `waypiper run flutter run -d linux`. The window opens on the laptop; nixbox renders on the CPU. A dropped link closes the app; waypiper reconnects, so just rerun.
 
 ## Rebuilding nixelbook without local disk
 

@@ -9,6 +9,7 @@
     ../shared/apps
     # ./desktop/environment_cosmic
     ./desktop/environment_niri
+    ./waypiper/waypiper.nix
   ];
 
   config = {

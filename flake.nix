@@ -155,6 +155,7 @@
               claude-code_module.enable = true;
               codex_module.enable = true;
               pi_module.enable = true;
+              waypiper_module.enable = true;
             };
           }
         ];
@@ -182,6 +183,7 @@
               claude-code_module.enable = true;
               codex_module.enable = true;
               pi_module.enable = true;
+              waypiper_module.enable = true;
             };
           }
         ];
