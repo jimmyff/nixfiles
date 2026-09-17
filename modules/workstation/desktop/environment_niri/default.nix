@@ -19,4 +19,11 @@
   # Power management (matches the sway env)
   powerManagement.enable = true;
   services.tlp.enable = true;
+
+  # Bluetooth, managed from the blueman tray applet; radio off until switched on.
+  hardware.bluetooth = {
+    enable = true;
+    powerOnBoot = false;
+  };
+  services.blueman.enable = true;
 }

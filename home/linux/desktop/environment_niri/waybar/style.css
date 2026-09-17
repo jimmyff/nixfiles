@@ -13,7 +13,7 @@
 
 
 * {
-    font-family: JetBrainsPropo Nerd Font, Font Awesome;
+    font-family: JetBrainsMono Nerd Font Propo, Font Awesome;
     font-size: 16px;
     font-weight: bold;
     padding: 0;
@@ -23,7 +23,11 @@
 window#waybar {
     background-color: @background;
     color: @foreground;
-    padding: 0 16px;
+}
+
+/* Window padding is ignored; inset the right edge to match the workspaces side. */
+.modules-right {
+    margin-right: 8px;
 }
 
 
@@ -68,6 +72,17 @@ button:hover {
 #custom-notification.dnd-notification,
 #custom-notification.dnd-inhibited-none,
 #custom-notification.dnd-inhibited-notification {
+    color: @foreground-active;
+}
+
+#privacy-item {
+    color: @foreground-critical;
+}
+
+#custom-tailscale.stopped {
+    color: @foreground-inactive;
+}
+#custom-tailscale.exit-node {
     color: @foreground-active;
 }
 

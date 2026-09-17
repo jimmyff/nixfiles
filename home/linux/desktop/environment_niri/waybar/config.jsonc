@@ -9,158 +9,158 @@
     ],
     "modules-center": ["clock"],
     "modules-right": [
-        "wireplumber", 
+        "privacy",
+        "wireplumber",
+        "backlight",
         "cpu",
         "memory",
         "temperature",
-        "backlight",
-        //"sway/language", 
-        //"idle_inhibitor", 
-        "network",
-        "bluetooth",
-        "battery",
+        "custom/disk-io",
+        "disk",
+        "custom/tailscale",
         "custom/notification",
-        "tray"
+        "tray", // nm-applet and blueman-applet provide network and bluetooth
+        "battery"
     ],
-
-    //"hyprland/workspaces": {
-    //    "format": "{icon}",
-    //    "on-click": "activate",
-    //    "format-icons": {
-    //        "active": "\uf444",
-    //        "default": "\uf4c3"
-    //    },
-    //    "icon-size": 10,
-    //    "sort-by-number": true,
-    //    "persistent-workspaces": {
-    //        "1": [],
-    //        "2": [],
-    //        "3": [],
-    //        "4": [],
-    //        "5": [],
-    //    }
-    //},
 
     "niri/workspaces": {
         "format": "{icon}",
         "format-icons": {
-            "active": "\uf444",
-            "default": "\uf4c3"
+            "active": "",
+            "default": ""
         },
         "icon-size": 16
     },
 
-    "sway/mode": {
-        "format": "{}"
-    },
-    "sway/scratchpad": {
-        "format": "{icon}  r{count}",
-        "show-empty": false,
-        "format-icons": ["", ""],
-        "tooltip": true,
-        "tooltip-format": "{app}: {title}"
-    },
-
     "clock": {
-        "format": "{:%d.%m.%Y | %H:%M}"
+        "format": "{:%d.%m.%Y | %H:%M}",
+        "tooltip-format": "<span font_family='JetBrainsMono Nerd Font'>{calendar}</span>",
+        "calendar": {
+            "mode": "month",
+            "iso8601": true,
+            "format": {
+                "months": "<b>{}</b>",
+                "weekdays": "<span color='#888888'>{}</span>",
+                "today": "<span color='#00ffff'><b><u>{}</u></b></span>"
+            }
+        }
     },
 
+    // Shown only while the mic or screen is in use (red, see style.css).
+    "privacy": {
+        "icon-size": 16,
+        "modules": [
+            { "type": "screenshare" },
+            { "type": "audio-in" }
+        ]
+    },
+
+    // System: icon only, colour shows load, tooltip has the detail.
     "wireplumber": {
-        "format": "\udb81\udd7e {volume}%",
+        "format": "{icon}",
+        "format-muted": "󰖁",
+        "format-icons": ["󰕿", "󰖀", "󰕾"],
+        "tooltip-format": "{volume}% · {node_name}",
         "max-volume": 100,
         "scroll-step": 5,
         "on-click": "kitty --class wiremix wiremix"
     },
 
-    "battery": {
-        "bat": "BAT0",
-        "interval": 60,
-        "format": "{icon}  {capacity}%",
-        "format-icons": ["\uf244", "\uf243", "\uf242", "\uf241", "\uf240"],
-        "states": {
-            "warning": 40,
-            "critical": 15
-        }
+    "backlight": {
+        "device": "intel_backlight",
+        "format": "{icon}",
+        "format-icons": ["󰃞", "󰃟", "󰃠"],
+        "tooltip-format": "Brightness {percent}%",
+        "scroll-step": 5
     },
+
     "cpu": {
-        "icon-size" : 16,
-        "format": "  {usage}%",
-        "tooltip": false,
+        "format": "",
         "states": {
             "warning": 70,
             "critical": 90
         },
         "on-click": "kitty btop"
     },
+
     "memory": {
-        "icon-size" : 16,
-        "interval": 30,
-        "format": "\uf4bc  {percentage}%",
+        "interval": 10,
+        "format": "",
+        "tooltip-format": "RAM  {used:0.1f} / {total:0.1f} GiB ({percentage}%)\nSwap {swapUsed:0.1f} / {swapTotal:0.1f} GiB ({swapPercentage}%)",
         "states": {
-            "warning": 60,
-            "critical": 85
+            "warning": 75,
+            "critical": 90
         },
         "on-click": "kitty btop"
     },
 
     "temperature": {
-        "icon-size" : 16,
-        // "format-icons": ["", "", ""]
-        "format": "{temperatureC}°C",
-        "critical-threshold": 80,
+        "hwmon-path-abs": "/sys/devices/platform/coretemp.0/hwmon",
+        "input-filename": "temp1_input",
+        "format": "󰔏",
+        "tooltip-format": "CPU {temperatureC}°C",
+        "warning-threshold": 70,
+        "critical-threshold": 85,
         "on-click": "kitty btop"
     },
-    //"backlight": {
-    //    // "device": "acpi_video1",
-    //    "format": "{percent}% {icon}",
-    //    "format-icons": ["", "", "", "", "", "", "", "", ""]
-    //},
 
-    "network": {
-        "icon-size" : 16,
-        "format": "",
-        "format-ethernet": "\udb83\udc9d",
-        "format-wifi": "{icon}",
-        "format-disconnected": "\udb83\udc9c",
-        "format-icons": ["\udb82\udd2f", "\udb82\udd1f", "\udb82\udd22", "\udb82\udd25", "\udb82\udd28"],
-        "tooltip-format-wifi": "{essid} ({signalStrength}%)",
-        "tooltip-format-ethernet": "{ifname}",
-        "tooltip-format-disconnected": "Disconnected",
-        "on-click": "nm-connection-editor"
+    "custom/disk-io": {
+        "exec": "waybar-disk-io",
+        "return-type": "json",
+        "on-click": "kitty btop"
     },
 
-    "bluetooth": {
-        "icon-size" : 16,
-        "format": "\udb80\udcaf",
-        "format-disabled": "\udb80\udcb2",
-        "format-connected": "\udb80\udcb1",
-        "tooltip-format": "{controller_alias}\t{controller_address}",
-        "tooltip-format-connected": "{controller_alias}\t{controller_address}\n\n{device_enumerate}",
-        "tooltip-format-enumerate-connected": "{device_alias}\t{device_address}",
-        "on-click": "nm-connection-editor --type bluetooth --show"
+    "disk": {
+        "path": "/",
+        "interval": 60,
+        "format": "",
+        "tooltip-format": "{used} / {total} used ({percentage_used}%) · {free} free",
+        "states": {
+            "warning": 80,
+            "critical": 90
+        }
     },
 
-    "sway/language": {
-        "format": "{short}"
+    "custom/tailscale": {
+        "exec": "waybar-tailscale",
+        "return-type": "json",
+        "interval": 10,
+        "on-click": "kitty --class tailscale nu -e 'tailscale status'"
+    },
+
+    "battery": {
+        "bat": "BAT0",
+        "interval": 30,
+        "format": "{icon} {capacity}%",
+        "format-charging": "󰂄 {capacity}%",
+        "format-plugged": "󰚥 {capacity}%",
+        "format-full": "󰚥 {capacity}%",
+        "format-icons": ["", "", "", "", ""],
+        "tooltip-format": "{timeTo}\n{power:.1f} W",
+        "states": {
+            "warning": 25,
+            "critical": 10
+        },
+        "on-click": "kitty --class battery-monitor battery-monitor"
     },
 
     "tray": {
         "icon-size": 16,
-        "spacing": 16
+        "spacing": 8
     },
 
     "custom/notification": {
         "tooltip": true,
         "format": "{icon}",
         "format-icons": {
-            "notification": "\uf0f3",
-            "none": "\uf0f3",
-            "dnd-notification": "\uf1f6",
-            "dnd-none": "\uf1f6",
-            "inhibited-notification": "\uf0f3",
-            "inhibited-none": "\uf0f3",
-            "dnd-inhibited-notification": "\uf1f6",
-            "dnd-inhibited-none": "\uf1f6"
+            "notification": "",
+            "none": "",
+            "dnd-notification": "",
+            "dnd-none": "",
+            "inhibited-notification": "",
+            "inhibited-none": "",
+            "dnd-inhibited-notification": "",
+            "dnd-inhibited-none": ""
         },
         "return-type": "json",
         "exec-if": "which swaync-client",
@@ -170,24 +170,11 @@
         "escape": true
     },
 
-    //"custom/platform-profile": {
-	//"format": "{icon} ",
-	//"exec": "~/.config/waybar/platform_profile.sh",
-	//"return-type": "json",
-	//"restart-interval": 1,
-	//"format-icons": {
-	//    "quiet": "\udb80\udf2a",
-	//    "balanced": "\udb80\ude10",
-	//    "performance": "\uf427",
-    //        "default": "?"
-	//},
-    //},
-
     "idle_inhibitor": {
         "format": "{icon}",
         "format-icons": {
-            "activated": "\udb80\udd76",
-            "deactivated": "\udb83\udfaa"
+            "activated": "󰅶",
+            "deactivated": "󰾪"
         }
     }
 }

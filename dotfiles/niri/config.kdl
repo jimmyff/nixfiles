@@ -74,6 +74,14 @@ window-rule {
     match app-id="wiremix"
     open-floating true
 }
+window-rule {
+    match app-id="tailscale"
+    open-floating true
+}
+window-rule {
+    match app-id="battery-monitor"
+    open-floating true
+}
 
 // The startup overlay lists niri's DEFAULT binds, not ours — skip it.
 hotkey-overlay {
@@ -87,7 +95,8 @@ screenshot-path "~/Pictures/Screenshots/Screenshot from %Y-%m-%d %H-%M-%S.png"
 spawn-at-startup "/run/current-system/sw/bin/uwsm" "finalize"
 
 spawn-at-startup "waybar"
-spawn-at-startup "nm-applet" "--indicator"   // wifi/bluetooth icon in the waybar tray
+spawn-at-startup "nm-applet" "--indicator"   // network icon in the waybar tray
+spawn-at-startup "blueman-applet"             // bluetooth icon in the waybar tray
 spawn-at-startup "swaybg" "-c" "#1e1e2e"      // solid wallpaper (niri has no built-in bg)
 spawn-at-startup "wl-clip-persist" "--clipboard" "regular"   // keep clipboard after the source app closes
 
