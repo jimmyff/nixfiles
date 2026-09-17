@@ -14,6 +14,7 @@
   qemu-guest.enable = true;
   mdns.publish = true; # reachable as nasbox.local regardless of DHCP IP
   tailscale.enable = true; # docs/remote-dev.md
+  zramSwap.enable = true; # no swap disk; headroom for memory spikes
 
   # Always-on sync peer; folders sit on the archive tier so the Drive push covers them.
   syncthing.enable = true;
